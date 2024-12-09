@@ -56,7 +56,7 @@ async def cats_birthdays(message: Message):
             minutes, seconds = divmod(remainder, 60)
 
             responses.append(
-                f"{name}: через {days} дней, {hours} часов, {minutes} минут, {seconds} секунд (день рождения {next_birthday.date()})."
+                f"{name}: через {days} дней, {hours} часов, {minutes} минут, {seconds} секунд (день рождения {next_birthday.date()}).\n"
             )
 
     await message.reply("\n".join(responses))
