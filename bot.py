@@ -15,7 +15,7 @@ dp = Dispatcher()
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
-    await dp.include_routers(strt_router)
+    dp.include_routers(strt_router)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
