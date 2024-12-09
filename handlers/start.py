@@ -6,4 +6,8 @@ strt_router = Router()
 
 @strt_router.message(Command("start"))
 async def cmd_start(message: Message):
-    await message.reply("Привет!\nЭтот бот на данный момент находится в разработке, данная команда будет сделана позже")
+    await message.reply("Привет!\n"
+                        "На данный момент доступны эти команды:\n\n"
+                        "/start - Ты ввёл её совсем недавно"
+                        "/new_year - Отсчёт до нового года"
+                        "/birthdays - Отсчёты до дней рождения кошек")
