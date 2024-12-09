@@ -13,8 +13,6 @@ bot = Bot(token)
 # Диспетчер
 dp = Dispatcher()
 
-
-
 # Запуск процесса поллинга новых апдейтов
 async def main():
     await dp.include_routers(strt_router)
