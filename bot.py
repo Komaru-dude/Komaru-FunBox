@@ -2,6 +2,7 @@ import asyncio, logging, os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from handlers.start import strt_router
+from handlers.time import time_router
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ dp = Dispatcher()
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
-    dp.include_routers(strt_router)
+    dp.include_routers(strt_router, time_router)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
