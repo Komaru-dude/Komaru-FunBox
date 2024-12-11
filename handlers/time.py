@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 
 time_router = Router()
