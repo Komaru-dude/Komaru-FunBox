@@ -4,6 +4,7 @@ from aiogram import Bot, Dispatcher
 from handlers.start import strt_router
 from handlers.time import time_router
 from handlers.help import help_router
+from handlers.random import random_router
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ dp = Dispatcher()
 
 # Запуск процесса поллинга новых апдейтов
 async def main():
-    dp.include_routers(strt_router, time_router, help_router)
+    dp.include_routers(strt_router, time_router, help_router, random_router)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
