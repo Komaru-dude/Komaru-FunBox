@@ -1,7 +1,7 @@
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.enums import ParseMode
-import db
+from bot import db
 
 rp_router = Router()
 
