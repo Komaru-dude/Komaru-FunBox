@@ -1,0 +1,15 @@
+[Unit]
+Description=Komaru FunBox bot
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/panchaniche/Komaru-FunBox
+EnvironmentFile=/home/panchaniche/Komaru-FunBox/.env
+ExecStart=/home/panchaniche/Komaru-FunBox/venv/bin/python -m bot
+KillMode=process
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
