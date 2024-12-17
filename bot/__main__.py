@@ -1,10 +1,10 @@
 import asyncio, logging, os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
-from handlers.start import strt_router
-from handlers.time import time_router
-from handlers.help import help_router
-from handlers.random import random_router
+from .handlers.start import strt_router
+from .handlers.time import time_router
+from .handlers.help import help_router
+from .handlers.random import random_router
 
 load_dotenv()
 
