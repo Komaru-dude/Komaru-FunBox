@@ -6,10 +6,12 @@ After=network.target
 Type=simple
 WorkingDirectory=/home/panchaniche/Komaru-FunBox
 EnvironmentFile=/home/panchaniche/Komaru-FunBox/.env
+ExecStartPre=/usr/bin/git -C /home/panchaniche/Komaru-FunBox pull
 ExecStart=/home/panchaniche/Komaru-FunBox/venv/bin/python -m bot
 KillMode=process
 Restart=always
 RestartSec=10
+User=panchaniche
 
 [Install]
 WantedBy=multi-user.target
