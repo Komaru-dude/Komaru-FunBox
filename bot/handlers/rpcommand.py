@@ -22,7 +22,7 @@ async def text(message: Message):
     if message.text and 'сжечь' in message.text.lower():
         parts = message.text.split()
         if message.reply_to_message:
-            target_user_id = message.reply_to_message.from_user.id
+            target_id = message.reply_to_message.from_user.id
             target_first_name = message.reply_to_message.from_user.first_name
             # Создаём ссылку на профили обоих пользователей
             profile_link = f"tg://user?id={user_id}"
