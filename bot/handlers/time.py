@@ -34,44 +34,52 @@ async def time_to_new_year(message: Message):
         f"До 2025 года осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
     )
 
-# Команда для вычисления времени до дня рождения кошек
 @time_router.message(Command("birthdays"))
 async def cats_birthdays(message: Message):
     command = message.text.strip().split()
-    tz = moscow_tz  # По умолчанию Московское время
+    tz = moscow_tz
     if len(command) > 1 and command[1].lower() == "krsk":
-        tz = krsk_tz  # Используем Красноярское время, если указано "krsk"
+        tz = krsk_tz
 
     cats = {
-        "Комуги": datetime(2016, 3, 23),
-        "Комару": datetime(2017, 5, 22),
-        "Кокоа(воин кукурузных полей)": datetime(2019, 5, 12),
-        "Панчан(ПАНТЯЯЯЯЯЯЯЯ)": datetime(2016, 12, 13),
-        "Гома": datetime(2013, 10, 20),
-        "Тобо-кун": datetime(2018, 4, 25),
-        "Суу": datetime(2015, 2, 14),
-        "Горомару": datetime(2015, 11, 10),
+        "Комуги": tz.localize(datetime(2016, 3, 23)),
+        "Комару": tz.localize(datetime(2017, 5, 22)),
+        "Кокоа(воин кукурузных полей)": tz.localize(datetime(2019, 5, 12)),
+        "Панчан(ПАНТЯЯЯЯЯЯЯЯ)": tz.localize(datetime(2016, 12, 13)),
+        "Гома": tz.localize(datetime(2013, 10, 20)),
+        "Тобо-кун": tz.localize(datetime(2018, 4, 25)),
+        "Суу": tz.localize(datetime(2015, 2, 14)),
+        "Горомару": tz.localize(datetime(2015, 11, 10)),
     }
 
     now = datetime.now(tz)
     responses = []
 
     for name, birthday in cats.items():
-        # Переносим день рождения в текущий или следующий год
-        next_birthday = birthday.replace(year=now.year, tzinfo=tz)
+        # Переносим день рождения на текущий год
+        next_birthday = birthday.replace(year=now.year)
+
+        # Проверяем, совпадает ли текущая дата с днем рождения
+        if next_birthday.date() == now.date():
+            responses.append(f"🎉 Сегодня день рождения у {name}! Поздравьте кошку! 🎂")
+            continue  # Пропускаем расчёт следующего дня рождения
+
+        # Если день рождения уже прошёл, переносим его на следующий год
         if next_birthday < now:
             next_birthday = next_birthday.replace(year=now.year + 1)
 
-        if next_birthday.date() == now.date():
-            responses.append(f"🎉 Сегодня день рождения у {name}! Поздравьте кошку! 🎂")
-        else:
-            time_delta = next_birthday - now
-            days = time_delta.days
-            hours, remainder = divmod(time_delta.seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
+        # Рассчитываем разницу во времени
+        time_delta = next_birthday - now
+        days, remainder = divmod(time_delta.total_seconds(), 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, seconds = divmod(remainder, 60)
 
-            responses.append(
-                f"{name}: через {days} дней, {hours} часов, {minutes} минут, {seconds} секунд (день рождения {next_birthday.date()}).\n"
-            )
+        responses.append(
+            f"{name}: через {int(days)} дней, {int(hours)} часов, {int(minutes)} минут, {int(seconds)} секунд "
+            f"(день рождения {next_birthday.date()})."
+        )
 
-    await message.reply("\n".join(responses))
+    if responses:
+        await message.reply("\n".join(responses))
+    else:
+        await message.reply("Данные о днях рождения кошек не найдены.")
