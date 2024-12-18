@@ -6,7 +6,7 @@ from bot import db
 rp_router = Router()
 
 @rp_router.message()
-async def text_burn(message: Message):
+async def text(message: Message):
     user_id = message.from_user.id
     username = message.from_user.username
     first_name = message.from_user.first_name
@@ -19,11 +19,11 @@ async def text_burn(message: Message):
     if not db.user_have_first_name(user_id):
         db.add_first_name(user_id, first_name)
 
-    if 'сжечь' in message.text.lower():
+    if message.text and 'сжечь' in message.text.lower():
         parts = message.text.split()
         
         if len(parts) > 1:
-            target_username = parts[1]
+            target_username = parts[1].lstrip('@')
             if not db.get_user_id_by_username(target_username):
                 await message.reply("Синтаксис некорректен, используйте 'сжечь @пользователь' или ответьте на сообщение пользователя")
                 return
