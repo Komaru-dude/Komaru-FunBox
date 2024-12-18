@@ -82,4 +82,4 @@ async def cats_birthdays(message: Message):
     if responses:
         await message.reply("\n".join(responses))
     else:
-        await message.reply("Данные о днях рождения кошек не найдены.")
+        await message.reply("Непредвиденная ошибка во время выполнения команды.")
