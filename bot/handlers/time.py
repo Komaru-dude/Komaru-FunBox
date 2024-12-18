@@ -44,7 +44,7 @@ async def cats_birthdays(message: Message):
     cats = {
         "Комуги": tz.localize(datetime(2016, 3, 23)),
         "Комару": tz.localize(datetime(2017, 5, 22)),
-        "Кокоа(воин кукурузных полей)": tz.localize(datetime(2019, 5, 12)),
+        "Кокоа(кукурузный воин)": tz.localize(datetime(2019, 5, 12)),
         "Панчан(ПАНТЯЯЯЯЯЯЯЯ)": tz.localize(datetime(2016, 12, 13)),
         "Гома": tz.localize(datetime(2013, 10, 20)),
         "Тобо-кун": tz.localize(datetime(2018, 4, 25)),
