@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/panchaniche/Komaru-FunBox
-EnvironmentFile=/home/panchaniche/Komaru-FunBox/.env
-ExecStartPre=/usr/bin/git -C /home/panchaniche/Komaru-FunBox pull
-ExecStart=/home/panchaniche/Komaru-FunBox/venv/bin/python -m bot
+WorkingDirectory=/home/panchan/Komaru-FunBox
+EnvironmentFile=/home/panchan/Komaru-FunBox/.env
+ExecStartPre=/usr/bin/git -C /home/panchan/Komaru-FunBox pull
+ExecStart=/home/panchan/Komaru-FunBox/venv/bin/python -m bot
 KillMode=process
 Restart=always
 RestartSec=10
-User=panchaniche
+User=panchan
 
 [Install]
 WantedBy=multi-user.target
