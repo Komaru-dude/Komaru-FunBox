@@ -8,15 +8,11 @@ time_router = Router()
 
 # Определяем часовые пояса
 moscow_tz = pytz.timezone('Europe/Moscow')
-krsk_tz = pytz.timezone('Asia/Krasnoyarsk')
 
 # Команда для вычисления времени до Нового года 2025
 @time_router.message(Command("new_year"))
 async def time_to_new_year(message: Message):
-    command = message.text.strip().split()
     tz = moscow_tz  # По умолчанию Московское время
-    if len(command) > 1 and command[1].lower() == "krsk":
-        tz = krsk_tz  # Используем Красноярское время, если указано "krsk"
 
     # Задаём дату без часового пояса и локализуем её
     event_date = datetime(2025, 1, 1, 0, 0, 0)  # 1 января 2025 года, 00:00
