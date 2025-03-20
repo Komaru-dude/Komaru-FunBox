@@ -6,8 +6,8 @@ from .handlers.time import time_router
 from .handlers.help import help_router
 from .handlers.random import random_router
 from .handlers.rp import rp_router
-from .handlers.text import text_router
 from .handlers.privet import pr_router
+from .handlers.text import text_router
 
 load_dotenv()
 
