@@ -30,8 +30,6 @@ async def text(message: Message):
         db.add_user(user_id)
     if not db.user_have_username(user_id):
         db.add_username(user_id, username=username.lstrip('@') if username else None)
-    if not db.user_have_first_name(user_id):
-        db.add_first_name(user_id, first_name)
 
 
     
