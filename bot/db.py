@@ -1,13 +1,17 @@
-import sqlite3, os, json, time
+from json import load
+import sqlite3, os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Определяем абсолютный путь к папке data
-BASE_DIR = Path(__file__).resolve().parent.parent  # Корень проекта (на уровень выше папки bot)
+BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)  # Создаём папку, если не существует
+DATA_DIR.mkdir(exist_ok=True)
 
 # Абсолютный путь к базе данных
 DB_PATH = DATA_DIR / "users.db"
+
+load_dotenv()
 
 def create_db():
     conn = sqlite3.connect(DB_PATH)
@@ -27,15 +31,16 @@ def create_db():
 if not os.path.exists(DB_PATH):
     create_db()
 
-# Функция для проверки ранга пользователя
 def has_permission(user_id, level):
-    # Словарь с уровнями и соответствующими рангами
     rank_to_level = {
         "Участник": 0,
         "Модератор": 1,
         "Администратор": 2,
         "Владелец": 3
     }
+
+    if str(user_id) == os.getenv("OWNER_ID"):
+        return True
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -48,13 +53,13 @@ def has_permission(user_id, level):
     if result is None:
         return False
     
-    user_rank = result[0]  # Получаем статус пользователя
+    user_rank = result[0]
     user_level = rank_to_level.get(user_rank)
     
     if user_level is None:
-        return False  # Если ранг не найден в словаре, возвращаем False
+        return False
 
-    return user_level >= level  # Проверяем, соответствует ли уровень пользователя требуемому
+    return user_level >= level
 
 def user_have_username(user_id):
     conn = sqlite3.connect(DB_PATH)
@@ -138,9 +143,7 @@ def get_user_data(user_id):
     user_data = cursor.fetchone()
     
     if user_data is None:
-        # Если пользователя нет, создаём его
         add_user(user_id)
-        # Повторно извлекаем данные для нового пользователя
         cursor.execute('''SELECT * FROM users WHERE user_id = ?''', (user_id,))
         user_data = cursor.fetchone()
     
