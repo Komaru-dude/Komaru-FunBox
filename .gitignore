@@ -1,5 +1,5 @@
 .vscode
 .venv
 .env
-users.db
+data
 __pycache__

@@ -1,6 +1,13 @@
 import sqlite3, os, json, time
+from pathlib import Path
 
-DB_PATH = "users.db"
+# Определяем абсолютный путь к папке data
+BASE_DIR = Path(__file__).resolve().parent.parent  # Корень проекта (на уровень выше папки bot)
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)  # Создаём папку, если не существует
+
+# Абсолютный путь к базе данных
+DB_PATH = DATA_DIR / "users.db"
 
 def create_db():
     conn = sqlite3.connect(DB_PATH)
