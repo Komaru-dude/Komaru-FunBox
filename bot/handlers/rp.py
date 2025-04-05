@@ -24,14 +24,13 @@ def save_custom_commands(chat_id: int, commands: dict):
         json.dump(commands, f, ensure_ascii=False, indent=2)
 
 def get_chat_commands(chat_id: int):
-    """Получение команд для конкретного чата"""
-    base_commands = load_commands(BASE_COMMANDS_PATH)
     custom_path = CUSTOM_DIR / f"{chat_id}.json"
     
     if custom_path.exists():
-        custom_commands = load_commands(custom_path)
-        return {**base_commands, **custom_commands}
-    return base_commands
+        custom_commands = {cmd["command"]: cmd for cmd in load_commands(custom_path)}
+        return custom_commands
+    
+    return {}
 
 @rp_router.message(Command("rp_setup"))
 async def rp_setup_cmd(message: Message):
@@ -57,3 +56,15 @@ async def rp_setup_yes(callback: CallbackQuery):
 @rp_router.callback_query(F.data == "No")
 async def rp_setup_no(callback: CallbackQuery):
     await callback.message.reply("Отмена")
+
+@rp_router.message(Command("rp_list"))
+async def rp_list_cmd(message: Message):
+    chat_id = message.chat.id
+    commands = get_chat_commands(chat_id)
+    
+    if not commands:
+        await message.reply("В этом чате нет доступных RP-команд.")
+        return
+    
+    command_list = "\n".join(f"{cmd['command']} - {cmd['description']}" for cmd in commands.values())
+    await message.reply(f"Доступные RP-команды:\n{command_list}")
