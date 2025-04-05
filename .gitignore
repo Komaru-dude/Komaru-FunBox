@@ -3,3 +3,5 @@
 .env
 data
 __pycache__
+.session
+.session-journal
