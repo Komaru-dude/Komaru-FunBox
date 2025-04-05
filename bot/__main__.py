@@ -12,15 +12,11 @@ from .handlers.text import text_router
 
 load_dotenv()
 
-# Включаем логирование, чтобы не пропустить важные сообщения
 logging.basicConfig(level=logging.INFO)
-# Объект бота
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
-# Диспетчер
 dp = Dispatcher()
 
-# Запуск процесса поллинга новых апдейтов
 async def main():
     dp.include_routers(strt_router, time_router, help_router, random_router, rp_router, pr_router, ai_router, text_router)
     pyrogram_process = subprocess.Popen(["uvicorn", "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"])
@@ -31,8 +27,8 @@ async def main():
         print("Бот выключен")
     finally:
         await bot.close()
-        pyrogram_process.send_signal(signal.SIGTERM)  # Отправляем сигнал для остановки Pyrogram-бота
-        pyrogram_process.wait()  # Ждём завершения процесса Pyrogram
+        pyrogram_process.send_signal(signal.SIGTERM)
+        pyrogram_process.wait()
 
 if __name__ == "__main__":
     asyncio.run(main())
