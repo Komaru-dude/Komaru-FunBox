@@ -22,7 +22,7 @@ dp = Dispatcher()
 # Запуск процесса поллинга новых апдейтов
 async def main():
     dp.include_routers(strt_router, time_router, help_router, random_router, rp_router, pr_router, text_router)
-    pyrogram_process = subprocess.Popen(["uvicorn", "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8000"])
+    pyrogram_process = subprocess.Popen(["uvicorn", "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"])
 
     try:
         await dp.start_polling(bot)
