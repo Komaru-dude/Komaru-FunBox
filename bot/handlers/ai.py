@@ -32,7 +32,7 @@ async def cmd_gpt(message: Message):
 
         data = response.json()
         answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-        await base_msg.edit_text(f"🧠 Ответ нейросети: {answer}")
+        await base_msg.edit_text(f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}")
 
     except requests.RequestException as e:
         await base_msg.edit_text(f"❌ Ошибка запроса: {e}")
