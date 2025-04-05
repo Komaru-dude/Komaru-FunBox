@@ -10,3 +10,6 @@ OWNER_ID=your_owner_id
 # Ваши API_ID и api_hash (можно взять тут: https://my.telegram.org/apps)
 API_ID=your_api_id
 api_hash=your_api_hash
+
+# Ваш url для апи нейросетей
+API_URL=http://api.onlysq.ru/ai/v2
