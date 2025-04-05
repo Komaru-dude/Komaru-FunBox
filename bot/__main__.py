@@ -27,6 +27,8 @@ async def main():
 
     try:
         await dp.start_polling(bot)
+    except KeyboardInterrupt:
+        print("Бот выключен")
     finally:
         await bot.close()
         pyrogram_process.send_signal(signal.SIGTERM)  # Отправляем сигнал для остановки Pyrogram-бота
