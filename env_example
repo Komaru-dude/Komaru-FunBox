@@ -1,10 +1,10 @@
 # Пример .env файла для настройки бота
 # Переименуйте в .env если будете использовать
 
-# Токен API бота
+# Токен API бота (можно взять тут: https://t.me/BotFather)
 BOT_API_TOKEN=your_bot_api_token
 
-# ID владельца
+# ID владельца (можно взять тут: https://t.me/getmyid_bot)
 OWNER_ID=your_owner_id
 
 # Ваши API_ID и api_hash (можно взять тут: https://my.telegram.org/apps)
