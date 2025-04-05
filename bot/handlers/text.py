@@ -46,33 +46,60 @@ async def text(message: Message):
     if command not in commands:
         return
 
-    if len(split_text) < 2:
-        await message.reply("Укажи пользователя после команды.")
+    if not message.reply_to_message and len(split_text) < 2:
+        await message.reply("Укажи пользователя после команды или ответь на его сообщение.")
         return
 
-    # Парсим второго пользователя через сервер
-    entities = message.entities or []
     target_user = None
 
-    for entity in entities:
-        if entity.type == "text_mention":
-            target_user = entity.user
-            break
-        elif entity.type == "mention":
-            username = text_msg[entity.offset + 1: entity.offset + entity.length]
-            try:
-                response = requests.get(f"{API_URL}/user/{username}")
-                data = response.json()
-                if "user_id" in data:
-                    user_id = data["user_id"]
+    if message.reply_to_message:
+        target_user = message.reply_to_message.from_user
+    else:
+        entities = message.entities or []
+        space_pos = text_msg.find(' ')
+        args_start = space_pos + 1 if space_pos != -1 else len(text_msg)
 
-                    response_name = requests.get(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
-                    name_data = response_name.json()
+        for entity in entities:
+            if entity.offset < args_start:
+                continue
 
-                    target_user = type('User', (object,), {"id": user_id, "first_name": name_data.get("first_name", "Неизвестный")})
-            except Exception:
-                pass
-            break
+            if entity.type == "text_mention":
+                target_user = entity.user
+                break
+            elif entity.type == "mention":
+                username = text_msg[entity.offset: entity.offset + entity.length].lstrip('@')
+                try:
+                    response = requests.get(f"{API_URL}/user/{username}")
+                    data = response.json()
+                    if "user_id" in data:
+                        user_id = data["user_id"]
+                        response_name = requests.get(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
+                        name_data = response_name.json()
+                        target_user = type('User', (object,), {
+                            "id": user_id,
+                            "first_name": name_data.get("first_name", "Неизвестный")
+                        })
+                except Exception as e:
+                    print(f"Ошибка при получении данных пользователя: {e}")
+                break
+
+        if not target_user and space_pos != -1:
+            args = text_msg[space_pos+1:].split()
+            if args:
+                username = args[0].lstrip('@')
+                try:
+                    response = requests.get(f"{API_URL}/user/{username}")
+                    data = response.json()
+                    if "user_id" in data:
+                        user_id = data["user_id"]
+                        response_name = requests.get(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
+                        name_data = response_name.json()
+                        target_user = type('User', (object,), {
+                            "id": user_id,
+                            "first_name": name_data.get("first_name", "Неизвестный")
+                        })
+                except Exception as e:
+                    print(f"Ошибка при получении данных пользователя: {e}")
 
     if not target_user:
         await message.reply("Не удалось найти пользователя.")
