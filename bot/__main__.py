@@ -1,4 +1,4 @@
-import asyncio, logging, os
+import asyncio, logging, os, subprocess, signal
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from .handlers.start import strt_router
@@ -22,7 +22,14 @@ dp = Dispatcher()
 # Запуск процесса поллинга новых апдейтов
 async def main():
     dp.include_routers(strt_router, time_router, help_router, random_router, rp_router, pr_router, text_router)
-    await dp.start_polling(bot)
+    pyrogram_process = subprocess.Popen(["uvicorn", "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8000"])
+
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.close()
+        pyrogram_process.send_signal(signal.SIGTERM)  # Отправляем сигнал для остановки Pyrogram-бота
+        pyrogram_process.wait()  # Ждём завершения процесса Pyrogram
 
 if __name__ == "__main__":
     asyncio.run(main())
