@@ -87,3 +87,11 @@ async def cmd_privebradok(message: Message):
          await message.reply_to_message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
     else:
         await message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
+
+@base_router.message(Command("say"))
+async def cmd_say(message: Message):
+    split_text = message.text.split(maxsplit=1)
+    if len(split_text) > 1:
+        await message.answer(split_text[1])
+    else:
+        await message.reply("А что говорить то?")
