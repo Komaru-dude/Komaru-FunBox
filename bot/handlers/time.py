@@ -31,7 +31,6 @@ async def time_to_new_year(message: Message):
 
 @time_router.message(Command("birthdays"))
 async def cats_birthdays(message: Message):
-    command = message.text.strip().split()
     tz = moscow_tz
 
     cats = {
