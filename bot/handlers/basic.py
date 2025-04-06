@@ -105,5 +105,9 @@ async def cmd_say(message: Message):
     split_text = message.text.split(maxsplit=1)
     if len(split_text) > 1:
         await message.answer(split_text[1])
+        try:
+            await message.delete()
+        except:
+            await message.answer("Брадочки, оформите права на удаление сообщений 😢")
     else:
         await message.reply("А что говорить то?")
