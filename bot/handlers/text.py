@@ -114,4 +114,7 @@ async def text(message: Message):
     text_template = random.choice(cmd["messages"])
     result_text = text_template.format(user1=user1_link, user2=user2_link)
 
-    await message.answer(result_text, parse_mode=ParseMode.HTML)
+    if message.reply_to_message:
+        await message.reply_to_message.reply(result_text, parse_mode=ParseMode.HTML)
+    else:
+        await message.answer(result_text, parse_mode=ParseMode.HTML)
