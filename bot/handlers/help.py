@@ -20,7 +20,7 @@ async def cmd_help(message: Message):
         "privetbradok": "Поприветствовать брадка",
         "say": "Бот скажет что-то от своего имени",
         "gemini": "Бот сделает запрос к gemini",
-        "aggpt": "\"Злая\" версия /gemini",
+        "aggemini": "\"Злая\" версия /gemini",
         "search": "Поиск с помощью searchgpt",
         "image": "Бот сделает запрос к flux"
     }
