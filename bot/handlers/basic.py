@@ -1,11 +1,14 @@
 import random, requests, os
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 
 base_router = Router()
+current_dir = os.path.dirname(os.path.abspath(__file__))
+media_folder = os.path.join(current_dir, '..', 'media')
+sticker_extensions = {".webp", ".tgs", ".webm"}
 API_URL = "http://127.0.0.1:8001"
 
 @base_router.message(Command("start"))
@@ -83,10 +86,19 @@ async def cmd_privebradok(message: Message):
             return
     user2_link = f'<a href="tg://user?id={target_id}">{first_name}</a>'
 
-    if message.reply_to_message:
+    stick = random.choice([True, False])
+
+    if message.reply_to_message and not stick:
          await message.reply_to_message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
-    else:
+    elif not stick:
         await message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
+    else:
+        stickers = [f for f in os.listdir(media_folder) if os.path.splitext(f)[1].lower() in sticker_extensions]
+        if not stickers:
+            raise FileNotFoundError("Нет стикеров в ../media")
+        random_stick = random.choice(stickers)
+        sticker = FSInputFile(os.path.join(media_folder, random_stick))
+        await message.reply_sticker(sticker)
 
 @base_router.message(Command("say"))
 async def cmd_say(message: Message):
