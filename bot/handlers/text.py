@@ -1,4 +1,6 @@
-import json, random, requests, os
+import json
+import random
+import requests
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.enums import ParseMode
@@ -9,7 +11,8 @@ text_router = Router()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
-API_URL = os.getenv("API_URL")
+
+API_URL = "http://127.0.0.1:8001"
 
 def load_commands(path: Path):
     try:
