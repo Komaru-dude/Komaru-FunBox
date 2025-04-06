@@ -98,7 +98,10 @@ async def cmd_privebradok(message: Message):
             raise FileNotFoundError("Нет стикеров в ../media")
         random_stick = random.choice(stickers)
         sticker = FSInputFile(os.path.join(media_folder, random_stick))
-        await message.reply_sticker(sticker)
+        if message.reply_to_message:
+            await message.reply_to_message.reply_sticker(sticker)
+        else:
+            await message.reply_sticker(sticker)
 
 @base_router.message(Command("say"))
 async def cmd_say(message: Message):
