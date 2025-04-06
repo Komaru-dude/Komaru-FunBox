@@ -32,13 +32,12 @@ async def text(message: Message):
     user1 = message.from_user
     text_msg = message.text
 
-    # Регистрация пользователя
     if not db.user_exists(user1.id):
         db.add_user(user1.id)
-
-    commands = get_chat_commands(message.chat.id)
     if not text_msg:
         return
+
+    commands = get_chat_commands(message.chat.id)
 
     split_text = text_msg.split(maxsplit=1)
     command = split_text[0].lstrip('/')
