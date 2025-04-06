@@ -125,8 +125,8 @@ async def process_command_name(message: Message, state: FSMContext):
 async def process_description(message: Message, state: FSMContext):
     description = message.text.strip()
     
-    if len(description) > 100:
-        await message.reply("❌ Слишком длинное описание (макс. 100 символов)")
+    if len(description) > 20:
+        await message.reply("❌ Слишком длинное описание (макс. 20 символов)")
         return
         
     if not description:
@@ -156,9 +156,9 @@ async def process_messages(message: Message, state: FSMContext):
     cur_commands = get_chat_commands(chat_id)
     
     # Проверка максимального количества сообщений
-    if len(messages_list) > 10:
-        await message.reply("⚠️ Можно добавить не более 10 вариантов. Сохраняем первые 10.")
-        messages_list = messages_list[:10]
+    if len(messages_list) > 4:
+        await message.reply("⚠️ Можно добавить не более 4 вариантов. Сохраняем первые 4.")
+        messages_list = messages_list[:4]
     
     cur_commands[command_name] = {
         "command": command_name,
