@@ -92,12 +92,6 @@ async def cmd_rp_add(message: Message, state: FSMContext):
         "❌ Для отмены введите /cancel", parse_mode=ParseMode.HTML)
     await state.set_state(AddRpCommandStates.waiting_for_command_name)
 
-@rp_router.message(Command("cancel"))
-@rp_router.message(F.text.casefold() == "отмена")
-async def cmd_cancel(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer("❌ Процесс добавления команды отменен")
-
 @rp_router.message(AddRpCommandStates.waiting_for_command_name)
 async def process_command_name(message: Message, state: FSMContext):
     command_name = message.text.strip().lower()
