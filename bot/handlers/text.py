@@ -1,6 +1,6 @@
 import json
 import random
-import requests
+import aiohttp
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.enums import ParseMode
@@ -14,18 +14,25 @@ CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
 
 API_URL = "http://127.0.0.1:8001"
 
-def load_commands(path: Path):
+async def load_commands(path: Path):
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return []
 
-def get_chat_commands(chat_id: int):
+async def get_chat_commands(chat_id: int):
     custom_path = CUSTOM_DIR / f"{chat_id}.json"
     if custom_path.exists():
-        return {cmd["command"]: cmd for cmd in load_commands(custom_path)}
-    return {cmd["command"]: cmd for cmd in load_commands(BASE_COMMANDS_PATH)}
+        return {cmd["command"]: cmd for cmd in await load_commands(custom_path)}
+    return {cmd["command"]: cmd for cmd in await load_commands(BASE_COMMANDS_PATH)}
+
+async def fetch_json(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise Exception(f"Ошибка API: статус {response.status}")
+            return await response.json()
 
 @text_router.message()
 async def text(message: Message):
@@ -37,7 +44,7 @@ async def text(message: Message):
     if not text_msg:
         return
 
-    commands = get_chat_commands(message.chat.id)
+    commands = await get_chat_commands(message.chat.id)
 
     split_text = text_msg.split(maxsplit=1)
     command = split_text[0].lstrip('/')
@@ -68,12 +75,10 @@ async def text(message: Message):
             elif entity.type == "mention":
                 username = text_msg[entity.offset: entity.offset + entity.length].lstrip('@')
                 try:
-                    response = requests.get(f"{API_URL}/user/{username}")
-                    data = response.json()
+                    data = await fetch_json(f"{API_URL}/user/{username}")
                     if "user_id" in data:
                         user_id = data["user_id"]
-                        response_name = requests.get(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
-                        name_data = response_name.json()
+                        name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
                         target_user = type('User', (object,), {
                             "id": user_id,
                             "first_name": name_data.get("first_name", "Неизвестный")
@@ -87,12 +92,10 @@ async def text(message: Message):
             if args:
                 username = args[0].lstrip('@')
                 try:
-                    response = requests.get(f"{API_URL}/user/{username}")
-                    data = response.json()
+                    data = await fetch_json(f"{API_URL}/user/{username}")
                     if "user_id" in data:
                         user_id = data["user_id"]
-                        response_name = requests.get(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
-                        name_data = response_name.json()
+                        name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
                         target_user = type('User', (object,), {
                             "id": user_id,
                             "first_name": name_data.get("first_name", "Неизвестный")

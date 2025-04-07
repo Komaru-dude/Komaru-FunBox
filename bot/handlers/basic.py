@@ -1,4 +1,4 @@
-import random, requests, os
+import random, aiohttp, os
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
@@ -11,6 +11,13 @@ media_folder = os.path.join(current_dir, '..', 'media')
 sticker_extensions = {".webp", ".tgs", ".webm"}
 API_URL = "http://127.0.0.1:8001"
 
+async def fetch_json(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise Exception(f"Ошибка API: статус {response.status}")
+            return await response.json()
+
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):
     await message.reply("Привет!\n"
@@ -19,7 +26,6 @@ async def cmd_start(message: Message):
     
 @base_router.message(Command("random"))
 async def cmd_random(message: Message):
-
     responses = [
         "Да, без сомнений!",
         "Нет, это не сбудется.",
@@ -30,7 +36,6 @@ async def cmd_random(message: Message):
         "Я бы сказал да.",
     ]
     response = random.choice(responses)
-    
     await message.answer(response)
 
 @base_router.message(Command("cancel"))
@@ -54,15 +59,11 @@ async def cmd_privebradok(message: Message):
         if len(split_text) > 1 and split_text[1].startswith("@"):
             username = split_text[1][1:]
             try:
-                response = requests.get(f"{API_URL}/user/{username}")
-                data = response.json()
+                data = await fetch_json(f"{API_URL}/user/{username}")
 
                 if "user_id" in data:
                     target_id = data["user_id"]
-
-                    response_name = requests.get(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
-                    name_data = response_name.json()
-
+                    name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
                     first_name = name_data.get("first_name", "Неизвестный")
                 else:
                     await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
@@ -74,9 +75,7 @@ async def cmd_privebradok(message: Message):
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
             try:
-                chat_id = message.chat.id
-                response = requests.get(f"{API_URL}/first_name/{chat_id}/{target_id}")
-                data = response.json()
+                data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
                 first_name = data.get("first_name", "Неизвестный")
             except Exception as e:
                 await message.reply(f"Произошла ошибка {e} при обработке запроса.")
@@ -84,6 +83,7 @@ async def cmd_privebradok(message: Message):
         else:
             await message.reply("Укажите пользователя через реплай, @username или айди.")
             return
+
     user2_link = f'<a href="tg://user?id={target_id}">{first_name}</a>'
 
     stick = random.choice([True, False])

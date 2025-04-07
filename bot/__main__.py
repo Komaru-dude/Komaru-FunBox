@@ -1,4 +1,4 @@
-import asyncio, logging, os, subprocess, signal
+import asyncio, logging, os, subprocess, signal, sys
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from .handlers.basic import base_router
@@ -14,6 +14,9 @@ logging.basicConfig(level=logging.INFO)
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
+
+if sys.platform == 'win32':
+	asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 async def main():
     dp.include_routers(base_router, time_router, help_router, rp_router, ai_router, text_router)
