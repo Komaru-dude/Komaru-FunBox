@@ -31,7 +31,16 @@ async def cmd_gpt(message: Message):
 
         data = response.json()
         answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-        await base_msg.edit_text(f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}")
+        raw_answer = f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}"
+        if len(raw_answer) > 4096:
+            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
+        else:
+            chunks = [raw_answer]
+        for idx, chunk in enumerate(chunks):
+            if idx == 0:
+                await base_msg.edit_text(chunk)
+            else:
+                await base_msg.reply(chunk)
 
     except requests.RequestException as e:
         await base_msg.edit_text(f"❌ Ошибка запроса: {e}")
@@ -56,7 +65,16 @@ async def cmd_gpt(message: Message):
 
         data = response.json()
         answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-        await base_msg.edit_text(f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}")
+        raw_answer = f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}"
+        if len(raw_answer) > 4096:
+            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
+        else:
+            chunks = [raw_answer]
+        for idx, chunk in enumerate(chunks):
+            if idx == 0:
+                await base_msg.edit_text(chunk)
+            else:
+                await base_msg.reply(chunk)
 
     except requests.RequestException as e:
         await base_msg.edit_text(f"❌ Ошибка запроса: {e}")
@@ -86,7 +104,16 @@ async def cmd_gpt(message: Message):
 
         data = response.json()
         answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-        await base_msg.edit_text(f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}")
+        raw_answer = f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}"
+        if len(raw_answer) > 4096:
+            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
+        else:
+            chunks = [raw_answer]
+        for idx, chunk in enumerate(chunks):
+            if idx == 0:
+                await base_msg.edit_text(chunk)
+            else:
+                await base_msg.reply(chunk)
 
     except requests.RequestException as e:
         await base_msg.edit_text(f"❌ Ошибка запроса: {e}")
