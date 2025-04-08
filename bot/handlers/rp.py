@@ -39,7 +39,7 @@ def get_chat_commands(chat_id: int):
 async def cmd_rp_setup(message: Message):
     user_id = message.from_user.id
 
-    if message.chat.type == "private" or "channel":
+    if message.chat.type == "private" or message.chat.type == "channel":
         await message.reply("Эта команда доступна только в группах/супергруппах")
         return
 
@@ -69,7 +69,7 @@ async def cmd_rp_list(message: Message):
     chat_id = message.chat.id
     commands = get_chat_commands(chat_id)
 
-    if message.chat.type == "private" or "channel":
+    if message.chat.type == "private" or message.chat.type == "channel":
         await message.reply("Эта команда доступна только в группах/супергруппах")
         return
     
@@ -89,7 +89,7 @@ class AddRpCommandStates(StatesGroup):
 async def cmd_rp_add(message: Message, state: FSMContext):
     user_id = message.from_user.id
 
-    if message.chat.type == "private" or "channel":
+    if message.chat.type == "private" or message.chat.type == "channel":
         await message.reply("Эта команда доступна только в группах/супергруппах")
         return
 
@@ -185,7 +185,7 @@ async def cmd_rp_remove(message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
 
-    if message.chat.type == "private" or "channel":
+    if message.chat.type == "private" or message.chat.type == "channel":
         await message.reply("Эта команда доступна только в группах/супергруппах")
         return
 
