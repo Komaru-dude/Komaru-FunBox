@@ -2,7 +2,7 @@ import aiohttp
 import os
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message, URLInputFile
+from aiogram.types import Message
 
 ai_router = Router()
 url = os.getenv("API_URL")
