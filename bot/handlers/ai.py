@@ -114,38 +114,3 @@ async def cmd_search(message: Message):
             await base_msg.edit_text(chunk)
         else:
             await base_msg.reply(chunk)
-
-@ai_router.message(Command("image"))
-async def cmd_img(message: Message):
-    base_msg = await message.reply("🔄 Обработка...")
-    request = message.text.split(maxsplit=1)
-
-    if len(request) < 2:
-        await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
-        return
-
-    payload = {
-        "model": "flux",
-        "request": {
-            "messages": [{"content": request[1]}]
-        }
-    }
-
-    data, error = await make_post_request(payload)
-
-    if error:
-        await base_msg.edit_text(error)
-        return
-
-    answer_list = data.get("answer")
-
-    if not answer_list:
-        await base_msg.edit_text("⚠️ Ошибка: нет ответа от API")
-        return
-
-    image_url = answer_list[0]
-
-    image_input = URLInputFile(image_url)
-    await message.answer_photo(image_input, caption="🖼️ Сгенерированное изображение")
-
-    await base_msg.delete()
