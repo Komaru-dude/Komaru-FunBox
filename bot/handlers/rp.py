@@ -39,6 +39,10 @@ def get_chat_commands(chat_id: int):
 async def cmd_rp_setup(message: Message):
     user_id = message.from_user.id
 
+    if message.chat.type == "private" or "channel":
+        await message.reply("Эта команда доступна только в группах/супергруппах")
+        return
+
     if not db.has_permission(user_id, 2):
         await message.reply("У вас недостаточно прав для выполнению этой команды")
         return
@@ -64,6 +68,10 @@ async def rp_setup_no(callback: CallbackQuery):
 async def cmd_rp_list(message: Message):
     chat_id = message.chat.id
     commands = get_chat_commands(chat_id)
+
+    if message.chat.type == "private" or "channel":
+        await message.reply("Эта команда доступна только в группах/супергруппах")
+        return
     
     if not commands:
         await message.reply("В этом чате нет доступных RP-команд.")
@@ -80,6 +88,10 @@ class AddRpCommandStates(StatesGroup):
 @rp_router.message(Command("rp_add"))
 async def cmd_rp_add(message: Message, state: FSMContext):
     user_id = message.from_user.id
+
+    if message.chat.type == "private" or "channel":
+        await message.reply("Эта команда доступна только в группах/супергруппах")
+        return
 
     if not db.has_permission(user_id, 2):
         await message.reply("У вас недостаточно прав для выполнению этой команды")
@@ -172,6 +184,10 @@ async def process_messages(message: Message, state: FSMContext):
 async def cmd_rp_remove(message: Message):
     chat_id = message.chat.id
     user_id = message.from_user.id
+
+    if message.chat.type == "private" or "channel":
+        await message.reply("Эта команда доступна только в группах/супергруппах")
+        return
 
     if not db.has_permission(user_id, 2):
         await message.reply("У вас недостаточно прав для выполнению этой команды")
