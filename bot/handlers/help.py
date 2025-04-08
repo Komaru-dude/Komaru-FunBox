@@ -22,8 +22,7 @@ async def cmd_help(message: Message):
         "say": "Бот скажет что-то от своего имени",
         "gemini": "Бот сделает запрос к gemini",
         "aggemini": "\"Злая\" версия /gemini",
-        "search": "Поиск с помощью searchgpt",
-        "image": "Бот сделает запрос к flux"
+        "search": "Поиск с помощью searchgpt"
     }
 
     detailed_descriptions = {
@@ -41,8 +40,7 @@ async def cmd_help(message: Message):
         "say": "Бот скажет любую фразу от своего имени.\nПример: /say Съешь этих мягкий французских булок, да выпей чаю!",
         "gemini": "Бот сделает запрос к текстовой модели gemini-2.0-flash с использованием <a href='https://api.onlysq.ru/'>этого</a> API.\nПример: /gemini Придумай рецепт оладушков.",
         "aggemini": "Более злая версия gemini, маты, просьбы отправится куда подальше, всё это включено в эту команду, удачи.\nИспользуется <a href='https://api.onlysq.ru/'>этот</a> API.\nПример: /aggemini Придумай рецепт сраных оладушков",
-        "search": "Бот сделает запрос в интернет с помощью поисковой модели searchgpt (gpt4-mini).\nИспользуется <a href='https://api.onlysq.ru/'>этот</a> API.\nПример: /search Найди рецепт оладушков.",
-        "image": "Бот сделает запрос к модели для создания изображений flux с использованием <a href='https://api.onlysq.ru/'>этого</a> API.\nПример: /image Кот панчан."
+        "search": "Бот сделает запрос в интернет с помощью поисковой модели searchgpt (gpt4-mini).\nИспользуется <a href='https://api.onlysq.ru/'>этот</a> API.\nПример: /search Найди рецепт оладушков."
     }
 
     parts = message.text.split()
