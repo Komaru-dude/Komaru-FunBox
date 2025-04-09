@@ -1,10 +1,9 @@
-import json
-import random
-import aiohttp
+import json, random, aiohttp
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
+from bot.utils.aio_tools import make_post_request
 from pathlib import Path
 
 text_router = Router()
@@ -37,11 +36,39 @@ async def fetch_json(url):
 @text_router.message()
 async def text(message: Message):
     user1 = message.from_user
+    chat_id = message.chat.id
     text_msg = message.text
 
     if not db.user_exists(user1.id):
         db.add_user(user1.id)
+    if not db.is_init(chat_id):
+        db.init_chat_features(chat_id)
     if not text_msg:
+        return
+
+    if text_msg.lower() == "это что?" and message.reply_to_message and message.reply_to_message.text and db.is_feature_enabled(chat_id, "who"):
+        request = message.reply_to_message.text
+        payload = {
+            "model": "gemini-2.0-flash",
+            "request": {
+                "messages": [{"role": "user", "content": request}]
+            }
+        }
+
+        data, error = await make_post_request(payload)
+
+        if error:
+            await message.reply(error)
+            return
+        
+        answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
+        raw_answer = f"🧠 Ответ нейросети: {answer}"
+        if len(raw_answer) > 4096:
+            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
+        else:
+            chunks = [raw_answer]
+        for chunk in chunks:
+            await message.reply(chunk)
         return
 
     commands = await get_chat_commands(message.chat.id)

@@ -1,6 +1,6 @@
-from json import load
 import sqlite3, os
 from pathlib import Path
+from colorama import Cursor
 from dotenv import load_dotenv
 
 # Определяем абсолютный путь к папке data
@@ -24,12 +24,18 @@ def create_db():
                         message_count INTEGER DEFAULT 0,
                         first_name TEXT DEFAULT ''
                     )''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS features (
+            chat_id INTEGER,
+            feature_name TEXT,
+            is_enabled INTEGER DEFAULT 0,
+            PRIMARY KEY (chat_id, feature_name)
+        )
+    ''')
     conn.commit()
     conn.close()
 
-# Проверяем существование базы данных и создаём её при необходимости
-if not os.path.exists(DB_PATH):
-    create_db()
+create_db()
 
 def has_permission(user_id, level):
     rank_to_level = {
@@ -168,4 +174,43 @@ def set_param(user_id, param, value):
         conn.commit()
     except sqlite3.Error as e:
         print(f"Ошибка при обновлении параметра: {e}")
+    conn.close()
+
+def init_chat_features(chat_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    default_features = [('who', 1)]
+    for feature, enabled in default_features:
+        cursor.execute('''INSERT OR IGNORE INTO features (chat_id, feature_name, is_enabled) VALUES (?, ?, ?)''', (chat_id, feature, enabled))
+    conn.commit()
+    conn.close()
+
+def is_init(chat_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''SELECT 1 FROM features WHERE chat_id = ? LIMIT 1''', (chat_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return True if result else False
+
+def is_feature_enabled(chat_id: int, feature_name: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''SELECT is_enabled FROM features WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
+    result = cursor.fetchone()
+    conn.close()
+    return bool(result[0]) if result else False
+
+def enable_feature(chat_id: int, feature_name: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE features SET is_enabled = 1 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
+    conn.commit()
+    conn.close()
+
+def disable_feature(chat_id: int, feature_name: str):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE features SET is_enabled = 0 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
+    conn.commit()
     conn.close()
