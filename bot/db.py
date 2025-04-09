@@ -1,6 +1,5 @@
 import sqlite3, os
 from pathlib import Path
-from colorama import Cursor
 from dotenv import load_dotenv
 
 # Определяем абсолютный путь к папке data
@@ -10,6 +9,13 @@ DATA_DIR.mkdir(exist_ok=True)
 
 # Абсолютный путь к базе данных
 DB_PATH = DATA_DIR / "users.db"
+
+RANK_TO_LEVEL = {
+    "Участник": 0,
+    "Модератор": 1,
+    "Администратор": 2,
+    "Владелец": 3
+}
 
 load_dotenv()
 
@@ -38,13 +44,6 @@ def create_db():
 create_db()
 
 def has_permission(user_id, level):
-    rank_to_level = {
-        "Участник": 0,
-        "Модератор": 1,
-        "Администратор": 2,
-        "Владелец": 3
-    }
-
     if str(user_id) == os.getenv("OWNER_ID"):
         return True
 
@@ -60,7 +59,7 @@ def has_permission(user_id, level):
         return False
     
     user_rank = result[0]
-    user_level = rank_to_level.get(user_rank)
+    user_level = RANK_TO_LEVEL.get(user_rank)
     
     if user_level is None:
         return False
