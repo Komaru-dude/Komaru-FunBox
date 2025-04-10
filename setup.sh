@@ -12,7 +12,8 @@ USER_NAME="komaru"
 GROUP_NAME="komaru-group"
 INSTALL_DIR="/home/${USER_NAME}/komaru-funbox"
 REPO_URL="https://github.com/Komaru-dude/Komaru-FunBox.git"
-read -p "✍️ Enter github branch name: " branch_name
+echo -n "✍️ Enter github branch name: "
+read branch_name
 
 git ls-remote --heads "$REPO_URL" "$branch_name" &> /dev/null
 
