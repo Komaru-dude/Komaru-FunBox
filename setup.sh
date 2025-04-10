@@ -17,7 +17,7 @@ echo "🚀 Starting Komaru FunBox installation..."
 
 echo "🔄 Updating packages and installing dependencies..."
 apt-get update
-apt-get install -y python3-venv git
+apt-get install -y python3-venv git build-essential autoconf automake libtool pkg-config
 
 if ! id -u ${USER_NAME} >/dev/null 2>&1; then
     echo "👤 Creating system user: ${USER_NAME}"
