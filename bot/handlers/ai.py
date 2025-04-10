@@ -1,4 +1,3 @@
-import aiohttp
 import os
 from aiogram import Router
 from aiogram.filters import Command
