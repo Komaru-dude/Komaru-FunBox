@@ -31,9 +31,9 @@ if ! grep -q "^${GROUP_NAME}:" /etc/group; then
 fi
 
 echo "📦 Cloning/updating repository..."
-sudo -u ${USER_NAME} git config --global --add safe.directory /home/${USER_NAME}/komaru-funbox
+sudo -u ${USER_NAME} git config --global --add safe.directory "${INSTALL_DIR}"
 if [ -d "${INSTALL_DIR}/.git" ]; then
-    git -C "${INSTALL_DIR}" pull
+    sudo -u ${USER_NAME} git -C "${INSTALL_DIR}" pull
 else
     sudo -u ${USER_NAME} git clone ${REPO_URL} "${INSTALL_DIR}"
 fi
