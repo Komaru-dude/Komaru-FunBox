@@ -12,6 +12,15 @@ USER_NAME="komaru"
 GROUP_NAME="komaru-group"
 INSTALL_DIR="/home/${USER_NAME}/komaru-funbox"
 REPO_URL="https://github.com/Komaru-dude/Komaru-FunBox.git"
+echo "✍️ Enter github branch name:"
+read branch_name
+
+git ls-remote --heads "$REPO_URL" "$branch_name" &> /dev/null
+
+if [ $? -ne 0 ]; then
+    echo "Branch '$branch_name' not found on repo $REPO_URL."
+    exit 1
+fi
 
 echo "🚀 Starting Komaru FunBox installation..."
 
