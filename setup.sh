@@ -31,12 +31,11 @@ if ! grep -q "^${GROUP_NAME}:" /etc/group; then
 fi
 
 echo "📦 Cloning/updating repository..."
-sudo -u ${USER_NAME} git config --global --add safe.directory "${INSTALL_DIR}"
-if [ -d "${INSTALL_DIR}/.git" ]; then
-    sudo -u ${USER_NAME} git -C "${INSTALL_DIR}" pull
-else
-    sudo -u ${USER_NAME} git clone ${REPO_URL} "${INSTALL_DIR}"
+if [ -d "${INSTALL_DIR}" ]; then
+    echo "❌ Removing old repository..."
+    rm -rf "${INSTALL_DIR}"
 fi
+sudo -u ${USER_NAME} git clone ${REPO_URL} "${INSTALL_DIR}"
 
 echo "🐍 Creating Python virtual environment..."
 sudo -u ${USER_NAME} python3 -m venv "${INSTALL_DIR}/venv"
