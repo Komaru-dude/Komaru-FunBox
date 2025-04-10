@@ -31,6 +31,7 @@ if ! grep -q "^${GROUP_NAME}:" /etc/group; then
 fi
 
 echo "📦 Cloning/updating repository..."
+git config --global --add safe.directory /home/${USER_NAME}/komaru-funbox
 if [ -d "${INSTALL_DIR}/.git" ]; then
     git -C "${INSTALL_DIR}" pull
 else
