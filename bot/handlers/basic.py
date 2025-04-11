@@ -39,10 +39,9 @@ async def cmd_random(message: Message):
     await message.reply(response)
 
 @base_router.message(Command("cancel"))
-@base_router.message(F.text.casefold() == "отмена")
 async def cmd_cancel(message: Message, state: FSMContext):
     await state.clear()
-    await message.answer("❌ Процесс добавления команды отменен")
+    await message.answer("❌ Отменено")
 
 @base_router.message(Command('privetbradok'))
 async def cmd_privebradok(message: Message):
