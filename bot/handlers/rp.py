@@ -161,7 +161,6 @@ async def process_messages(message: Message, state: FSMContext):
     description = data['description']
     cur_commands = get_chat_commands(chat_id)
     
-    # Проверка максимального количества сообщений
     if len(messages_list) > 4:
         await message.reply("⚠️ Можно добавить не более 4 вариантов. Сохраняем первые 4.")
         messages_list = messages_list[:4]
