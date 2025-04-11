@@ -19,7 +19,7 @@ async def cmd_restart(message: Message, bot: Bot):
     await message.answer("Перезапускаюсь... 🔄")
 
     try:
-        subprocess.call(["sudo", "systemctl", "restart", "komaru-tools"])
+        subprocess.call(["sudo", "systemctl", "restart", "komaru-funbox.service"])
     except Exception as e:
         await message.reply("Не удалось перезагрузиться!")
         await bot.send_message(chat_id=os.getenv("OWNER_ID"), 
