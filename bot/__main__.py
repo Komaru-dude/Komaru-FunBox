@@ -23,12 +23,6 @@ token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
 
-def get_uvicorn_path():
-    venv_dir = Path(sys.prefix)
-    if sys.platform == 'win32':
-        return venv_dir / 'Scripts' / 'uvicorn.exe'
-    return venv_dir / 'bin' / 'uvicorn'
-
 async def main():
     dp.include_routers(
         base_router,
@@ -40,7 +34,7 @@ async def main():
         text_router
     )
 
-    uvicorn_exec = str(get_uvicorn_path())
+    uvicorn_exec = Path(sys.prefix) / 'Scripts' / 'uvicorn.exe' if sys.platform == 'win32' else Path(sys.prefix) / 'bin' / uvicorn
     pyrogram_process = subprocess.Popen(
         [uvicorn_exec, "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"],
         stdout=subprocess.PIPE,
@@ -52,7 +46,7 @@ async def main():
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
-        if pyrogram_process.poll() is None:  # Проверяем, жив ли процесс
+        if pyrogram_process.poll() is None:
             if sys.platform == 'win32':
                 pyrogram_process.send_signal(signal.CTRL_BREAK_EVENT)
             else:
