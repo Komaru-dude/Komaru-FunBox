@@ -86,6 +86,7 @@ EOL
 echo "🔒 Setting permissions..."
 chown -R ${USER_NAME}:${GROUP_NAME} ${INSTALL_DIR}
 chmod 700 ${INSTALL_DIR}
+echo "komaru ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart komaru-funbox.service" | visudo -f /etc/sudoers.d/komaru-funbox
 
 echo "🔄 Reloading systemd and enabling service..."
 systemctl daemon-reload
