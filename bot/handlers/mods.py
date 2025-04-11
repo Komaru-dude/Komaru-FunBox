@@ -40,7 +40,7 @@ async def cmd_set_rank(message: Message, state: FSMContext):
     await message.reply("✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди).")
 
 @mods_router.message(SetRankStates.waiting_for_username)
-async def process_username(message: Message, state: FSMContext, bot: Bot):
+async def process_username(message: Message, state: FSMContext):
     chat_id = message.chat.id
     text = message.text
     user_id = None
