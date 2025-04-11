@@ -8,13 +8,6 @@ api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
 token = os.getenv("BOT_API_TOKEN")
 
-if not api_id:
-    raise ValueError("Ошибка: переменная API_ID не найдена. Убедитесь, что она присутствует в .env файле.")
-if not api_hash:
-    raise ValueError("Ошибка: переменная API_HASH не найдена. Убедитесь, что она присутствует в .env файле.")
-if not token:
-    raise ValueError("Ошибка: переменная BOT_API_TOKEN не найдена. Убедитесь, что она присутствует в .env файле.")
-
 app = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=token) if not os.path.exists("my_bot.session") else Client("my_bot")
 
 server = FastAPI()
