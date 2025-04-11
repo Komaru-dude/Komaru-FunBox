@@ -21,7 +21,7 @@ async def fetch_json(url):
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):
     await message.reply("Привет!\n"
-                        "Это развлекательный бот созданный для кочон подвала.\n"
+                        "Это универсальный развлекательный бот.\n"
                         "Если хочешь узнать более подробную информацию о командах: /help")
     
 @base_router.message(Command("random"))
