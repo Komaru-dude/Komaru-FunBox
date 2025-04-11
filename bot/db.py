@@ -14,7 +14,8 @@ RANK_TO_LEVEL = {
     "Участник": 0,
     "Модератор": 1,
     "Администратор": 2,
-    "Владелец": 3
+    "Владелец": 3,
+    "Персонал": 4
 }
 
 load_dotenv()
@@ -24,7 +25,6 @@ def create_db():
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                         user_id INTEGER PRIMARY KEY,
-                        username INTEGER DEFAULT '',
                         reputation INTEGER DEFAULT 0,
                         rank TEXT DEFAULT 'Участник',
                         message_count INTEGER DEFAULT 0,
@@ -65,40 +65,6 @@ def has_permission(user_id, level):
         return False
 
     return user_level >= level
-
-def user_have_username(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('SELECT username FROM users WHERE user_id = ?', (user_id,))
-    exists = cursor.fetchone()
-    conn.close()
-    if not exists == '':
-        return False
-    else:
-        return True
-    
-def add_username(user_id, username):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('UPDATE users SET username = ? WHERE user_id = ?', (username, user_id))
-    conn.commit()
-    conn.close()
-
-def get_username(user_id):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''SELECT history FROM users WHERE user_id = ?''', (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result
-
-def get_user_id_by_username(username):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''SELECT user_id FROM users WHERE username = ?''', (username,))
-    result = cursor.fetchone()
-    conn.close()
-    return result[0] if result else None
 
 def set_rank(user_id, rank):
     conn = sqlite3.connect(DB_PATH)
