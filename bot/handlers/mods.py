@@ -1,4 +1,4 @@
-import aiohttp, os
+import aiohttp, os, subprocess
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -9,6 +9,21 @@ from bot import db
 from bot.db import RANK_TO_LEVEL
 
 mods_router = Router()
+
+@mods_router.message(Command("restart"))
+async def cmd_restart(message: Message, bot: Bot):
+    user_id = message.from_user.id
+    if not db.has_permission(user_id, 4):
+        await message.reply("У вас недостаточно прав для выполнения этой команды.")
+        return
+    await message.answer("Перезапускаюсь... 🔄")
+
+    try:
+        subprocess.call(["sudo", "systemctl", "restart", "komaru-tools"])
+    except Exception as e:
+        await message.reply("Не удалось перезагрузиться!")
+        await bot.send_message(chat_id=os.getenv("OWNER_ID"), 
+                                text=f"Во время обработки команды /restart произошла ошибка: {e}")
 
 class SetRankStates(StatesGroup):
     waiting_for_username = State()
