@@ -34,7 +34,7 @@ async def main():
         text_router
     )
 
-    uvicorn_exec = Path(sys.prefix) / 'Scripts' / 'uvicorn.exe' if sys.platform == 'win32' else Path(sys.prefix) / 'bin' / uvicorn
+    uvicorn_exec = Path(sys.prefix) / 'Scripts' / 'uvicorn.exe' if sys.platform == 'win32' else Path(sys.prefix) / 'bin' / 'uvicorn'
     pyrogram_process = subprocess.Popen(
         [uvicorn_exec, "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"],
         stdout=subprocess.PIPE,
