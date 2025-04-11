@@ -25,30 +25,42 @@ dp = Dispatcher()
 
 def get_uvicorn_path():
     venv_dir = Path(sys.prefix)
-    
     if sys.platform == 'win32':
-        return str(venv_dir / 'Scripts' / 'uvicorn.exe')
-    else:
-        return str(venv_dir / 'bin' / 'uvicorn')
+        return venv_dir / 'Scripts' / 'uvicorn.exe'
+    return venv_dir / 'bin' / 'uvicorn'
 
 async def main():
-    dp.include_routers(base_router, time_router, help_router, rp_router, ai_router, mods_router, text_router)
-    
-    uvicorn_exec = get_uvicorn_path()
+    dp.include_routers(
+        base_router,
+        time_router,
+        help_router,
+        rp_router,
+        ai_router,
+        mods_router,
+        text_router
+    )
+
+    uvicorn_exec = str(get_uvicorn_path())
     pyrogram_process = subprocess.Popen(
         [uvicorn_exec, "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == 'win32' else 0
     )
 
     try:
         await dp.start_polling(bot)
     finally:
-        await bot.close()
-        if sys.platform == 'win32':
-            pyrogram_process.send_signal(signal.CTRL_BREAK_EVENT)
-        else:
-            pyrogram_process.send_signal(signal.SIGTERM)
-        pyrogram_process.wait()
+        await bot.session.close()
+        if pyrogram_process.poll() is None:  # Проверяем, жив ли процесс
+            if sys.platform == 'win32':
+                pyrogram_process.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                pyrogram_process.send_signal(signal.SIGTERM)
+            try:
+                pyrogram_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pyrogram_process.kill()
 
 if __name__ == "__main__":
     if sys.platform == 'win32':
@@ -56,4 +68,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Основной процесс завершен.")
+        print("Основной процесс завершён.")
