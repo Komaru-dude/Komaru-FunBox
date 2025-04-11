@@ -36,7 +36,7 @@ async def cmd_random(message: Message):
         "Я бы сказал да.",
     ]
     response = random.choice(responses)
-    await message.answer(response)
+    await message.reply(response)
 
 @base_router.message(Command("cancel"))
 @base_router.message(F.text.casefold() == "отмена")
