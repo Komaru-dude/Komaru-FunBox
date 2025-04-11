@@ -37,8 +37,6 @@ async def main():
     uvicorn_exec = Path(sys.prefix) / 'Scripts' / 'uvicorn.exe' if sys.platform == 'win32' else Path(sys.prefix) / 'bin' / 'uvicorn'
     pyrogram_process = subprocess.Popen(
         [uvicorn_exec, "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == 'win32' else 0
     )
 
