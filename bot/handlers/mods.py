@@ -98,7 +98,7 @@ async def process_username(message: Message, state: FSMContext, bot: Bot):
     await state.set_state(SetRankStates.waiting_for_rank)
 
 @mods_router.callback_query(SetRankStates.waiting_for_rank)
-async def process_rank_selection(callback: CallbackQuery, state: FSMContext):
+async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot: Bot):
     data = await state.get_data()
     target_user_id = data['target_user_id']
     first_name = data['first_name']
@@ -116,12 +116,14 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext):
             await callback.answer("❌ Недостаточно прав для установки этого ранга!", show_alert=True)
             return
 
-    if db.set_rank(target_user_id, selected_rank):
+    try:
+        db.set_rank(target_user_id, selected_rank)
         await callback.message.edit_text(
             f"✅ Ранг пользователя {first_name} успешно изменён на: {selected_rank}"
         )
-    else:
+    except Exception as e:
         await callback.message.edit_text("❌ Ошибка при обновлении ранга")
+        await bot.send_message(os.getenv("OWNER_ID"), f"При обработке /set_rank возникла следущая ошибка: {e}")
 
     await state.clear()
     await callback.answer()
