@@ -1,7 +1,13 @@
-import asyncio, logging, os, subprocess, signal, sys
+import asyncio
+import logging
+import os
+import subprocess
+import signal
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
+
 from .handlers.basic import base_router
 from .handlers.time import time_router
 from .handlers.help import help_router
