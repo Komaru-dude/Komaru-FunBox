@@ -108,12 +108,12 @@ async def cmd_search(message: Message):
 async def cmd_image(message: Message):
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.answer("Напиши, что нарисовать. Пример: /image кошечка дуде")
+        await message.answer("✍️ Напиши, что нарисовать. Пример: /image кошечка дуде")
         return
 
     prompt = args[1]
 
-    processing_message = await message.answer("Генерирую изображение, подожди...")
+    processing_message = await message.answer("⏳ Генерирую изображение, подожди...")
 
     url = "https://api.onlysq.ru/ai/v2"
     payload = {
@@ -132,7 +132,7 @@ async def cmd_image(message: Message):
 
         await message.reply_photo(
             BufferedInputFile(image_bytes, filename="generated.png"),
-            caption=f'Вот твоё изображение по запросу: "{prompt}"'
+            caption=f'🖼 Вот твоё изображение по запросу: {prompt}'
         )
     except Exception as e:
         await message.answer(f"Произошла ошибка: {e}")
