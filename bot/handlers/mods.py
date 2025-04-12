@@ -15,7 +15,7 @@ mods_router = Router()
 async def cmd_restart(message: Message, bot: Bot):
     user_id = message.from_user.id
     if not db.has_permission(user_id, 4):
-        await message.reply("У вас недостаточно прав для выполнения этой команды.")
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     await message.answer("Перезапускаюсь... 🔄")
 
@@ -36,7 +36,7 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
     owner_id = await aio_tools.get_chat_owner_id(bot, message.chat.id)
 
     if not (db.has_permission(user_id, 2) or owner_id == user_id):
-        await message.reply("У вас недостаточно прав для выполнения этой команды.")
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     
     await state.set_state(SetRankStates.waiting_for_username)
@@ -150,3 +150,61 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
     
     await state.clear()
     await callback.answer()
+
+@mods_router.message(Command("enable"))
+async def cmd_enable_func(message: Message, bot: Bot):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    func = message.text.split(maxsplit=1)[1]
+
+    if not func:
+        await message.reply("⛔️ Укажите имя функции.")
+        return
+    
+    if not db.is_feature_exists(chat_id, func):
+        await message.reply("❌ Функции не существует.")
+        return
+    
+    if not db.has_permission(user_id, 1):
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+        return
+    
+    if db.is_feature_enabled(chat_id, func):
+        await message.reply("❌ Функция уже включена.")
+        return
+
+    try:
+        db.enable_feature(chat_id, func)
+        await message.reply("✅ Функция включена.")
+    except Exception as e:
+        await message.reply("❌ Не удалось включить функцию.")
+        await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /enable произошла ошибка: {e}")
+
+@mods_router.message(Command("disable"))
+async def cmd_enable_func(message: Message, bot: Bot):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    func = message.text.split(maxsplit=1)[1]
+
+    if not func:
+        await message.reply("⛔️ Укажите имя функции.")
+        return
+    
+    if not db.is_feature_exists(chat_id, func):
+        await message.reply("❌ Функции не существует.")
+        return
+    
+    if not db.has_permission(user_id, 1):
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+        return
+    
+    if not db.is_feature_enabled(chat_id, func):
+        await message.reply("❌ Функция уже выключена.")
+        return
+
+    try:
+        db.enable_feature(chat_id, func)
+        await message.reply("✅ Функция выключена.")
+    except Exception as e:
+        await message.reply("❌ Не удалось выключить функцию.")
+        await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /disable произошла ошибка: {e}")
