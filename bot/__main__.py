@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
+from aiogram.methods import DeleteWebhook
 
 from .handlers.basic import base_router
 from .handlers.time import time_router
@@ -41,6 +42,7 @@ async def main():
     )
 
     try:
+        await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     finally:
         await bot.session.close()
