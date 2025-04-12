@@ -38,6 +38,7 @@ def get_chat_commands(chat_id: int):
 @rp_router.message(Command("rp_setup"))
 async def cmd_rp_setup(message: Message):
     user_id = message.from_user.id
+    msg_id = message.message_id
 
     if message.chat.type == "private" or message.chat.type == "channel":
         await message.reply("Эта команда доступна только в группах/супергруппах")
@@ -48,21 +49,38 @@ async def cmd_rp_setup(message: Message):
         return
 
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(text="Да", callback_data="Yes"))
-    builder.add(InlineKeyboardButton(text="Нет", callback_data="No"))
+    builder.add(
+        InlineKeyboardButton(text="✅ Да", callback_data=f"rpconfirm_Yes_{msg_id}"),
+        InlineKeyboardButton(text="❌ Нет", callback_data=f"rpconfirm_No_{msg_id}")
+    )
 
     await message.reply("Вы уверены? Это приведёт к сбросу уже существующих команд (/rp_list)", reply_markup=builder.as_markup())
 
-@rp_router.callback_query(F.data == "Yes")
-async def rp_setup_yes(callback: CallbackQuery):
-    await callback.message.reply("Успешно сброшено!")
-    chat_id = callback.message.chat.id
-    base_commands = load_commands(BASE_COMMANDS_PATH)
-    save_custom_commands(chat_id, base_commands)
+@rp_router.callback_query(F.data.startswith("rpconfirm_"))
+async def handle_rp_confirmation(callback: CallbackQuery):
+    action, msg_id = callback.data.split("_")[1:3]
+    original_msg_id = int(msg_id)
+        
+    if callback.message.reply_to_message.message_id != original_msg_id:
+        await callback.answer("⚠️ Действие относится к другому сообщению!", show_alert=True)
+        return
 
-@rp_router.callback_query(F.data == "No")
-async def rp_setup_no(callback: CallbackQuery):
-    await callback.message.reply("Отмена")
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+    if action == "Yes":
+        chat_id = callback.message.chat.id
+
+        base_commands = load_commands(BASE_COMMANDS_PATH)
+        if not base_commands:
+            raise ValueError("Не удалось загрузить базовые команды")
+                
+        save_custom_commands(chat_id, base_commands)
+            
+        await callback.message.reply("✅ RP-команды успешно сброшены до базовых настроек!")
+            
+    else:
+        await callback.message.reply("❌ Действие отменено.")
+        await callback.answer()
 
 @rp_router.message(Command("rp_list"))
 async def cmd_rp_list(message: Message):
