@@ -1,7 +1,7 @@
-import os
+import os, aiohttp
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
 from bot.utils.aio_tools import make_post_request
 
 ai_router = Router()
@@ -103,3 +103,30 @@ async def cmd_search(message: Message):
             await base_msg.edit_text(chunk)
         else:
             await base_msg.reply(chunk)
+
+@ai_router.message(Command("image"))
+async def cmd_image(message: Message):
+    prompt = message.text.split(maxsplit=1)
+
+    if not prompt:
+        await message.answer("Напиши, что нарисовать. Пример: /image кошечка дуде")
+        return
+
+    url = "https://api.onlysq.ru/ai/v2"
+    payload = {
+        "model": "kandinsky",
+        "request": {
+            "messages": [
+                {"role": "user", "content": prompt}
+            ]
+        }
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload) as response:
+            image_bytes = await response.read()
+
+    await message.answer_photo(
+        BufferedInputFile(image_bytes, filename="generated.png"),
+        caption=f'Вот твоё изображение по запросу: "{prompt}"'
+    )
