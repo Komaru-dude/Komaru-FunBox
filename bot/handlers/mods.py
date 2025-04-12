@@ -155,11 +155,12 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
 async def cmd_enable_func(message: Message, bot: Bot):
     chat_id = message.chat.id
     user_id = message.from_user.id
-    func = message.text.split(maxsplit=1)[1]
 
-    if not func:
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
         await message.reply("⛔️ Укажите имя функции.")
         return
+    func = parts[1]
     
     if not db.is_feature_exists(chat_id, func):
         await message.reply("❌ Функции не существует.")
@@ -181,14 +182,15 @@ async def cmd_enable_func(message: Message, bot: Bot):
         await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /enable произошла ошибка: {e}")
 
 @mods_router.message(Command("disable"))
-async def cmd_enable_func(message: Message, bot: Bot):
+async def cmd_disable_func(message: Message, bot: Bot):
     chat_id = message.chat.id
     user_id = message.from_user.id
-    func = message.text.split(maxsplit=1)[1]
 
-    if not func:
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2:
         await message.reply("⛔️ Укажите имя функции.")
         return
+    func = parts[1]
     
     if not db.is_feature_exists(chat_id, func):
         await message.reply("❌ Функции не существует.")
