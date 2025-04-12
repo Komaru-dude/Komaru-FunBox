@@ -40,8 +40,12 @@ async def cmd_random(message: Message):
 
 @base_router.message(Command("cancel"))
 async def cmd_cancel(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer("❌ Отменено")
+    state = await state.get_state()
+    if state is None:
+        await message.reply("А чего отменять то?")
+    else:
+        await state.clear()
+        await message.reply("❌ Отменено")
 
 @base_router.message(Command('privetbradok'))
 async def cmd_privebradok(message: Message):
