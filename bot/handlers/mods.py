@@ -7,6 +7,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot import db
 from bot.db import RANK_TO_LEVEL
+from bot.utils import aio_tools
 
 mods_router = Router()
 
@@ -30,9 +31,9 @@ class SetRankStates(StatesGroup):
     waiting_for_rank = State()
 
 @mods_router.message(Command("set_rank"))
-async def cmd_set_rank(message: Message, state: FSMContext):
+async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
     user_id = message.from_user.id
-    if not db.has_permission(user_id, 2):
+    if not db.has_permission(user_id, 2) or aio_tools.get_chat_owner_id(bot, message.chat.id) == user_id:
         await message.reply("У вас недостаточно прав для выполнения этой команды.")
         return
     
