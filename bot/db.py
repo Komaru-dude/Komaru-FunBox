@@ -166,6 +166,14 @@ def is_feature_enabled(chat_id: int, feature_name: str) -> bool:
     conn.close()
     return bool(result[0]) if result else False
 
+def is_feature_exists(chat_id: int, feature_name: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''SELECT 1 FROM features WHERE chat_id = ? AND feature_name = ? LIMIT 1''', (chat_id, feature_name))
+    result = cursor.fetchone()
+    conn.close()
+    return True if result else False
+
 def enable_feature(chat_id: int, feature_name: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
