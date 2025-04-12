@@ -91,7 +91,7 @@ async def process_username(message: Message, state: FSMContext):
                     error_msg = f"Ошибка API: {str(e)}"
 
     if error_msg or not user_id:
-        await message.reply(error_msg or "Не удалось найти пользователя")
+        await message.reply(f"Не удалось найти пользователя, ошибка {error_msg}")
         return await state.clear()
 
     if not db.user_exists(user_id):
