@@ -34,7 +34,7 @@ class SetRankStates(StatesGroup):
 async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
     user_id = message.from_user.id
     print(user_id, aio_tools.get_chat_owner_id(bot, message.chat.id))
-    if not db.has_permission(user_id, 2) or aio_tools.get_chat_owner_id(bot, message.chat.id) == user_id:
+    if not db.has_permission(user_id, 2) or await aio_tools.get_chat_owner_id(bot, message.chat.id) == user_id:
         await message.reply("У вас недостаточно прав для выполнения этой команды.")
         return
     
