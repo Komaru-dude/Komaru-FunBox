@@ -93,8 +93,8 @@ async def process_username(message: Message, state: FSMContext):
         await message.reply(f"Не удалось найти пользователя, ошибка {error_msg}")
         return await state.clear()
 
-    if not db.user_exists(user_id):
-        db.add_user(user_id)
+    if not db.user_exists(user_id, chat_id):
+        db.add_user(user_id, chat_id)
 
     async with aiohttp.ClientSession() as session:
         try:
@@ -133,7 +133,7 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
     owner_bot_id = int(os.getenv("OWNER_ID"))
     is_global_owner = user_id == owner_bot_id
 
-    user_rank = db.get_user_rank(user_id)
+    user_rank = db.get_user_rank(user_id, callback.message.chat.id)
     user_level = RANK_TO_LEVEL.get(user_rank, 0)
     required_level = RANK_TO_LEVEL.get(selected_rank, 999)
 
@@ -142,7 +142,7 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
         return
 
     try:
-        db.set_rank(target_user_id, selected_rank)
+        db.set_rank(target_user_id, callback.message.chat.id, selected_rank)
         await callback.message.edit_text(
             f"✅ Ранг пользователя {first_name} успешно изменён на: {selected_rank}"
         )

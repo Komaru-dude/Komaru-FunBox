@@ -39,8 +39,8 @@ async def text(message: Message):
     chat_id = message.chat.id
     text_msg = message.text
 
-    if not db.user_exists(user1.id):
-        db.add_user(user1.id)
+    if not db.user_exists(user1.id, chat_id):
+        db.add_user(user1.id, chat_id)
     if not db.is_init(chat_id):
         db.init_chat_features(chat_id)
     if not text_msg:
