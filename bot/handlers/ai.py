@@ -106,11 +106,14 @@ async def cmd_search(message: Message):
 
 @ai_router.message(Command("image"))
 async def cmd_image(message: Message):
-    prompt = message.text.split(maxsplit=1)
-
-    if not prompt:
+    args = message.text.split(maxsplit=1)
+    if len(args) < 2:
         await message.answer("Напиши, что нарисовать. Пример: /image кошечка дуде")
         return
+
+    prompt = args[1]
+
+    processing_message = await message.answer("Генерирую изображение, подожди...")
 
     url = "https://api.onlysq.ru/ai/v2"
     payload = {
@@ -122,11 +125,16 @@ async def cmd_image(message: Message):
         }
     }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, json=payload) as response:
-            image_bytes = await response.read()
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as response:
+                image_bytes = await response.read()
 
-    await message.answer_photo(
-        BufferedInputFile(image_bytes, filename="generated.png"),
-        caption=f'Вот твоё изображение по запросу: "{prompt}"'
-    )
+        await message.reply_photo(
+            BufferedInputFile(image_bytes, filename="generated.png"),
+            caption=f'Вот твоё изображение по запросу: "{prompt}"'
+        )
+    except Exception as e:
+        await message.answer(f"Произошла ошибка: {e}")
+
+    await processing_message.delete()
