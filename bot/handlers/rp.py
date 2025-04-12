@@ -82,7 +82,6 @@ async def handle_rp_confirmation(callback: CallbackQuery):
         save_custom_commands(chat_id, base_commands)
 
         await callback.message.reply("✅ RP-команды успешно сброшены до базовых настроек!")
-
     else:
         await callback.message.reply("❌ Действие отменено.")
         await callback.answer()
