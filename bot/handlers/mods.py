@@ -14,7 +14,8 @@ mods_router = Router()
 @mods_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot):
     user_id = message.from_user.id
-    if not db.has_permission(user_id, 4):
+    chat_id = message.chat.id
+    if not db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     await message.answer("Перезапускаюсь... 🔄")
@@ -33,9 +34,10 @@ class SetRankStates(StatesGroup):
 @mods_router.message(Command("set_rank"))
 async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
     user_id = message.from_user.id
-    owner_id = await aio_tools.get_chat_owner_id(bot, message.chat.id)
+    chat_id = message.chat.id
+    owner_id = await aio_tools.get_chat_owner_id(bot, chat_id)
 
-    if not (db.has_permission(user_id, 2) or owner_id == user_id):
+    if not (db.has_permission(user_id, chat_id, 2) or owner_id == user_id):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     
@@ -166,7 +168,7 @@ async def cmd_enable_func(message: Message, bot: Bot):
         await message.reply("❌ Функции не существует.")
         return
     
-    if not db.has_permission(user_id, 1):
+    if not db.has_permission(user_id, chat_id, 1):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     
@@ -196,7 +198,7 @@ async def cmd_disable_func(message: Message, bot: Bot):
         await message.reply("❌ Функции не существует.")
         return
     
-    if not db.has_permission(user_id, 1):
+    if not db.has_permission(user_id, chat_id, 1):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     

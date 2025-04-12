@@ -24,11 +24,13 @@ def create_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                        user_id INTEGER PRIMARY KEY,
+                        user_id INTEGER,
+                        chat_id INTEGER,
                         reputation INTEGER DEFAULT 0,
                         rank TEXT DEFAULT 'Участник',
                         message_count INTEGER DEFAULT 0,
-                        first_name TEXT DEFAULT ''
+                        first_name TEXT DEFAULT '',
+                        PRIMARY KEY (user_id, chat_id)
                     )''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS features (
@@ -43,99 +45,99 @@ def create_db():
 
 create_db()
 
-def has_permission(user_id, level):
+def has_permission(user_id, chat_id, level):
     if str(user_id) == os.getenv("OWNER_ID"):
         return True
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
-    # Извлекаем ранг пользователя
-    cursor.execute('''SELECT rank FROM users WHERE user_id = ?''', (user_id,))
+    cursor.execute('''SELECT rank FROM users 
+                      WHERE user_id = ? AND chat_id = ?''', (user_id, chat_id))
     result = cursor.fetchone()
     conn.close()
     
-    if result is None:
+    if not result:
         return False
     
-    user_rank = result[0]
-    user_level = RANK_TO_LEVEL.get(user_rank)
-    
-    if user_level is None:
-        return False
-
+    user_level = RANK_TO_LEVEL.get(result[0], -1)
     return user_level >= level
 
-def set_rank(user_id, rank):
+def set_rank(user_id, chat_id, rank):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''UPDATE users SET rank = ? WHERE user_id = ?''', (rank, user_id))
+    cursor.execute('''INSERT OR REPLACE INTO users 
+                     (user_id, chat_id, rank) 
+                     VALUES (?, ?, ?)''', 
+                     (user_id, chat_id, rank))
     conn.commit()
     conn.close()
 
-def user_exists(user_id):
+def user_exists(user_id, chat_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''SELECT 1 FROM users WHERE user_id = ?''', (user_id,))
+    cursor.execute('''SELECT 1 FROM users 
+                     WHERE user_id = ? AND chat_id = ?''', 
+                     (user_id, chat_id))
     exists = cursor.fetchone() is not None
     conn.close()
     return exists
 
-def add_user(user_id):
+def add_user(user_id, chat_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''INSERT OR IGNORE INTO users (user_id) VALUES (?)''', (user_id,))
+    cursor.execute('''INSERT OR IGNORE INTO users 
+                     (user_id, chat_id) VALUES (?, ?)''', 
+                     (user_id, chat_id))
     conn.commit()
     conn.close()
 
-def get_user_rank(user_id):
+def get_user_rank(user_id, chat_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''SELECT rank FROM users WHERE user_id = ?''', (user_id,))
+    cursor.execute('''SELECT rank FROM users 
+                     WHERE user_id = ? AND chat_id = ?''', 
+                     (user_id, chat_id))
     result = cursor.fetchone()
     conn.close()
-    if result is None:
-        return None
-    return result[0]
+    return result[0] if result else None
 
-def update_count_messges(user_id):
+def update_count_messages(user_id, chat_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''UPDATE users SET message_count = message_count + 1 WHERE user_id =?''', (user_id,))
+    cursor.execute('''UPDATE users 
+                     SET message_count = message_count + 1 
+                     WHERE user_id = ? AND chat_id = ?''', 
+                     (user_id, chat_id))
     conn.commit()
     conn.close()
 
-def get_user_data(user_id):
+def get_user_data(user_id, chat_id):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    # Проверяем, существует ли пользователь
-    cursor.execute('''SELECT * FROM users WHERE user_id = ?''', (user_id,))
+    cursor.execute('''SELECT * FROM users 
+                     WHERE user_id = ? AND chat_id = ?''', 
+                     (user_id, chat_id))
     user_data = cursor.fetchone()
     
-    if user_data is None:
-        add_user(user_id)
-        cursor.execute('''SELECT * FROM users WHERE user_id = ?''', (user_id,))
+    if not user_data:
+        add_user(user_id, chat_id)
+        cursor.execute('''SELECT * FROM users 
+                         WHERE user_id = ? AND chat_id = ?''', 
+                         (user_id, chat_id))
         user_data = cursor.fetchone()
     
     conn.close()
     return user_data
 
-def update_user_id(user_id, new_id):
+def set_param(user_id, chat_id, param, value):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''UPDATE users SET user_id = ? WHERE user_id = ?''', (new_id, user_id))
-    conn.commit()
-    
-    conn.close()
-
-def set_param(user_id, param, value):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    query = f"UPDATE users SET {param} = ? WHERE user_id = ?"
     try:
-        cursor.execute(query, (value, user_id))
+        cursor.execute(f'''UPDATE users 
+                         SET {param} = ? 
+                         WHERE user_id = ? AND chat_id = ?''', 
+                         (value, user_id, chat_id))
         conn.commit()
     except sqlite3.Error as e:
         print(f"Ошибка при обновлении параметра: {e}")
