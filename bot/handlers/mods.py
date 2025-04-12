@@ -203,7 +203,7 @@ async def cmd_enable_func(message: Message, bot: Bot):
         return
 
     try:
-        db.enable_feature(chat_id, func)
+        db.disable_feature(chat_id, func)
         await message.reply("✅ Функция выключена.")
     except Exception as e:
         await message.reply("❌ Не удалось выключить функцию.")
