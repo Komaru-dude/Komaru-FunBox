@@ -50,17 +50,22 @@ async def cmd_rp_setup(message: Message):
 
     builder = InlineKeyboardBuilder()
     builder.add(
-        InlineKeyboardButton(text="✅ Да", callback_data=f"rpconfirm_Yes_{msg_id}"),
-        InlineKeyboardButton(text="❌ Нет", callback_data=f"rpconfirm_No_{msg_id}")
+        InlineKeyboardButton(text="✅ Да", callback_data=f"rpconfirm_Yes_{msg_id}_{user_id}"),
+        InlineKeyboardButton(text="❌ Нет", callback_data=f"rpconfirm_No_{msg_id}_{user_id}")
     )
 
     await message.reply("Вы уверены? Это приведёт к сбросу уже существующих команд (/rp_list)", reply_markup=builder.as_markup())
 
 @rp_router.callback_query(F.data.startswith("rpconfirm_"))
 async def handle_rp_confirmation(callback: CallbackQuery):
-    action, msg_id = callback.data.split("_")[1:3]
+    parts = callback.data.split("_")
+    action, msg_id, user_id = parts[1], parts[2], int(parts[3])
     original_msg_id = int(msg_id)
-        
+
+    if callback.from_user.id != user_id:
+        await callback.answer("⛔️ Кошечка плап запрещает тыкать куда не надо!", show_alert=True)
+        return
+
     if callback.message.reply_to_message.message_id != original_msg_id:
         await callback.answer("⚠️ Действие относится к другому сообщению!", show_alert=True)
         return
@@ -73,11 +78,11 @@ async def handle_rp_confirmation(callback: CallbackQuery):
         base_commands = load_commands(BASE_COMMANDS_PATH)
         if not base_commands:
             raise ValueError("Не удалось загрузить базовые команды")
-                
+
         save_custom_commands(chat_id, base_commands)
-            
+
         await callback.message.reply("✅ RP-команды успешно сброшены до базовых настроек!")
-            
+
     else:
         await callback.message.reply("❌ Действие отменено.")
         await callback.answer()
