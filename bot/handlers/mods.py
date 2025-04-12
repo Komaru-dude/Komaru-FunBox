@@ -123,16 +123,21 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
     selected_rank = callback.data.split('_')[1]
 
     current_user = callback.from_user
-    is_owner = str(current_user.id) == os.getenv("OWNER_ID")
-    
-    if not is_owner:
-        user_rank = db.get_user_rank(current_user.id)
-        user_level = RANK_TO_LEVEL.get(user_rank, 0)
-        required_level = RANK_TO_LEVEL[selected_rank]
-        
-        if user_level < required_level:
-            await callback.answer("❌ Недостаточно прав для установки этого ранга!", show_alert=True)
-            return
+    user_id = current_user.id
+
+    owner_id = await aio_tools.get_chat_owner_id(bot, callback.message.chat.id)
+    is_chat_owner = user_id == owner_id
+
+    owner_bot_id = int(os.getenv("OWNER_ID"))
+    is_global_owner = user_id == owner_bot_id
+
+    user_rank = db.get_user_rank(user_id)
+    user_level = RANK_TO_LEVEL.get(user_rank, 0)
+    required_level = RANK_TO_LEVEL.get(selected_rank, 999)
+
+    if not (is_chat_owner or is_global_owner) and user_level < required_level:
+        await callback.answer("❌ Недостаточно прав для установки этого ранга!", show_alert=True)
+        return
 
     try:
         db.set_rank(target_user_id, selected_rank)
@@ -141,7 +146,7 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
         )
     except Exception as e:
         await callback.message.edit_text("❌ Ошибка при обновлении ранга")
-        await bot.send_message(os.getenv("OWNER_ID"), f"При обработке /set_rank возникла следущая ошибка: {e}")
-
+        await bot.send_message(owner_bot_id, f"Ошибка в /set_rank: {str(e)}")
+    
     await state.clear()
     await callback.answer()
