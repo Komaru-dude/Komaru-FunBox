@@ -37,7 +37,7 @@ async def cmd_gemini(message: Message):
         return
 
     answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-    raw_answer = f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}"
+    raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
     if len(raw_answer) > 4096:
         chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
     else:
@@ -73,7 +73,7 @@ async def cmd_aggemini(message: Message):
         return
 
     answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-    raw_answer = f"💭 Запрос: {request[1]}\n\n🧠 Ответ нейросети: {answer}"
+    raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
     if len(raw_answer) > 4096:
         chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
     else:
