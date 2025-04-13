@@ -1,4 +1,4 @@
-import os, aiohttp
+import os, aiohttp, re
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
@@ -9,12 +9,25 @@ ai_router = Router()
 url = os.getenv("API_URL")
 
 def escape_markdown(text: str) -> str:
-    special_chars = [
-        "_", "*", "`", "[", "]", "(", ")", "~", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"
-    ]
-    for char in special_chars:
-        text = text.replace(char, f"\\{char}")
-    return text
+    pattern = r'(\*[^*]+\*|_[^_]+_|`[^`]+`|\[[^\]]+\]\([^)]+\))'
+    
+    def escape_segment(segment: str) -> str:
+        special_chars = [
+            "_", "*", "`", "[", "]", "(", ")", "~", ">", "#", "+", "-", "=", 
+            "|", "{", "}", ".", "!"
+        ]
+        for char in special_chars:
+            segment = segment.replace(char, f"\\{char}")
+        return segment
+
+    parts = re.split(pattern, text)
+    result_parts = []
+    for part in parts:
+        if re.fullmatch(pattern, part):
+            result_parts.append(part)
+        else:
+            result_parts.append(escape_segment(part))
+    return ''.join(result_parts)
 
 @ai_router.message(Command("gemini"))
 async def cmd_gemini(message: Message):
