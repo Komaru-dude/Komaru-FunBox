@@ -3,7 +3,7 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
-from bot.utils.aio_tools import make_post_request
+from bot.handlers.ai import cmd_gemini
 from pathlib import Path
 
 text_router = Router()
@@ -46,32 +46,23 @@ async def text(message: Message):
     if not text_msg:
         return
 
-    if text_msg.lower() == "это что?" and message.reply_to_message and message.reply_to_message.text and db.is_feature_enabled(chat_id, "who"):
+    if (
+        text_msg.lower() == "это что?"
+        and message.reply_to_message
+        and message.reply_to_message.text
+        and db.is_feature_enabled(chat_id, "who")
+    ):
         request = f"Твоя задача кратко объяснить что такое, вот запрос пользователя: {message.reply_to_message.text}"
-        payload = {
+        custom_payload = {
             "model": "gemini-2.0-flash",
             "request": {
                 "messages": [{"role": "user", "content": request}]
             }
         }
-
-        data, error = await make_post_request(payload)
-
-        if error:
-            await message.reply(error)
-            return
-        
-        answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
-        raw_answer = f"🧠 Ответ нейросети: {answer}"
-        if len(raw_answer) > 4096:
-            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
-        else:
-            chunks = [raw_answer]
-        for chunk in chunks:
-            await message.reply(chunk)
+        await cmd_gemini(message, custom_payload=custom_payload)
         return
 
-    commands = await get_chat_commands(message.chat.id)
+    commands = await get_chat_commands(chat_id)
 
     split_text = text_msg.split(maxsplit=1)
     command = split_text[0].lstrip('/')
@@ -105,7 +96,7 @@ async def text(message: Message):
                     data = await fetch_json(f"{API_URL}/user/{username}")
                     if "user_id" in data:
                         user_id = data["user_id"]
-                        name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
+                        name_data = await fetch_json(f"{API_URL}/first_name/{chat_id}/{user_id}")
                         target_user = type('User', (object,), {
                             "id": user_id,
                             "first_name": name_data.get("first_name", "Неизвестный")
@@ -115,14 +106,14 @@ async def text(message: Message):
                 break
 
         if not target_user and space_pos != -1:
-            args = text_msg[space_pos+1:].split()
+            args = text_msg[space_pos + 1:].split()
             if args:
                 username = args[0].lstrip('@')
                 try:
                     data = await fetch_json(f"{API_URL}/user/{username}")
                     if "user_id" in data:
                         user_id = data["user_id"]
-                        name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{user_id}")
+                        name_data = await fetch_json(f"{API_URL}/first_name/{chat_id}/{user_id}")
                         target_user = type('User', (object,), {
                             "id": user_id,
                             "first_name": name_data.get("first_name", "Неизвестный")
@@ -134,11 +125,9 @@ async def text(message: Message):
         await message.reply("Не удалось найти пользователя.")
         return
 
-    # Форматируем пользователей
     user1_link = f'<a href="tg://user?id={user1.id}">{user1.first_name}</a>'
     user2_link = f'<a href="tg://user?id={target_user.id}">{target_user.first_name}</a>'
 
-    # Получаем сообщение для команды
     cmd = commands[command]
     text_template = random.choice(cmd["messages"])
     result_text = text_template.format(user1=user1_link, user2=user2_link)
