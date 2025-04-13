@@ -4,5 +4,4 @@
 
 ## Настройка
 
-`curl -sSL https://raw.githubusercontent.com/Komaru-dude/Komaru-FunBox/test/setup.sh -o setup.sh`
-`sudo bash setup.sh`
+`sudo bash -c "$(curl -sSL https://github.com/Komaru-dude/Komaru-FunBox/raw/test/setup.sh)"`
