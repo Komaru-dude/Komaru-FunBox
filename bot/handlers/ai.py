@@ -9,19 +9,26 @@ ai_router = Router()
 url = os.getenv("API_URL")
 
 def escape_markdown(text: str) -> str:
-    pattern = r'(\*[^*]+\*)'
+    pattern = r'(`+)(.+?)\1|(\*[^*]+\*)'
     
-    def escape_chars(t: str) -> str:
-        return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', t)
+    def escape_chars(segment: str) -> str:
+        # Перечень: _ * [ ] ( ) ~ ` > # + - = | { } . !
+        return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', segment)
     
-    parts = re.split(pattern, text)
     result = []
-    for part in parts:
-        if re.fullmatch(pattern, part):
-            inner = part[1:-1]
-            result.append(f"*{escape_chars(inner)}*")
+    last_end = 0
+    for match in re.finditer(pattern, text):
+        start, end = match.span()
+        if start > last_end:
+            result.append(escape_chars(text[last_end:start]))
+        if match.group(1) is not None:
+            result.append(match.group(0))
         else:
-            result.append(escape_chars(part))
+            result.append(match.group(0))
+        last_end = end
+    # Экранируем остаток строки
+    if last_end < len(text):
+        result.append(escape_chars(text[last_end:]))
     return ''.join(result)
 
 @ai_router.message(Command("gemini"))
