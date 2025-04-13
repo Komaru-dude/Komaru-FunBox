@@ -36,17 +36,19 @@ def process_entity(entity: str, kind: str) -> str:
             return escape_code(entity)
     elif kind == 'link':
         return escape_link(entity)
-    elif kind in ('bold', 'italic', 'underline', 'strikethrough', 'spoiler'):
-        if kind == 'underline':
-            inner = entity[2:-2]
-            return f'__{escape_normal(inner)}__'
-        elif kind == 'spoiler':
-            inner = entity[2:-2]
-            return f'||{escape_normal(inner)}||'
-        else:
-            marker = entity[0]
-            inner = entity[1:-1]
-            return f'{marker}{escape_normal(inner)}{marker}'
+    elif kind in ('bold', 'italic'):
+        marker = entity[0]
+        inner = entity[1:-1]
+        return f'{marker}{escape_normal(inner)}{marker}'
+    elif kind == 'underline':
+        inner = entity[2:-2]
+        return f'__{escape_normal(inner)}__'
+    elif kind == 'strikethrough':
+        inner = entity[1:-1]
+        return f'~{escape_normal(inner)}~'
+    elif kind == 'spoiler':
+        inner = entity[2:-2]
+        return f'||{escape_normal(inner)}||'
     else:
         return escape_normal(entity)
 
@@ -60,6 +62,13 @@ pattern = re.compile(
     r"(?P<strikethrough>~[^~]+~)|"
     r"(?P<italic>_[^_]+_)"
 )
+
+def fix_unmatched_bold(text: str) -> str:
+    stars = list(re.finditer(r'(?<!\\)\*', text))
+    if len(stars) % 2 == 1:
+        last = stars[-1]
+        text = text[:last.start()] + '\\*' + text[last.end():]
+    return text
 
 def escape_markdown(text: str) -> str:
     result = []
@@ -75,7 +84,8 @@ def escape_markdown(text: str) -> str:
         last_index = end
     if last_index < len(text):
         result.append(escape_normal(text[last_index:]))
-    return ''.join(result)
+    final_text = ''.join(result)
+    return fix_unmatched_bold(final_text)
 
 @ai_router.message(Command("gemini"))
 async def cmd_gemini(message: Message):
