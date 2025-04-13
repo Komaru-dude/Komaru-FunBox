@@ -6,7 +6,7 @@ from pathlib import Path
 
 easter_router = Router()
 
-@easter_router.message(Command("cafe"))
+@easter_router.message(Command("coffee"))
 async def cmd_tea(message: Message):
     file_path = Path(__file__).parent.parent / 'media' / '418.jpg'
     t418 = FSInputFile(file_path)
