@@ -47,7 +47,7 @@ async def text(message: Message):
         return
 
     if text_msg.lower() == "это что?" and message.reply_to_message and message.reply_to_message.text and db.is_feature_enabled(chat_id, "who"):
-        request = f"Твоя задача объяснить что такое, кратко, попытайся объяснить максимально мягко, вот запрос пользователя: {message.reply_to_message.text}"
+        request = f"Твоя задача кратко объяснить что такое, вот запрос пользователя: {message.reply_to_message.text}"
         payload = {
             "model": "gemini-2.0-flash",
             "request": {
