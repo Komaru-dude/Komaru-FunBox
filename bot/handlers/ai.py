@@ -2,6 +2,7 @@ import os, aiohttp
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
+from aiogram.enums import ParseMode
 from bot.utils.aio_tools import make_post_request
 
 ai_router = Router()
@@ -80,9 +81,9 @@ async def cmd_aggemini(message: Message):
         chunks = [raw_answer]
     for idx, chunk in enumerate(chunks):
         if idx == 0:
-            await base_msg.edit_text(chunk)
+            await base_msg.edit_text(chunk, parse_mode=ParseMode.MARKDOWN_V2)
         else:
-            await base_msg.reply(chunk)
+            await base_msg.reply(chunk, parse_mode=ParseMode.MARKDOWN_V2)
 
 @ai_router.message(Command("search"))
 async def cmd_search(message: Message):
