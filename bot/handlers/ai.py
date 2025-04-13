@@ -9,25 +9,20 @@ ai_router = Router()
 url = os.getenv("API_URL")
 
 def escape_markdown(text: str) -> str:
-    pattern = r'(\*[^*]+\*|_[^_]+_|`[^`]+`|\[[^\]]+\]\([^)]+\))'
+    pattern = r'(\*[^*]+\*)'
     
-    def escape_segment(segment: str) -> str:
-        special_chars = [
-            "_", "*", "`", "[", "]", "(", ")", "~", ">", "#", "+", "-", "=", 
-            "|", "{", "}", ".", "!"
-        ]
-        for char in special_chars:
-            segment = segment.replace(char, f"\\{char}")
-        return segment
-
+    def escape_chars(t: str) -> str:
+        return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', t)
+    
     parts = re.split(pattern, text)
-    result_parts = []
+    result = []
     for part in parts:
         if re.fullmatch(pattern, part):
-            result_parts.append(part)
+            inner = part[1:-1]
+            result.append(f"*{escape_chars(inner)}*")
         else:
-            result_parts.append(escape_segment(part))
-    return ''.join(result_parts)
+            result.append(escape_chars(part))
+    return ''.join(result)
 
 @ai_router.message(Command("gemini"))
 async def cmd_gemini(message: Message):
