@@ -11,6 +11,6 @@ async def cmd_tea(message: Message):
     file_path = Path(__file__).parent.parent / 'media' / '418.jpg'
     t418 = FSInputFile(file_path)
     if message.reply_to_message:
-        await message.reply_to_message.reply_photo(t418, caption="418 I'm a <i>teapot</i> ☕", parse_mode=ParseMode.HTML)
+        await message.reply_to_message.reply_photo(t418, caption="418 I'm a <a href='https://ru.wikipedia.org/wiki/HTCPCP'>teapot</a> ☕", parse_mode=ParseMode.HTML)
     else:
         await message.reply_photo(t418, caption="418 I'm a <i>teapot</i> ☕", parse_mode=ParseMode.HTML)
