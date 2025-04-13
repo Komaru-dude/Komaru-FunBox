@@ -8,27 +8,73 @@ from bot.utils.aio_tools import make_post_request
 ai_router = Router()
 url = os.getenv("API_URL")
 
-def escape_markdown(text: str) -> str:
-    pattern = r'(`+)(.+?)\1|(\*[^*]+\*)'
-    
-    def escape_chars(segment: str) -> str:
-        # Перечень: _ * [ ] ( ) ~ ` > # + - = | { } . !
-        return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', segment)
-    
-    result = []
-    last_end = 0
-    for match in re.finditer(pattern, text):
-        start, end = match.span()
-        if start > last_end:
-            result.append(escape_chars(text[last_end:start]))
-        if match.group(1) is not None:
-            result.append(match.group(0))
+def escape_normal(text: str) -> str:
+    return re.sub(r'([_*[\]()~`>#+\-=|{}.!])', r'\\\1', text)
+
+def escape_code(text: str) -> str:
+    return text.replace('\\', '\\\\').replace('`', '\\`')
+
+def escape_link(link: str) -> str:
+    m = re.match(r'\[([^\]]+)\]\(([^)]+)\)', link)
+    if not m:
+        return escape_normal(link)
+    text_part, url_part = m.groups()
+    esc_text = escape_normal(text_part)
+    esc_url = re.sub(r'([)\\])', r'\\\1', url_part)
+    return f'[{esc_text}]({esc_url})'
+
+def process_entity(entity: str, kind: str) -> str:
+    if kind in ('code_block', 'inline_code'):
+        if kind == 'code_block':
+            inner = entity[3:-3]
+            return f'```{escape_code(inner)}```'
         else:
-            result.append(match.group(0))
-        last_end = end
-    # Экранируем остаток строки
-    if last_end < len(text):
-        result.append(escape_chars(text[last_end:]))
+            m = re.match(r'(`+)([\s\S]+?)(\1)$', entity)
+            if m:
+                delim, inner = m.group(1), m.group(2)
+                return f'{delim}{escape_code(inner)}{delim}'
+            return escape_code(entity)
+    elif kind == 'link':
+        return escape_link(entity)
+    elif kind in ('bold', 'italic', 'underline', 'strikethrough', 'spoiler'):
+        if kind == 'underline':
+            inner = entity[2:-2]
+            return f'__{escape_normal(inner)}__'
+        elif kind == 'spoiler':
+            inner = entity[2:-2]
+            return f'||{escape_normal(inner)}||'
+        else:
+            marker = entity[0]
+            inner = entity[1:-1]
+            return f'{marker}{escape_normal(inner)}{marker}'
+    else:
+        return escape_normal(entity)
+
+pattern = re.compile(
+    r"(?P<code_block>```[\s\S]*?```)|"
+    r"(?P<inline_code>`+[\s\S]+?`+)|"
+    r"(?P<link>\[[^\]]+\]\([^)]+\))|"
+    r"(?P<spoiler>\|\|[\s\S]+?\|\|)|"
+    r"(?P<underline>__[^_]+__)|"
+    r"(?P<bold>\*[^*]+\*)|"
+    r"(?P<strikethrough>~[^~]+~)|"
+    r"(?P<italic>_[^_]+_)"
+)
+
+def escape_markdown(text: str) -> str:
+    result = []
+    last_index = 0
+    for m in pattern.finditer(text):
+        start, end = m.span()
+        if start > last_index:
+            result.append(escape_normal(text[last_index:start]))
+        for key, value in m.groupdict().items():
+            if value is not None:
+                result.append(process_entity(value, key))
+                break
+        last_index = end
+    if last_index < len(text):
+        result.append(escape_normal(text[last_index:]))
     return ''.join(result)
 
 @ai_router.message(Command("gemini"))
