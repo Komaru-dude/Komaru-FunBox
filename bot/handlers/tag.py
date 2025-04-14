@@ -25,10 +25,11 @@ async def cmd_tag(message: Message):
         await message.reply("❌ А кого упоминать?")
         return
     
-    if split_text[1].isdigit:
-        tag_id = message.text.split(maxsplit=1)[1]
+    if split_text[1].isdigit():
+        tag_id = split_text[1]
     else:
         await message.reply("❌ Вы не указали кого упоминать(или указали некорректно).")
+        return
     
     await message.answer(f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
 
@@ -74,7 +75,7 @@ async def cmd_tagall(message: Message):
     chunk_size = 5
     chunks = [tags[i:i + chunk_size] for i in range(0, len(tags), chunk_size)]
 
-    for idx, chunk in chunks:
+    for idx, chunk in enumerate(chunks):
         tags_str = ' '.join(chunk)
         if idx == 0:
             await message.answer(f"❗️ Упоминаю всех! {tags_str}", parse_mode=ParseMode.HTML)
