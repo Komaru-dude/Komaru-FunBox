@@ -74,6 +74,9 @@ async def cmd_tagall(message: Message):
     chunk_size = 5
     chunks = [tags[i:i + chunk_size] for i in range(0, len(tags), chunk_size)]
 
-    for chunk in chunks:
+    for idx, chunk in chunks:
         tags_str = ' '.join(chunk)
-        await message.answer(tags_str, parse_mode=ParseMode.HTML)
+        if idx == 0:
+            await message.answer(f"❗️ Упоминаю всех! {tags_str}", parse_mode=ParseMode.HTML)
+        else:
+            await message.answer(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
