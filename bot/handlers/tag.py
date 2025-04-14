@@ -21,17 +21,21 @@ async def cmd_tag(message: Message):
         await message.reply("❌ Функция не включена в чате, а вы не имеете прав модератора.")
         return
     
-    if len(message.text) < 2:
+    if len(split_text) < 2:
         await message.reply("❌ А кого упоминать?")
         return
     
-    if split_text[1].isdigit():
-        tag_id = split_text[1]
-    else:
-        await message.reply("❌ Вы не указали кого упоминать(или указали некорректно).")
+    tag_argument = split_text[1]
+
+    if not tag_argument.isdigit():
+        await message.reply("❌ Некорректный ID пользователя. Укажите числовой ID.")
         return
     
-    await message.answer(f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
+    tag_id = tag_argument
+    await message.answer(
+        f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>',
+        parse_mode=ParseMode.HTML
+    )
 
 @tag_router.message(Command("tagall"))
 async def cmd_tagall(message: Message):
