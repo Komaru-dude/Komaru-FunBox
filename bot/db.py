@@ -47,7 +47,7 @@ def sync_all_chat_features():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    default_features = [('who', 1), ('tag', 1)]
+    default_features = [('who', 1), ('tag', 0)]
 
     cursor.execute('''SELECT DISTINCT chat_id FROM features''')
     chat_ids = [row[0] for row in cursor.fetchall()]
