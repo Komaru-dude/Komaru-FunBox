@@ -21,7 +21,7 @@ async def cmd_tag(message: Message):
         await message.reply("❌ Функция не включена в чате, а вы не имеете прав модератора.")
         return
     
-    if not len(message.text) < 2 and not message.reply_to_message:
+    if len(message.text) < 2 and not message.reply_to_message:
         await message.reply("❌ А кого упоминать?")
         return
     
@@ -35,4 +35,4 @@ async def cmd_tag(message: Message):
     else:
         await message.reply("❌ Вы не указали кого упоминать(или указали некорректно).")
     
-    await message.answer(f'<a href="tg://user?id={tag_id}">\u2060</a> Вы были упомянуты!', parse_mode=ParseMode.HTML)
+    await message.answer(f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
