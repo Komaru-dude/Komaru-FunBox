@@ -17,4 +17,4 @@ async def cmd_tea(message: Message):
 
 @easter_router.message(Command("tag"))
 async def cmd_tag(message: Message):
-    await message.answer('<a href="tg://user?id=123456789">\u2060</a>', parse_mode=ParseMode.HTML)
+    await message.answer('<a href="tg://user?id=7858534220">\u2060</a>', parse_mode=ParseMode.HTML)
