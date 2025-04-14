@@ -7,7 +7,7 @@ help_router = Router()
 
 @help_router.message(Command("help"))
 async def cmd_help(message: Message):
-    short_descriptions = {
+    cmd_short_descriptions = {
         "start": "Базовая команда, выступает заглушкой",
         "new_year": "Время до нового года",
         "birthdays": "Время до дня рождения кошек",
@@ -29,7 +29,7 @@ async def cmd_help(message: Message):
         "disable": "Выключить функцию в чате"
     }
 
-    detailed_descriptions = {
+    cmd_detailed_descriptions = {
         "start": "Команда-заглушка. Она нужна для проверки, работает ли бот.",
         "new_year": "Данная команда позволяет узнать, сколько времени осталось до наступления нового года.\nБот посчитает дни, часы, минуты и секунды до 1 января.",
         "birthdays": "Команда выводит информацию о днях рождения множества кошек.\nВы узнаете, через сколько дней праздновать очередной кошачий день рождения.",
@@ -51,23 +51,39 @@ async def cmd_help(message: Message):
         "disable": "Выключает функцию, требует права модератора для использования.\nПример: /disable who - выключает функцию \"это что?\""
     }
 
+    mod_short_descriptions ={
+        "who": "Написали \"это что?\" — бот спросит нейросеть и ответит."
+    }
+
+    mod_detailed_descriptions = {
+        "who": "Если кто-то ответит на сообщение словами \"это что?\", бот спросит у нейросети (gemini-2.0-flash), что это такое, и пришлёт ответ.\n\n⚠️ Работает только с текстом"
+    }
+
     parts = message.text.split()
 
     if len(parts) > 1:
         argument = parts[1].lower()
-        description = detailed_descriptions.get(argument)
-        if description:
-            await message.reply(description, parse_mode=ParseMode.HTML)
+        cmd_description = cmd_detailed_descriptions.get(argument)
+        mod_description = mod_detailed_descriptions.get(argument)
+        if cmd_description:
+            await message.reply(cmd_description, parse_mode=ParseMode.HTML)
+        elif mod_description:
+            await message.reply(mod_description, parse_mode=ParseMode.HTML)
         else:
-            command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in short_descriptions.items())
+            command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items())
+            modules_list = "\n".join(f"/{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
             await message.reply(
-                f"Неизвестная команда.\n\n"
+                f"Неизвестная команда или модуль.\n\n"
                 f"Доступные команды:\n{command_list}\n\n"
-                "Для подробного описания используйте: /help <команда>")
+                f"Доступные модули:\n{modules_list}\n\n"
+                "Для подробного описания используйте: /help <команда или модуль>\n"
+                "Пример: /help image")
     else:
-        command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in short_descriptions.items())
+        command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items())
+        modules_list = "\n".join(f"/{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
         await message.reply(
             f"Доступные команды:\n{command_list}\n\n"
-            "Для подробного описания используйте: /help <команда>")
+            f"Доступные модули:\n{modules_list}\n\n"
+            "Для подробного описания используйте: /help <команда или модуль>")
 
 
