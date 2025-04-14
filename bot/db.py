@@ -146,7 +146,7 @@ def set_param(user_id, chat_id, param, value):
 def init_chat_features(chat_id: int):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    default_features = [('who', 1)]
+    default_features = [('who', 1), ('tag', 1)]
     for feature, enabled in default_features:
         cursor.execute('''INSERT OR IGNORE INTO features (chat_id, feature_name, is_enabled) VALUES (?, ?, ?)''', (chat_id, feature, enabled))
     conn.commit()
