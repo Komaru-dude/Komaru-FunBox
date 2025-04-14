@@ -43,7 +43,37 @@ def create_db():
     conn.commit()
     conn.close()
 
+def sync_all_chat_features():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    default_features = [('who', 1), ('tag', 1)]
+
+    cursor.execute('''SELECT DISTINCT chat_id FROM features''')
+    chat_ids = [row[0] for row in cursor.fetchall()]
+
+    for chat_id in chat_ids:
+        cursor.execute('''SELECT feature_name FROM features WHERE chat_id = ?''', (chat_id,))
+        existing_features = {row[0] for row in cursor.fetchall()}
+
+        # Добавляем отсутсвующие фичи
+        for feature, enabled in default_features:
+            if feature not in existing_features:
+                cursor.execute('''INSERT INTO features (chat_id, feature_name, is_enabled) 
+                                  VALUES (?, ?, ?)''', (chat_id, feature, enabled))
+                existing_features.add(feature)
+
+        # Удаляем лишние фичи
+        for feature in existing_features:
+            if feature not in dict(default_features):
+                cursor.execute('''DELETE FROM features WHERE chat_id = ? AND feature_name = ?''', 
+                               (chat_id, feature))
+
+    conn.commit()
+    conn.close()
+
 create_db()
+sync_all_chat_features()
 
 def has_permission(user_id, chat_id, level):
     if str(user_id) == os.getenv("OWNER_ID"):
