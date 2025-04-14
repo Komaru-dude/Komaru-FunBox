@@ -24,7 +24,7 @@ async def cmd_help(message: Message):
         "aggemini": "\"Злая\" версия /gemini",
         "image": "Бот сделает запрос к Kandinsky",
         "search": "Поиск с помощью searchgpt",
-        "set_rank": "Устанавливает ранг, требует прав владельца/администратора чата",
+        "set_rank": "Устанавливает ранг",
         "enable": "Включить функцию в чате",
         "disable": "Выключить функцию в чате"
     }
