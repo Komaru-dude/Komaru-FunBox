@@ -14,8 +14,3 @@ async def cmd_tea(message: Message):
         await message.reply_to_message.reply_photo(t418, caption="418 I'm a <a href='https://ru.wikipedia.org/wiki/HTCPCP'>teapot</a> ☕", parse_mode=ParseMode.HTML)
     else:
         await message.reply_photo(t418, caption="418 I'm a <i>teapot</i> ☕", parse_mode=ParseMode.HTML)
-
-@easter_router.message(Command("tag"))
-async def cmd_tag(message: Message):
-    tag = message.text.split(maxsplit=1)[1]
-    await message.answer(f'<a href="tg://user?id={tag}">\u2060</a>', parse_mode=ParseMode.HTML)
