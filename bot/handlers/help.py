@@ -80,7 +80,7 @@ async def cmd_help(message: Message):
                 "Пример: /help image")
     else:
         command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items())
-        modules_list = "\n".join(f"/{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
+        modules_list = "\n".join(f"{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
         await message.reply(
             f"Доступные команды:\n{command_list}\n\n"
             f"Доступные модули:\n{modules_list}\n\n"
