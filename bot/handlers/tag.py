@@ -15,7 +15,7 @@ async def fetch(url):
 @tag_router.message(Command("tag"))
 async def cmd_tag(message: Message):
     chat_id = message.chat.id
-    split_text = message.text.split()
+    split_text = message.text.split(maxsplit=2)
 
     if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(message.from_user.id, chat_id, 1):
         await message.reply("❌ Функция не включена в чате, а вы не имеете прав модератора.")
@@ -26,16 +26,17 @@ async def cmd_tag(message: Message):
         return
     
     tag_argument = split_text[1]
-
     if not tag_argument.isdigit():
         await message.reply("❌ Некорректный ID пользователя. Укажите числовой ID.")
         return
     
-    tag_id = tag_argument
-    await message.answer(
-        f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>',
-        parse_mode=ParseMode.HTML
-    )
+    if len(split_text) == 3:
+        tag_text = split_text[2]
+        tag_id = tag_argument
+        await message.answer(f'{tag_text}<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
+    else:
+        tag_id = tag_argument
+        await message.answer(f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
 
 @tag_router.message(Command("tagall"))
 async def cmd_tagall(message: Message):
