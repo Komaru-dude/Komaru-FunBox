@@ -139,5 +139,6 @@ async def cmd_shutter(message: Message):
             stutter = word
         result.append(stutter)
 
-    final_text = " ".join(result)
+    emojis = ['😅', '😰', '💦', '🥺', '😫', '😖']
+    final_text = " ".join(result) + f"~~{random.choice(emojis)}"
     await message.reply(final_text)
