@@ -31,21 +31,19 @@ async def cmd_video(message: Message, url=None):
 
     if url is None and len(split_text) > 1 and split_text[1]:
         url = split_text[1]
+
+    if url is not None:
         result = await download_video(url)
         if result["status"] == "success":
             file = result["file_path"]
             vid = FSInputFile(file)
             await message.reply_video(vid)
-        else:
-            await message.reply("❌ Не удалось загрузить видео")
-    elif url is not None:
-        result = await download_video(url)
-        if result["status"] == "success":
-            file = result["file_path"]
-            vid = FSInputFile(file)
-            await message.reply_video(vid)
+
+            process = await asyncio.create_subprocess_exec('rm', '-f', file)
+            await process.wait()
         else:
             await message.reply("❌ Не удалось загрузить видео")
     else:
         await message.reply("❌ Непредвиденная ошибка.")
+
     await processing_msg.delete()
