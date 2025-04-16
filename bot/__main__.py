@@ -39,6 +39,8 @@ def clear_cache():
         logging.error(f"Ошибка при очистке кэша: {e}")
 
 async def main():
+    clear_cache()
+
     dp.include_routers(
         base_router,
         easter_router,
@@ -59,7 +61,6 @@ async def main():
     )
 
     try:
-        clear_cache()
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     finally:
