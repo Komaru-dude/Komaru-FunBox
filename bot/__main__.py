@@ -33,7 +33,6 @@ def clear_cache():
     try:
         bot_dir = Path(__file__).resolve().parent
         cache_dir = bot_dir / "cache"
-        logging.info(f"Очистка кэша: {cache_dir}")
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
             cache_dir.mkdir(parents=True, exist_ok=True)
