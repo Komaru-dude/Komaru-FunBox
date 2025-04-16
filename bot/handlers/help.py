@@ -52,7 +52,7 @@ async def cmd_help(message: Message):
         "enable": "Включает функцию, требует права модератора для использования.\nПример: /enable who - включает функцию \"это что?\"",
         "disable": "Выключает функцию, требует права модератора для использования.\nПример: /disable who - выключает функцию \"это что?\"",
         "shutter": "Преобразует текст в запинания в стиле \"п-по-пожалуйста~~🥺\".\nРаботает как по тексту, так и по реплаям",
-        "video": "Скачивает видео с <a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>этих</a> сайтов."
+        "video": "Скачивает видео с <a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>этих</a> сайтов.\n\n⚠️ Могут быть проблемы с сайтами заблокированными в РФ"
     }
 
     mod_short_descriptions ={
