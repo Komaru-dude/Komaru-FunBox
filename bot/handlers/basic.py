@@ -133,11 +133,14 @@ async def cmd_shutter(message: Message):
     result = []
 
     for word in words:
-        if len(word) > 2 and word[0].isalpha():
-            stutter = f"{word[0]}-{word[:2]}-{word}"
+        if random.random() < 0.5:
+            if len(word) > 2 and word[0].isalpha():
+                stutter = f"{word[0]}-{word[:2]}-{word}"
+                result.append(stutter)
+            else:
+                result.append(word)
         else:
-            stutter = word
-        result.append(stutter)
+            result.append(word)
 
     emojis = ['😅', '😰', '💦', '🥺', '😫', '😖']
     final_text = " ".join(result) + f" ~~{random.choice(emojis)}"
