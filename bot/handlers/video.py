@@ -1,5 +1,5 @@
 import asyncio
-import os
+import uuid
 from pathlib import Path
 from aiogram import Router
 from aiogram.filters import Command
@@ -8,16 +8,19 @@ from aiogram.types import Message, FSInputFile
 video_router = Router()
 CACHE_DIR = Path(__file__).resolve().parent.parent / 'cache'
 
-async def download_video(url: str) -> str:
-    output_path = str(CACHE_DIR / '%(title)s.%(ext)s')
-    
+async def download_video(url: str) -> dict:
+    random_filename = f"{uuid.uuid4().hex}.mp4"
+    output_path = CACHE_DIR / random_filename
+
     process = await asyncio.create_subprocess_exec(
-        'yt-dlp', '-o', output_path, url, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        'yt-dlp', '-o', str(output_path), url,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
     )
     stdout, stderr = await process.communicate()
 
-    if process.returncode == 0:
-        return {"status": "success", "output": stdout.decode(), "file_path": output_path}
+    if process.returncode == 0 and output_path.exists():
+        return {"status": "success", "output": stdout.decode(), "file_path": str(output_path)}
     else:
         return {"status": "error", "message": stderr.decode()}
     
