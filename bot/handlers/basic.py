@@ -117,3 +117,27 @@ async def cmd_say(message: Message):
             await message.answer("Брадочки, оформите права на удаление сообщений 😢")
     else:
         await message.reply("А что говорить то?")
+
+@base_router.message(Command("shutter"))
+async def cmd_shutter(message: Message):
+    if message.reply_to_message:
+        text = message.reply_to_message.text
+    else:
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply("❌ А что конвертировать?")
+            return
+        text = parts[1]
+
+    words = text.split()
+    result = []
+
+    for word in words:
+        if len(word) > 2 and word[0].isalpha():
+            stutter = f"{word[0]}-{word[:2]}-{word}"
+        else:
+            stutter = word
+        result.append(stutter)
+
+    final_text = " ".join(result)
+    await message.reply(final_text)
