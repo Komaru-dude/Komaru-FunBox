@@ -38,7 +38,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
         if result["status"] == "success":
             file = result["file_path"]
             vid = FSInputFile(file)
-            await message.reply_video(vid)
+            await message.reply_video(vid, caption="📹 Вот ваше видео:")
 
             process = await asyncio.create_subprocess_exec('rm', '-f', file)
             await process.wait()
