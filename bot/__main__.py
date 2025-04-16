@@ -29,14 +29,20 @@ bot = Bot(token)
 dp = Dispatcher()
 
 def clear_cache():
-    """Очищает папку bot/cache."""
-    cache_dir = Path(__file__).parent / "cache"
+    """Очищает папку cache относительно расположения бота."""
     try:
+        bot_dir = Path(__file__).resolve().parent
+        cache_dir = bot_dir / "cache"
+        logging.info(f"Очистка кэша: {cache_dir}")
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
-            logging.info("Кэш успешно очищен.")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            logging.info("Кэш успешно очищен!")
+        else:
+            logging.warning("Папка кэша не найдена.")
+            
     except Exception as e:
-        logging.error(f"Ошибка при очистке кэша: {e}")
+        logging.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
 
 async def main():
     clear_cache()
