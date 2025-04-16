@@ -13,7 +13,7 @@ async def download_video(url: str) -> dict:
     output_path = CACHE_DIR / random_filename
 
     process = await asyncio.create_subprocess_exec(
-        'yt-dlp', '-o', str(output_path), url,
+        'yt-dlp', '-f "bestvideo[height<=540]+bestaudio/best[height<=540]"' '-o', str(output_path), url,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE
     )
