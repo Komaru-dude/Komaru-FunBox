@@ -72,9 +72,9 @@ async def cmd_help(message: Message):
         cmd_description = cmd_detailed_descriptions.get(argument)
         mod_description = mod_detailed_descriptions.get(argument)
         if cmd_description:
-            await message.reply(cmd_description, parse_mode=ParseMode.HTML)
+            await message.reply(cmd_description, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
         elif mod_description:
-            await message.reply(mod_description, parse_mode=ParseMode.HTML)
+            await message.reply(mod_description, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
         else:
             command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items())
             modules_list = "\n".join(f"{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
