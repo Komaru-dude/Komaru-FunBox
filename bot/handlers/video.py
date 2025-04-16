@@ -1,7 +1,8 @@
 import asyncio
 import uuid
+import os
 from pathlib import Path
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 
@@ -25,7 +26,7 @@ async def download_video(url: str) -> dict:
         return {"status": "error", "message": stderr.decode()}
     
 @video_router.message(Command("video"))
-async def cmd_video(message: Message, url=None):
+async def cmd_video(message: Message, bot: Bot, url=None):
     split_text = message.text.split()
     processing_msg = await message.answer("⏳ Скачиваю, ждите")
 
@@ -42,7 +43,9 @@ async def cmd_video(message: Message, url=None):
             process = await asyncio.create_subprocess_exec('rm', '-f', file)
             await process.wait()
         else:
-            await message.reply("❌ Не удалось загрузить видео")
+            report_id = uuid.uuid4()
+            await message.reply(f"❌ Не удалось загрузить видео\nReport id: {report_id}")
+            await bot.send_message(os.getenv("OWNER_ID"), f"Report id: {report_id}\n\nMessage: {message.text}\n\nLogs: {result["message"]}")
     else:
         await message.reply("❌ Непредвиденная ошибка.")
 
