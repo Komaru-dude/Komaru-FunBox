@@ -4,6 +4,7 @@ import os
 import subprocess
 import signal
 import sys
+import shutil
 from pathlib import Path
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
@@ -27,6 +28,16 @@ token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
 
+def clear_cache():
+    """Очищает папку bot/cache."""
+    cache_dir = Path(__file__).parent / "cache"
+    try:
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir)
+            logging.info("Кэш успешно очищен.")
+    except Exception as e:
+        logging.error(f"Ошибка при очистке кэша: {e}")
+
 async def main():
     dp.include_routers(
         base_router,
@@ -48,6 +59,7 @@ async def main():
     )
 
     try:
+        clear_cache()
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     finally:
