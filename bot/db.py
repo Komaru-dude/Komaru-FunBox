@@ -206,26 +206,17 @@ def is_feature_enabled(chat_id: int, feature_name: str) -> bool:
     return bool(result[0]) if result else False
 
 def is_feature_exists(chat_id: int, feature_name: str) -> bool:
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''SELECT 1 FROM features WHERE chat_id = ? AND feature_name = ? LIMIT 1''', (chat_id, feature_name))
-    result = cursor.fetchone()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        result = conn.execute('''SELECT 1 FROM features WHERE chat_id = ? AND feature_name = ? LIMIT 1''', (chat_id, feature_name)).fetchone()
     return True if result else False
 
 def enable_feature(chat_id: int, feature_name: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''UPDATE features SET is_enabled = 1 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''UPDATE features SET is_enabled = 1 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
 
 def disable_feature(chat_id: int, feature_name: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''UPDATE features SET is_enabled = 0 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''UPDATE features SET is_enabled = 0 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
 
 def ban_user(user_id: int):
     with sqlite3.connect(DB_PATH) as conn:
