@@ -76,7 +76,7 @@ async def main():
             else:
                 pyrogram_process.send_signal(signal.SIGTERM)
             try:
-                pyrogram_process.wait(timeout=5)
+                pyrogram_process.wait(timeout=7)
             except subprocess.TimeoutExpired:
                 pyrogram_process.kill()
 
