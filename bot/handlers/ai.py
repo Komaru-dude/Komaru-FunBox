@@ -3,6 +3,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 from bot.utils.aio_tools import make_post_request
+from bot import db
 
 ai_router = Router()
 url = os.getenv("API_URL")
@@ -11,6 +12,10 @@ url = os.getenv("API_URL")
 async def cmd_gemini(message: Message, custom_payload: dict = None):
     base_msg = await message.reply("🔄 Обработка...")
     split_text = message.text.split(maxsplit=1)
+
+    if db.get_user_rank(message.from_user.id, message.chat.id) == "Забанен":
+        await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+        return
 
     if len(split_text) < 2 and not message.reply_to_message:
         await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
