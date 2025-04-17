@@ -83,16 +83,23 @@ async def cmd_aggemini(message: Message):
 
 @ai_router.message(Command("search"))
 async def cmd_search(message: Message):
-    request = message.text.split(maxsplit=1)
+    split_text = message.text.split(maxsplit=1)
 
-    if len(request) < 2:
+    if len(split_text) < 2 and not message.reply_to_message:
         await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
         return
+
+    if len(split_text) >= 2 and message.reply_to_message:
+        request = f"\"{message.reply_to_message.text}\"\n{split_text[1]}"
+    elif message.reply_to_message:
+        request = message.reply_to_message.text
+    else:
+        request = split_text[1]
 
     custom_payload = {
         "model": "searchgpt",
         "request": {
-            "messages": [{"role": "user", "content": request[1]}]
+            "messages": [{"role": "user", "content": request}]
         }
     }
 
