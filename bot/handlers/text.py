@@ -1,17 +1,24 @@
 import json, random, aiohttp
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
 from bot.handlers.ai import cmd_gemini
+from bot.handlers.video import cmd_video
 from pathlib import Path
+from urllib.parse import urlparse
 
 text_router = Router()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
-
 API_URL = "http://127.0.0.1:8001"
+SUPPORTED_DOMAINS = [
+    "tiktok.com", "soundcloud.com", "vimeo.com",
+    "twitch.tv", "bilibili.com", "facebook.com",
+    "rumble.com", "odysee.com", "dailymotion.com", "vk.com"
+    # добавить позже ещё
+]
 
 async def load_commands(path: Path):
     try:
@@ -34,7 +41,7 @@ async def fetch_json(url):
             return await response.json()
 
 @text_router.message()
-async def text(message: Message):
+async def text(message: Message, bot: Bot):
     user1 = message.from_user
     chat_id = message.chat.id
     text_msg = message.text
@@ -61,6 +68,12 @@ async def text(message: Message):
         }
         await cmd_gemini(message, custom_payload=custom_payload)
         return
+    elif message.text.startswith(("http://", "https://")) and db.is_feature_enabled(chat_id, "autovideo"):
+        parsed_url = urlparse(message.text)
+        domain = parsed_url.netloc.lower().replace("www.", "")
+        if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
+            await cmd_video(message, bot, url=message.text)
+            return
 
     commands = await get_chat_commands(chat_id)
 
