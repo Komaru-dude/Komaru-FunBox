@@ -11,7 +11,6 @@ DATA_DIR.mkdir(exist_ok=True)
 DB_PATH = DATA_DIR / "users.db"
 
 RANK_TO_LEVEL = {
-    "Забанен": -1,
     "Участник": 0,
     "Модератор": 1,
     "Администратор": 2,
@@ -24,21 +23,28 @@ load_dotenv()
 def create_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                        user_id INTEGER,
-                        chat_id INTEGER,
-                        reputation INTEGER DEFAULT 0,
-                        rank TEXT DEFAULT 'Участник',
-                        message_count INTEGER DEFAULT 0,
-                        first_name TEXT DEFAULT '',
-                        PRIMARY KEY (user_id, chat_id)
-                    )''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER,
+            chat_id INTEGER,
+            reputation INTEGER DEFAULT 0,
+            rank TEXT DEFAULT 'Участник',
+            message_count INTEGER DEFAULT 0,
+            first_name TEXT DEFAULT '',
+            PRIMARY KEY (user_id, chat_id)
+        )
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS features (
             chat_id INTEGER,
             feature_name TEXT,
             is_enabled INTEGER DEFAULT 0,
             PRIMARY KEY (chat_id, feature_name)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS banned_users (
+            user_id INTEGER PRIMARY KEY
         )
     ''')
     conn.commit()
@@ -220,3 +226,16 @@ def disable_feature(chat_id: int, feature_name: str):
     cursor.execute('''UPDATE features SET is_enabled = 0 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
     conn.commit()
     conn.close()
+
+def ban_user(user_id: int):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("INSERT OR IGNORE INTO banned_users (user_id) VALUES (?)", (user_id,))
+
+def unban_user(user_id: int):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM banned_users WHERE user_id = ?", (user_id,))
+
+def is_user_banned(user_id: int) -> bool:
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (user_id,))
+        return cursor.fetchone() is not None
