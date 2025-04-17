@@ -28,7 +28,8 @@ async def cmd_help(message: Message):
         "enable": "Включить функцию в чате",
         "disable": "Выключить функцию в чате",
         "shutter": "Преобразует текст в залипания",
-        "video": "Скачать видео"
+        "video": "Скачать видео",
+        "http_cat": "Рандомный кот с http.cat"
     }
 
     cmd_detailed_descriptions = {
@@ -52,7 +53,8 @@ async def cmd_help(message: Message):
         "enable": "Включает функцию, требует права модератора для использования.\nПример: /enable who - включает функцию \"это что?\"",
         "disable": "Выключает функцию, требует права модератора для использования.\nПример: /disable who - выключает функцию \"это что?\"",
         "shutter": "Преобразует текст в запинания в стиле \"п-по-пожалуйста~~🥺\".\nРаботает как по тексту, так и по реплаям",
-        "video": "Скачивает видео с <a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>этих</a> сайтов.\n\n⚠️ Могут быть проблемы с сайтами заблокированными в РФ"
+        "video": "Скачивает видео с <a href='https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md'>этих</a> сайтов.\n\n⚠️ Могут быть проблемы с сайтами заблокированными в РФ",
+        "http_cat": "Отправляет в ответ рандомного кота с http.cat.\nP.S отсутствует один кот, он в другой команде"
     }
 
     mod_short_descriptions ={
