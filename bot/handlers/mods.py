@@ -1,4 +1,4 @@
-import aiohttp, os, subprocess
+import aiohttp, os, subprocess, uuid
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -10,6 +10,14 @@ from bot.db import RANK_TO_LEVEL
 from bot.utils import aio_tools
 
 mods_router = Router()
+API_URL = "http://127.0.0.1:8001"
+
+async def fetch_json(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise Exception(f"Ошибка API: статус {response.status}")
+            return await response.json()
 
 @mods_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot):
@@ -212,3 +220,119 @@ async def cmd_disable_func(message: Message, bot: Bot):
     except Exception as e:
         await message.reply("❌ Не удалось выключить функцию.")
         await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /disable произошла ошибка: {e}")
+
+@mods_router.message(Command("ban"))
+async def cmd_ban_user(message: Message, bot: Bot):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    target_id = None
+    first_name = None
+
+    if not db.has_permission(user_id, chat_id, 4):
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+        return
+
+    if message.reply_to_message:
+        target_id = message.reply_to_message.from_user.id
+        first_name = message.reply_to_message.from_user.first_name
+    else:
+        text = message.text
+        split_text = text.split(maxsplit=1)
+
+        if len(split_text) > 1 and split_text[1].startswith("@"):
+            username = split_text[1][1:]
+            try:
+                data = await fetch_json(f"{API_URL}/user/{username}")
+
+                if "user_id" in data:
+                    target_id = data["user_id"]
+                    name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    first_name = name_data.get("first_name", "Неизвестный")
+                else:
+                    await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
+                    return
+
+            except Exception as e:
+                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
+                return
+        elif len(split_text) > 1 and split_text[1].isdigit():
+            target_id = split_text[1]
+            try:
+                data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                first_name = data.get("first_name", "Неизвестный")
+            except Exception as e:
+                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
+                return
+        else:
+            await message.reply("Укажите пользователя через реплай, @username или айди.")
+            return
+        
+    if db.is_user_banned(target_id):
+        await message.reply("❌ Пользователь уже заблокирован")
+        return
+    
+    try:
+        db.ban_user(target_id)
+        await message.reply(f"✅ Пользователь {first_name} был заблокирован")
+    except Exception as e:
+        report_id = uuid.uuid4()
+        await message.reply(f"❌ Не удалось заблокировать\nReport id: {report_id}")
+        await bot.send_message(os.getenv("OWNER_ID"), f"Report id: {report_id}\n\nMessage: {message.text}\n\nLogs: {e}")
+
+@mods_router.message(Command("unban"))
+async def cmd_unban_user(message: Message, bot: Bot):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    target_id = None
+    first_name = None
+
+    if not db.has_permission(user_id, chat_id, 4):
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+        return
+
+    if message.reply_to_message:
+        target_id = message.reply_to_message.from_user.id
+        first_name = message.reply_to_message.from_user.first_name
+    else:
+        text = message.text
+        split_text = text.split(maxsplit=1)
+
+        if len(split_text) > 1 and split_text[1].startswith("@"):
+            username = split_text[1][1:]
+            try:
+                data = await fetch_json(f"{API_URL}/user/{username}")
+
+                if "user_id" in data:
+                    target_id = data["user_id"]
+                    name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    first_name = name_data.get("first_name", "Неизвестный")
+                else:
+                    await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
+                    return
+
+            except Exception as e:
+                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
+                return
+        elif len(split_text) > 1 and split_text[1].isdigit():
+            target_id = split_text[1]
+            try:
+                data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                first_name = data.get("first_name", "Неизвестный")
+            except Exception as e:
+                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
+                return
+        else:
+            await message.reply("Укажите пользователя через реплай, @username или айди.")
+            return
+        
+    if not db.is_user_banned(target_id):
+        await message.reply("❌ Пользователь уже разблокирован")
+        return
+    
+    try:
+        db.unban_user(target_id)
+        await message.reply(f"✅ Пользователь {first_name} был разблокирован")
+    except Exception as e:
+        report_id = uuid.uuid4()
+        await message.reply(f"❌ Не удалось разблокировать\nReport id: {report_id}")
+        await bot.send_message(os.getenv("OWNER_ID"), f"Report id: {report_id}\n\nMessage: {message.text}\n\nLogs: {e}")
