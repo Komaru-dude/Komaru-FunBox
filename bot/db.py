@@ -11,6 +11,7 @@ DATA_DIR.mkdir(exist_ok=True)
 DB_PATH = DATA_DIR / "users.db"
 
 RANK_TO_LEVEL = {
+    "Забанен": -1,
     "Участник": 0,
     "Модератор": 1,
     "Администратор": 2,
