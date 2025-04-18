@@ -37,14 +37,34 @@ async def cmd_tea(message: Message):
 
 @easter_router.message(Command("http_cat"))
 async def cmd_http_cat(message: Message):
-    code = random.choice(cat_http_codes)
+    split_text = message.text.split()
+    if len(split_text) > 1:
+        if split_text[1] == "418":
+            code = "405"
+        elif split_text[1] in cat_http_codes:
+            code = split_text[1]
+        else:
+            code = random.choice(cat_http_codes)
+    else:
+        code = random.choice(cat_http_codes)
+
     url = f"https://http.cat/{code}.jpg"
     image = URLInputFile(url=url, filename=f"{code}.jpg")
     await message.reply_photo(photo=image, caption=f"Ваш HTTP кот: {code}")
 
 @easter_router.message(Command("http_dog"))
 async def cmd_http_dog(message: Message):
-    code = random.choice(dog_http_codes)
+    split_text = message.text.split()
+    if len(split_text) > 1:
+        if split_text[1] == "418":
+            code = "405"
+        elif split_text[1] in dog_http_codes:
+            code = split_text[1]
+        else:
+            code = random.choice(dog_http_codes)
+    else:
+        code = random.choice(dog_http_codes)
+
     url = f"https://http.dog/{code}.jpg"
     image = URLInputFile(url=url, filename=f"{code}.jpg")
     await message.reply_photo(photo=image, caption=f"Ваша HTTP собака: {code}")
