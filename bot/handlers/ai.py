@@ -41,7 +41,10 @@ async def cmd_gemini(message: Message, custom_payload: dict = None):
         await base_msg.edit_text(error)
         return
 
-    answer = data.get("answer", "⚠️ Ошибка: нет ответа от API")
+    if not data.get("choices"):
+        answer = "⚠️ Ошибка: пустой ответ от API"
+    else:
+        answer = data["choices"][0]["message"]["content"]
 
     raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
     if len(raw_answer) > 4096:
