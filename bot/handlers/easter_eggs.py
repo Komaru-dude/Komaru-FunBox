@@ -27,8 +27,18 @@ async def cmd_tea(message: Message):
         await message.reply_photo(t418, caption="418 I'm a <a href='https://ru.wikipedia.org/wiki/HTCPCP'>teapot</a> ☕", parse_mode=ParseMode.HTML)
 
 @easter_router.message(Command("http_cat"))
-async def cmd_cat(message: Message):
+async def cmd_http_cat(message: Message):
     code = random.choice(http_codes)
     url = f"https://http.cat/{code}.jpg"
     image = URLInputFile(url=url, filename=f"{code}.jpg")
     await message.reply_photo(photo=image, caption=f"Ваш HTTP кот: {code}")
+
+@easter_router.message(Command("cat"))
+async def cmd_cat(message: Message):
+    cat = URLInputFile("https://cataas.com/cat")
+    await message.reply_photo(cat, caption="🐈‍⬛ Ваш кот:")
+
+@easter_router.message(Command("cat_gif"))
+async def cmd_cat_gif(message: Message):
+    cat = URLInputFile("https://cataas.com/cat/gif")
+    await message.reply_animation(cat)
