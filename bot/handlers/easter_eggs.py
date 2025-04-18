@@ -41,4 +41,4 @@ async def cmd_cat(message: Message):
 @easter_router.message(Command("cat_gif"))
 async def cmd_cat_gif(message: Message):
     cat = URLInputFile("https://cataas.com/cat/gif")
-    await message.reply_animation(cat)
+    await message.reply_video(cat)
