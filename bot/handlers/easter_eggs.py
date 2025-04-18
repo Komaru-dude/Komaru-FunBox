@@ -38,14 +38,19 @@ async def cmd_tea(message: Message):
 @easter_router.message(Command("http_cat"))
 async def cmd_http_cat(message: Message):
     split_text = message.text.split()
+    code = None
+
     if len(split_text) > 1:
-        if split_text[1] == "418":
-            code = "405"
-        elif split_text[1] in cat_http_codes:
-            code = split_text[1]
-        else:
-            code = random.choice(cat_http_codes)
-    else:
+        try:
+            user_code = int(split_text[1])
+            if user_code == 418:
+                code = 405
+            elif user_code in cat_http_codes:
+                code = user_code
+        except ValueError:
+            pass  # Введено что-то нечисловое
+
+    if code is None:
         code = random.choice(cat_http_codes)
 
     url = f"https://http.cat/{code}.jpg"
@@ -55,14 +60,19 @@ async def cmd_http_cat(message: Message):
 @easter_router.message(Command("http_dog"))
 async def cmd_http_dog(message: Message):
     split_text = message.text.split()
+    code = None
+
     if len(split_text) > 1:
-        if split_text[1] == "418":
-            code = "405"
-        elif split_text[1] in dog_http_codes:
-            code = split_text[1]
-        else:
-            code = random.choice(dog_http_codes)
-    else:
+        try:
+            user_code = int(split_text[1])
+            if user_code == 418:
+                code = 405
+            elif user_code in dog_http_codes:
+                code = user_code
+        except ValueError:
+            pass
+
+    if code is None:
         code = random.choice(dog_http_codes)
 
     url = f"https://http.dog/{code}.jpg"
