@@ -1,4 +1,4 @@
-import random, aiohttp, os
+import random
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile, URLInputFile
@@ -40,14 +40,5 @@ async def cmd_cat(message: Message):
 
 @easter_router.message(Command("cat_gif"))
 async def cmd_cat_gif(message: Message):
-    cache_path = "bot/cache"
-    os.makedirs(cache_path, exist_ok=True)
-    gif_path = os.path.join(cache_path, "cat.gif")
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://cataas.com/cat/gif") as resp:
-            with open(gif_path, "wb") as f:
-                f.write(await resp.read())
-
-    gif = FSInputFile(gif_path)
-    await message.reply_animation(gif)
+    cat = URLInputFile("https://cataas.com/cat/gif")
+    await message.reply_video(cat)
