@@ -1,9 +1,8 @@
 import random
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message, FSInputFile, URLInputFile
+from aiogram.types import Message, URLInputFile
 from aiogram.enums import ParseMode
-from pathlib import Path
 
 easter_router = Router()
 
@@ -28,8 +27,7 @@ dog_http_codes = [  # А это для http.dog
 
 @easter_router.message(Command("coffee"))
 async def cmd_tea(message: Message):
-    file_path = Path(__file__).parent.parent / 'media' / '418.jpg'
-    t418 = FSInputFile(file_path)
+    t418 = URLInputFile(url="https://http.cat/418.jpg", filename="418.jpg")
     if message.reply_to_message:
         await message.reply_to_message.reply_photo(t418, caption="418 I'm a <a href='https://ru.wikipedia.org/wiki/HTCPCP'>teapot</a> ☕", parse_mode=ParseMode.HTML)
     else:
