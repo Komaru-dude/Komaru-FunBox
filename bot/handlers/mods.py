@@ -221,7 +221,7 @@ async def cmd_disable_func(message: Message, bot: Bot):
         await message.reply("❌ Не удалось выключить функцию.")
         await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /disable произошла ошибка: {e}")
 
-@mods_router.message(Command("ban"))
+@mods_router.message(Command("ban_media"))
 async def cmd_ban_user(message: Message, bot: Bot):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -279,7 +279,7 @@ async def cmd_ban_user(message: Message, bot: Bot):
         await message.reply(f"❌ Не удалось заблокировать\nReport id: {report_id}")
         await bot.send_message(os.getenv("OWNER_ID"), f"Report id: {report_id}\n\nMessage: {message.text}\n\nLogs: {e}")
 
-@mods_router.message(Command("unban"))
+@mods_router.message(Command("unban_media"))
 async def cmd_unban_user(message: Message, bot: Bot):
     user_id = message.from_user.id
     chat_id = message.chat.id
