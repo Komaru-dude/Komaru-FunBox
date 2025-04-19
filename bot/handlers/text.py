@@ -46,6 +46,8 @@ async def text(message: Message, bot: Bot):
     chat_id = message.chat.id
     text_msg = message.text
 
+    if message.chat.type == "channel":
+        return
     if not db.user_exists(user1.id, chat_id):
         db.add_user(user1.id, chat_id)
     if not db.is_init(chat_id):
