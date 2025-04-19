@@ -176,7 +176,7 @@ async def cmd_enable_func(message: Message, bot: Bot):
         await message.reply("❌ Функции не существует.")
         return
     
-    if not db.has_permission(user_id, chat_id, 1):
+    if not db.has_permission(user_id, chat_id, 2):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     
@@ -206,7 +206,7 @@ async def cmd_disable_func(message: Message, bot: Bot):
         await message.reply("❌ Функции не существует.")
         return
     
-    if not db.has_permission(user_id, chat_id, 1):
+    if not db.has_permission(user_id, chat_id, 2):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
     
