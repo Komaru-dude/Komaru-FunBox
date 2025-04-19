@@ -1,4 +1,4 @@
-import random, aiohttp, os
+import random, aiohttp, os, time, psutil
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
@@ -10,6 +10,10 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 media_folder = os.path.join(current_dir, '..', 'media')
 sticker_extensions = {".webp", ".tgs", ".webm"}
 API_URL = "http://127.0.0.1:8001"
+# Списки хранения данных для /status
+cpu_loads = []
+memory_loads = []
+start_time = time.time()
 
 async def fetch_json(url):
     async with aiohttp.ClientSession() as session:
@@ -23,6 +27,45 @@ async def cmd_start(message: Message):
     await message.reply("Привет!\n"
                         "Это универсальный развлекательный бот.\n"
                         "Если хочешь узнать более подробную информацию о командах: /help")
+    
+@base_router.message(Command("status"))
+async def cmd_status(message: Message):
+    global start_time
+
+    ping_start_time = time.monotonic()
+    sent_message = await message.reply("⏳")
+    end_time = time.monotonic()
+    ping = (end_time - ping_start_time) * 1000  # В миллисекундах
+    current_time = time.time()
+    uptime_seconds = int(current_time - start_time)
+
+    # Получаем текущую загрузку процессора и памяти
+    cpu_percent = psutil.cpu_percent(interval=1)
+    memory_percent = psutil.virtual_memory().percent
+
+    # Добавляем данные в списки с отметкой времени
+    cpu_loads.append((current_time, cpu_percent))
+    memory_loads.append((current_time, memory_percent))
+
+    # Убираем данные старше 5 минут
+    five_minutes_ago = current_time - 300  # 5 минут = 300 секунд
+    cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
+    memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
+
+    # Вычисляем среднее значение за последние 5 минут
+    avg_cpu_load = sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
+    avg_memory_load = sum(load for _, load in memory_loads) / len(memory_loads) if memory_loads else 0
+
+    days = uptime_seconds // 86400
+    hours = (uptime_seconds % 86400) // 3600
+    minutes = (uptime_seconds % 3600) // 60
+    seconds = uptime_seconds % 60
+
+    uptime_str = f"{days}д {hours}ч {minutes}м {seconds}с"
+    await sent_message.edit_text(f"⏳ Пинг: {int(ping)} мс\n"
+                                 f"🚀 Бот работает: {uptime_str}\n"
+                                 f"📊 Средняя загруженность ЦПУ (5м): {avg_cpu_load:.2f}%\n"
+                                 f"📊 Средняя загруженность ОЗУ (5м): {avg_memory_load:.2f}%")
     
 @base_router.message(Command("random"))
 async def cmd_random(message: Message):
