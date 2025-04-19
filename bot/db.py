@@ -7,6 +7,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+default_features = [('who', 1), ('tag', 1), ('autovideo', 1), ('warn', 0), ('mute', 0), ('ban', 0)]
+
 # Абсолютный путь к базе данных
 DB_PATH = DATA_DIR / "users.db"
 
@@ -53,9 +55,6 @@ def create_db():
 def sync_all_chat_features():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-
-    default_features = [('who', 1), ('tag', 0), ('autovideo', 0)]
-
     cursor.execute('''SELECT DISTINCT chat_id FROM features''')
     chat_ids = [row[0] for row in cursor.fetchall()]
 
@@ -183,7 +182,6 @@ def set_param(user_id, chat_id, param, value):
 def init_chat_features(chat_id: int):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    default_features = [('who', 1), ('tag', 1), ('warn', 0), ('mute', 0), ('ban', 0)]
     for feature, enabled in default_features:
         cursor.execute('''INSERT OR IGNORE INTO features (chat_id, feature_name, is_enabled) VALUES (?, ?, ?)''', (chat_id, feature, enabled))
     conn.commit()
