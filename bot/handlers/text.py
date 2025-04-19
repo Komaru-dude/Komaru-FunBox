@@ -80,7 +80,7 @@ async def text(message: Message, bot: Bot):
     commands = await get_chat_commands(chat_id)
 
     split_text = text_msg.split(maxsplit=1)
-    command = split_text[0].lstrip('/')
+    command = split_text[0].lstrip('/').lower()
 
     if command not in commands:
         return
