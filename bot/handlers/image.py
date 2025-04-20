@@ -1,4 +1,4 @@
-import cv2, asyncio
+import cv2, asyncio, os
 import numpy as np
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -47,7 +47,7 @@ async def cmd_lick(message: Message, bot: Bot):
         user_id = message.from_user.id
 
     profile_photo = await get_last_profile_photo(user_id, bot)
-    print(profile_photo)
+    await bot.send_message(os.getenv("OWNER_ID"), profile_photo)
     if not profile_photo:
         await message.reply("❌ У пользователя нет фото профиля!")
         return
