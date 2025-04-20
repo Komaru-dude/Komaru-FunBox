@@ -68,7 +68,7 @@ async def cmd_lick(message: Message, bot: Bot):
         return
 
     # Параметры обработки
-    template_path = media_dir / 'lick.jpg'  # Основное изображение с зелёным фоном
+    template_path = media_dir / 'lickbg.jpg'  # Основное изображение с зелёным фоном
     output_path = temp_dir / f'lick_result_{user_id}.jpg'
 
     try:
