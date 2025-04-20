@@ -1,4 +1,4 @@
-import os, aiohttp
+import os, aiohttp, re
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
@@ -121,6 +121,7 @@ async def cmd_deepseek(message: Message):
         answer = "⚠️ Ошибка: пустой ответ от API"
     else:
         answer = data["choices"][0]["message"]["content"]
+        answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
 
     raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
     if len(raw_answer) > 4096:
