@@ -59,6 +59,7 @@ async def main():
         rights_router,
         tag_router,
         video_router,
+        image_router,
         text_router
     )
 
