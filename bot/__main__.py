@@ -20,6 +20,7 @@ from .handlers.mods import mods_router
 from .handlers.rights import rights_router
 from .handlers.tag import tag_router
 from .handlers.video import video_router
+from .handlers.image import image_router
 from .handlers.text import text_router
 
 load_dotenv()
