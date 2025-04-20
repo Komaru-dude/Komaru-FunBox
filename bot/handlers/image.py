@@ -17,7 +17,7 @@ async def get_last_profile_photo(user_id, bot):
 
     largest_photo = last_photo_set[-1]
     
-    return largest_photo.file_id
+    return largest_photo
 
 def replace_green_screen(template_path, new_bg_path, output_path):
     template = cv2.imread(template_path)
