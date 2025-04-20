@@ -146,7 +146,7 @@ async def cmd_agdeepseek(message: Message):
         request = split_text[1]
 
     custom_payload = {
-        "model": "gemini-2.0-flash",
+        "model": "deepseek-r1",
         "request": {
             "messages": [{
                 "role": "user",
