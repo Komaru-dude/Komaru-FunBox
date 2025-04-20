@@ -85,7 +85,7 @@ async def cmd_aggemini(message: Message):
     await cmd_gemini(message, custom_payload=custom_payload)
 
 @ai_router.message(Command("deepseek"))
-async def cmd_deepseek(message: Message):
+async def cmd_deepseek(message: Message, custom_request: str = None):
     base_msg = await message.reply("🔄 Обработка...")
     split_text = message.text.split(maxsplit=1)
 
@@ -96,8 +96,10 @@ async def cmd_deepseek(message: Message):
     if len(split_text) < 2 and not message.reply_to_message:
         await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
         return
-
-    if len(split_text) >= 2 and message.reply_to_message:
+    
+    if custom_request:
+        request = request
+    elif len(split_text) >= 2 and message.reply_to_message:
         request = f"\"{message.reply_to_message.text}\"\n{split_text[1]}"
     elif message.reply_to_message:
         request = message.reply_to_message.text
