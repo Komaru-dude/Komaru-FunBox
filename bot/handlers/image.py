@@ -13,7 +13,7 @@ async def get_last_profile_photo(user_id, bot):
     if not profile_photos or profile_photos.total_count == 0:
         return None
 
-    last_photo_set = profile_photos.photos[-1]
+    last_photo_set = profile_photos.photos[0]
 
     largest_photo = last_photo_set[-1]
     
