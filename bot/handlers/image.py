@@ -47,6 +47,7 @@ async def cmd_lick(message: Message, bot: Bot):
         user_id = message.from_user.id
 
     profile_photo = await get_last_profile_photo(user_id, bot)
+    print(profile_photo)
     if not profile_photo:
         await message.reply("❌ У пользователя нет фото профиля!")
         return
