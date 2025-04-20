@@ -17,6 +17,7 @@ from .handlers.help import help_router
 from .handlers.rp import rp_router
 from .handlers.ai import ai_router
 from .handlers.mods import mods_router
+from .handlers.rights import rights_router
 from .handlers.tag import tag_router
 from .handlers.video import video_router
 from .handlers.text import text_router
@@ -54,6 +55,7 @@ async def main():
         rp_router,
         ai_router,
         mods_router,
+        rights_router,
         tag_router,
         video_router,
         text_router
