@@ -23,20 +23,31 @@ def replace_green_screen(template_path, new_bg_path, output_path):
     template = cv2.imread(template_path)
     new_bg = cv2.imread(new_bg_path)
 
-    # Создаём маску для зелёного цвета
+    # 1. Создаём маску зелёного экрана
     hsv = cv2.cvtColor(template, cv2.COLOR_BGR2HSV)
-    lower_green = np.array([35, 50, 50])  # Минимальный оттенок зелёного
-    upper_green = np.array([85, 255, 255])  # Максимальный оттенок зелёного
+    lower_green = np.array([35, 50, 50])
+    upper_green = np.array([85, 255, 255])
     mask = cv2.inRange(hsv, lower_green, upper_green)
 
-    # Подгоняем размер нового фона под шаблон
-    new_bg = cv2.resize(new_bg, (template.shape[1], template.shape[0]))
+    # 2. Находим ограничивающий прямоугольник области замены
+    x, y, w, h = cv2.boundingRect(mask)
 
-    # Замена фона: где маска зелёная - берём пиксели из нового фона
+    # 3. Вычисляем масштаб, чтобы фон покрыл весь прямоугольник без искажений
+    bg_h, bg_w = new_bg.shape[:2]
+    scale = max(w / bg_w, h / bg_h)
+    resized = cv2.resize(new_bg, (int(bg_w * scale), int(bg_h * scale)))
+
+    # 4. Обрезаем центральную часть под размер прямоугольника
+    start_x = (resized.shape[1] - w) // 2
+    start_y = (resized.shape[0] - h) // 2
+    cropped_bg = resized[start_y:start_y + h, start_x:start_x + w]
+
+    # 5. Вставляем «поджатый» фон в область маски
     result = template.copy()
-    result[mask != 0] = new_bg[mask != 0]
+    full_bg = np.zeros_like(template)
+    full_bg[y:y + h, x:x + w] = cropped_bg
+    result[mask != 0] = full_bg[mask != 0]
 
-    # Сохраняем результат
     cv2.imwrite(output_path, result)
 
 @image_router.message(Command("lick"))
