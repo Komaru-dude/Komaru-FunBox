@@ -138,6 +138,10 @@ async def cmd_deepseek(message: Message, custom_payload: str = None):
 async def cmd_agdeepseek(message: Message):
     split_text = message.text.split(maxsplit=1)
 
+    if len(split_text) < 2 and not message.reply_to_message:
+        await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
+        return
+
     if len(split_text) >= 2 and message.reply_to_message:
         request = f"\"{message.reply_to_message.text}\"\n{split_text[1]}"
     elif message.reply_to_message:
