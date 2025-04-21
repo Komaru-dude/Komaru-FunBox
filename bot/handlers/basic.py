@@ -48,7 +48,7 @@ async def cmd_status(message: Message):
     memory_loads.append((current_time, memory_percent))
 
     # Убираем данные старше 5 минут
-    five_minutes_ago = current_time - 300  # 5 минут = 300 секунд
+    five_minutes_ago = current_time - 300
     cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
     memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
 
