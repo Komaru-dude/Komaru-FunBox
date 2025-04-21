@@ -289,4 +289,12 @@ async def cmd_shutter(message: Message):
     if random.random() < 0.25:
         final_text += random.choice(["...", "..~~", "……"])
     
-    await message.reply(final_text)
+    if len(final_text) > 4096:
+        chunks = [final_text[i:i + 4096] for i in range(0, len(final_text), 4096)]
+    else:
+        chunks = [final_text]
+    for idx, chunk in enumerate(chunks):
+        if idx == 0:
+            await message.reply(chunk)
+        else:
+            await message.answer(chunk)
