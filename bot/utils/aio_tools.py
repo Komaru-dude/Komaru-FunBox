@@ -10,6 +10,13 @@ async def get_chat_owner_id(bot: Bot, chat_id: int):
             return admin.user.id
     return None
 
+async def fetch_json(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise Exception(f"Ошибка API: статус {response.status}")
+            return await response.json()
+
 async def make_post_request(payload):
     async with aiohttp.ClientSession() as session:
         async with session.post(ai_url, json=payload) as response:

@@ -1,9 +1,10 @@
-import random, aiohttp, os, time, psutil
+import random, os, time, psutil
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
+from bot.utils.aio_tools import fetch_json
 
 base_router = Router()
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,13 +15,6 @@ API_URL = "http://127.0.0.1:8001"
 cpu_loads = []
 memory_loads = []
 start_time = time.time()
-
-async def fetch_json(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                raise Exception(f"Ошибка API: статус {response.status}")
-            return await response.json()
 
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):

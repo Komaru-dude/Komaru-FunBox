@@ -5,6 +5,7 @@ from aiogram.enums import ParseMode
 from bot import db
 from bot.handlers.ai import cmd_gemini
 from bot.handlers.video import cmd_video
+from bot.utils.aio_tools import fetch_json
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -32,13 +33,6 @@ async def get_chat_commands(chat_id: int):
     if custom_path.exists():
         return {cmd["command"]: cmd for cmd in await load_commands(custom_path)}
     return {cmd["command"]: cmd for cmd in await load_commands(BASE_COMMANDS_PATH)}
-
-async def fetch_json(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                raise Exception(f"Ошибка API: статус {response.status}")
-            return await response.json()
 
 @text_router.message()
 async def text(message: Message, bot: Bot):
