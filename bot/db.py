@@ -52,9 +52,11 @@ def create_db():
     conn.commit()
     conn.close()
 
-def sync_all_chat_features():
+def sync_all():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+
+    # Синхронизация фич для чатов
     cursor.execute('''SELECT DISTINCT chat_id FROM features''')
     chat_ids = [row[0] for row in cursor.fetchall()]
 
@@ -62,24 +64,91 @@ def sync_all_chat_features():
         cursor.execute('''SELECT feature_name FROM features WHERE chat_id = ?''', (chat_id,))
         existing_features = {row[0] for row in cursor.fetchall()}
 
-        # Добавляем отсутсвующие фичи
+        # Добавление отсутствующих фич
         for feature, enabled in default_features:
             if feature not in existing_features:
                 cursor.execute('''INSERT INTO features (chat_id, feature_name, is_enabled) 
                                   VALUES (?, ?, ?)''', (chat_id, feature, enabled))
                 existing_features.add(feature)
 
-        # Удаляем лишние фичи
-        for feature in existing_features:
+        # Удаление устаревших фич
+        for feature in list(existing_features):
             if feature not in dict(default_features):
                 cursor.execute('''DELETE FROM features WHERE chat_id = ? AND feature_name = ?''', 
                                (chat_id, feature))
+                existing_features.remove(feature)
+
+    # Синхронизация структуры таблиц
+    expected_tables = {
+        'users': [
+            ('user_id', 'INTEGER'),
+            ('chat_id', 'INTEGER'),
+            ('reputation', 'INTEGER DEFAULT 0'),
+            ('rank', 'TEXT DEFAULT "Участник"'),
+            ('message_count', 'INTEGER DEFAULT 0'),
+            ('first_name', 'TEXT DEFAULT ""'),
+        ],
+        'features': [
+            ('chat_id', 'INTEGER'),
+            ('feature_name', 'TEXT'),
+            ('is_enabled', 'INTEGER DEFAULT 0'),
+        ],
+        'banned_users': [
+            ('user_id', 'INTEGER PRIMARY KEY'),
+        ]
+    }
+
+    for table_name, columns in expected_tables.items():
+        # Проверка существования таблицы
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        if not cursor.fetchone():
+            if table_name == 'users':
+                cursor.execute('''
+                    CREATE TABLE users (
+                        user_id INTEGER,
+                        chat_id INTEGER,
+                        reputation INTEGER DEFAULT 0,
+                        rank TEXT DEFAULT 'Участник',
+                        message_count INTEGER DEFAULT 0,
+                        first_name TEXT DEFAULT '',
+                        PRIMARY KEY (user_id, chat_id)
+                    )
+                ''')
+            elif table_name == 'features':
+                cursor.execute('''
+                    CREATE TABLE features (
+                        chat_id INTEGER,
+                        feature_name TEXT,
+                        is_enabled INTEGER DEFAULT 0,
+                        PRIMARY KEY (chat_id, feature_name)
+                    )
+                ''')
+            elif table_name == 'banned_users':
+                cursor.execute('''
+                    CREATE TABLE banned_users (
+                        user_id INTEGER PRIMARY KEY
+                    )
+                ''')
+            continue
+
+        # Проверка и добавление отсутствующих колонок
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+        for column in columns:
+            column_name = column[0]
+            if column_name not in existing_columns:
+                column_type = column[1]
+                try:
+                    cursor.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}')
+                except sqlite3.OperationalError:
+                    pass  # Колонка уже существует (например, через предыдущие ошибки)
 
     conn.commit()
     conn.close()
 
 create_db()
-sync_all_chat_features()
+sync_all()
 
 def has_permission(user_id, chat_id, level):
     if str(user_id) == os.getenv("OWNER_ID"):
