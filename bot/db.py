@@ -1,4 +1,4 @@
-import sqlite3, os
+import sqlite3, os, json, time, random
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -275,4 +275,132 @@ def is_user_mediabanned(user_id: int) -> bool:
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (user_id,))
         return cursor.fetchone() is not None
+
+def update_user_warns(user_id, chat_id, reason):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute('''SELECT history, warns FROM users WHERE user_id = ? AND chat_id = ?''', (user_id, chat_id))
+    result = cursor.fetchone()
+
+    if result is None:
+        history = []
+        warns = 0
+    else:
+        history = json.loads(result[0]) if result[0] else []
+        warns = result[1]
+
+    punishment = {
+        "type": "warn",
+        "reason": reason,
+        "timestamp": int(time.time()),
+    }
+
+    history.append(punishment)
+    warns += 1
+    cursor.execute('''UPDATE users SET history = ?, warns = ? WHERE user_id = ? AND chat_id = ?''', (json.dumps(history), warns, user_id, chat_id))
+    conn.commit()
+    conn.close()
+
+def update_user_bans(user_id, chat_id, reason):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute('''SELECT history, bans FROM users WHERE user_id = ? AND chat_id = ?''', (user_id, chat_id))
+    result = cursor.fetchone()
+
+    if result is None or not result[0]:
+        history = []
+        bans = 0
+    else:
+        history = json.loads(result[0])
+        bans = result[1]
+
+    punishment = {
+        "type": "ban",
+        "reason": reason,
+        "timestamp": int(time.time()),
+    }
+
+    history.append(punishment)
+    bans += 1
+    cursor.execute('''UPDATE users SET history = ?, bans = ? WHERE user_id = ? AND chat_id = ?''', (json.dumps(history), bans, user_id, chat_id))
+    conn.commit()
+    conn.close()
+
+def update_user_mutes(user_id, chat_id, reason):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute('''SELECT history, mutes FROM users WHERE user_id = ? AND chat_id = ?''', (user_id, chat_id))
+    result = cursor.fetchone()
+
+    if result is None or not result[0]:
+        history = []
+        mutes = 0
+    else:
+        history = json.loads(result[0])
+        mutes = result[1]
+
+    punishment = {
+        "type": "mute",
+        "reason": reason,
+        "timestamp": int(time.time()),
+    }
+
+    history.append(punishment)
+    mutes += 1
+    cursor.execute('''UPDATE users SET history = ?, mutes = ? WHERE user_id = ? AND chat_id = ?''', (json.dumps(history), mutes, user_id, chat_id))
+    conn.commit()
+    conn.close()
+
+def get_history(user_id, chat_id):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
     
+    cursor.execute('''SELECT history FROM users WHERE user_id = ? AND chat_id = ?''', (user_id, chat_id))
+    result = cursor.fetchone()
+    conn.close()
+    
+    if result is None or not result[0]:
+        return []
+    
+    return json.loads(result[0])
+
+def update_user_warn_limit(user_id, chat_id, limit):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE users SET warn_limit = warn_limit + ? WHERE user_id = ? AND chat_id = ?''', (limit, user_id, chat_id))
+    conn.commit()
+    conn.close()
+
+def update_rep(user_id, chat_id, mode, value=None):
+    if not user_id or not isinstance(user_id, int):
+        raise ValueError("Неверный user_id. Он должен быть целым числом.")
+    if mode not in ["auto_add", "manual_add", "manual_rem"]:
+        raise ValueError(f"Режим {mode} некорректен, доступные режимы: auto_add, manual_add, manual_rem.")
+    if mode in ["manual_add", "manual_rem"] and (not value or not isinstance(value, int)):
+        raise ValueError("Для режимов manual_add и manual_rem необходимо указать целое значение для value.")
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    if value is None and mode == "auto_add":
+        value = random.randint(1, 6)
+
+    if mode == "auto_add":
+        cursor.execute('''UPDATE users SET reputation = reputation + ? WHERE user_id = ? AND chat_id = ?''', (value, user_id, chat_id))
+    elif mode == "manual_add":
+        cursor.execute('''UPDATE users SET reputation = reputation + ? WHERE user_id = ? AND chat_id = ?''', (value, user_id, chat_id))
+    elif mode == "manual_rem":
+        cursor.execute('''UPDATE users SET reputation = reputation - ? WHERE user_id = ? AND chat_id = ?''', (value, user_id, chat_id))
+
+    conn.commit()
+    conn.close()
+
+def update_need_msg(user_id, chat_id, count_msg):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE users SET message_count = ? WHERE user_id = ? AND chat_id = ?''', (count_msg, user_id, chat_id))
+    conn.commit()
+    conn.close()
