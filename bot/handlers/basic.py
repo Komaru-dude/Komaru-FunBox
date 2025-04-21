@@ -1,9 +1,10 @@
-import random, os, time, psutil
-from aiogram import Router
+import random, os, time, psutil, traceback
+from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
+from bot import db
 from bot.utils.aio_tools import fetch_json
 
 base_router = Router()
@@ -15,6 +16,34 @@ API_URL = "http://127.0.0.1:8001"
 cpu_loads = []
 memory_loads = []
 start_time = time.time()
+
+async def get_target_user(message: Message):
+    if message.reply_to_message:
+        return message.reply_to_message.from_user
+    
+    parts = message.text.split()
+    if len(parts) < 2:
+        return message.from_user
+    
+    target = parts[1]
+    
+    if target.startswith('@'):
+        try:
+            user_data = await fetch_json(f"http://127.0.0.1:8000/user/{target}")
+            return type('User', (), {
+                'id': user_data['user_id'],
+                'first_name': user_data.get('first_name', 'Неизвестно')
+            })
+        except Exception as e:
+            raise ValueError(f"Не найден пользователь {target}") from e
+
+    if target.isdigit():
+        return type('User', (), {
+            'id': int(target),
+            'first_name': "Неизвестный"
+        })
+    
+    raise ValueError("Неверный формат. Используйте @юзернейм или ID")
 
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):
@@ -292,3 +321,41 @@ async def cmd_shutter(message: Message):
             await message.reply(chunk)
         else:
             await message.answer(chunk)
+
+@base_router.message(Command("info"))
+async def cmd_info(message: Message, bot: Bot):
+    chat_id = message.chat.id
+    user = message.from_user
+    
+    try:
+        target_user = await get_target_user(message)
+        
+        user_data = db.get_user_data(target_user.id, chat_id)
+        if not user_data:
+            return await message.reply("❌ Пользователь не найден в базе данных")
+
+        profile_link = f"tg://user?id={target_user.id}"
+        clickable_name = f'<a href="{profile_link}">{message.from_user.first_name}</a>'
+        
+        # Формируем информацию
+        info_text = (
+            f"👤 Информация о {clickable_name}\n"
+            f"🆔 ID: {target_user.id}\n"
+            f"📊 Статистика:\n"
+            f"  ⚠ Предупреждения: {user_data.warns}/{user_data.warn_limit}\n"
+            f"  🔇 Мьюты: {user_data.mutes}\n"
+            f"  🔨 Баны: {user_data.bans}\n"
+            f"  💎 Репутация: {user_data.reputation}\n"
+            f"  📨 Сообщений: {user_data.message_count}\n"
+            f"  🏅 Ранг: {user_data.rank}\n"
+            f"  ✍️ Префикс: {user_data.prefix or 'Отсутствует'}"
+        )
+        
+        await message.reply(info_text, parse_mode=ParseMode.HTML)
+        
+    except Exception as e:
+        await message.reply(f"❌ Ошибка: {str(e)}")
+        await bot.send_message(
+            chat_id=os.getenv("OWNER_ID"),
+            text=f"⚠ Ошибка в /info:\n{traceback.format_exc()}"
+        )
