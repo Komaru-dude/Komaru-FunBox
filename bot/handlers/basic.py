@@ -239,7 +239,7 @@ async def cmd_shutter(message: Message):
             result.append(word)
         
         # Добавление случайных эмодзи после слов
-        if random.random() < 0.3:
+        if random.random() < 0.2:
             result.append(random.choice(emojis))
     
     # Финал с дополнительными эффектами
