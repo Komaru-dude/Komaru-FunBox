@@ -29,10 +29,14 @@ def create_db():
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER,
             chat_id INTEGER,
+            warns INTEGER DEFAULT 0,
+            bans INTEGER DEFAULT 0,
+            mutes INTEGER DEFAULT 0,
             reputation INTEGER DEFAULT 0,
             rank TEXT DEFAULT 'Участник',
             message_count INTEGER DEFAULT 0,
-            first_name TEXT DEFAULT '',
+            history TEXT DEFAULT '',
+            warn_limit INTEGER DEFAULT 3,
             PRIMARY KEY (user_id, chat_id)
         )
     ''')
@@ -56,42 +60,26 @@ def sync_all():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Синхронизация фич для чатов
-    cursor.execute('''SELECT DISTINCT chat_id FROM features''')
-    chat_ids = [row[0] for row in cursor.fetchall()]
-
-    for chat_id in chat_ids:
-        cursor.execute('''SELECT feature_name FROM features WHERE chat_id = ?''', (chat_id,))
-        existing_features = {row[0] for row in cursor.fetchall()}
-
-        # Добавление отсутствующих фич
-        for feature, enabled in default_features:
-            if feature not in existing_features:
-                cursor.execute('''INSERT INTO features (chat_id, feature_name, is_enabled) 
-                                  VALUES (?, ?, ?)''', (chat_id, feature, enabled))
-                existing_features.add(feature)
-
-        # Удаление устаревших фич
-        for feature in list(existing_features):
-            if feature not in dict(default_features):
-                cursor.execute('''DELETE FROM features WHERE chat_id = ? AND feature_name = ?''', 
-                               (chat_id, feature))
-                existing_features.remove(feature)
-
-    # Синхронизация структуры таблиц
     expected_tables = {
         'users': [
             ('user_id', 'INTEGER'),
             ('chat_id', 'INTEGER'),
+            ('warns', 'INTEGER DEFAULT 0'),
+            ('bans', 'INTEGER DEFAULT 0'),
+            ('mutes', 'INTEGER DEFAULT 0'),
             ('reputation', 'INTEGER DEFAULT 0'),
-            ('rank', 'TEXT DEFAULT "Участник"'),
+            ('rank', "TEXT DEFAULT 'Участник'"),
             ('message_count', 'INTEGER DEFAULT 0'),
-            ('first_name', 'TEXT DEFAULT ""'),
+            ('history', "TEXT DEFAULT ''"),
+            ('warn_limit', 'INTEGER DEFAULT 3'),
+            ('first_name', "TEXT DEFAULT ''"),
+            ('PRIMARY KEY', '(user_id, chat_id)'),
         ],
         'features': [
             ('chat_id', 'INTEGER'),
             ('feature_name', 'TEXT'),
             ('is_enabled', 'INTEGER DEFAULT 0'),
+            ('PRIMARY KEY', '(chat_id, feature_name)'),
         ],
         'banned_users': [
             ('user_id', 'INTEGER PRIMARY KEY'),
@@ -99,50 +87,40 @@ def sync_all():
     }
 
     for table_name, columns in expected_tables.items():
-        # Проверка существования таблицы
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
-        if not cursor.fetchone():
-            if table_name == 'users':
-                cursor.execute('''
-                    CREATE TABLE users (
-                        user_id INTEGER,
-                        chat_id INTEGER,
-                        reputation INTEGER DEFAULT 0,
-                        rank TEXT DEFAULT 'Участник',
-                        message_count INTEGER DEFAULT 0,
-                        first_name TEXT DEFAULT '',
-                        PRIMARY KEY (user_id, chat_id)
-                    )
-                ''')
-            elif table_name == 'features':
-                cursor.execute('''
-                    CREATE TABLE features (
-                        chat_id INTEGER,
-                        feature_name TEXT,
-                        is_enabled INTEGER DEFAULT 0,
-                        PRIMARY KEY (chat_id, feature_name)
-                    )
-                ''')
-            elif table_name == 'banned_users':
-                cursor.execute('''
-                    CREATE TABLE banned_users (
-                        user_id INTEGER PRIMARY KEY
-                    )
-                ''')
-            continue
+        cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+        exists = cursor.fetchone()
 
-        # Проверка и добавление отсутствующих колонок
-        cursor.execute(f"PRAGMA table_info({table_name})")
-        existing_columns = {row[1] for row in cursor.fetchall()}
+        if not exists:
+            column_defs = ',\n'.join([' '.join(col) if isinstance(col, tuple) else col for col in columns])
+            cursor.execute(f"CREATE TABLE {table_name} (\n{column_defs}\n)")
+        else:
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            existing = {row[1] for row in cursor.fetchall()}
+            for col in columns:
+                if isinstance(col, tuple) and col[0] not in existing and not col[0].startswith('PRIMARY'):
+                    try:
+                        cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col[0]} {col[1]}")
+                    except sqlite3.OperationalError as e:
+                        print(f"[sync_all] Error adding column {col[0]}: {e}")
 
-        for column in columns:
-            column_name = column[0]
-            if column_name not in existing_columns:
-                column_type = column[1]
-                try:
-                    cursor.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}')
-                except sqlite3.OperationalError:
-                    pass  # Колонка уже существует (например, через предыдущие ошибки)
+    # Синхронизация фич
+    cursor.execute('SELECT DISTINCT chat_id FROM features')
+    chat_ids = [row[0] for row in cursor.fetchall()]
+
+    for chat_id in chat_ids:
+        cursor.execute('SELECT feature_name FROM features WHERE chat_id = ?', (chat_id,))
+        existing_features = {row[0] for row in cursor.fetchall()}
+
+        for feature, enabled in default_features:
+            if feature not in existing_features:
+                cursor.execute('INSERT INTO features (chat_id, feature_name, is_enabled) VALUES (?, ?, ?)',
+                               (chat_id, feature, enabled))
+
+        # Удаление старых фич
+        cursor.execute(
+            f"DELETE FROM features WHERE chat_id = ? AND feature_name NOT IN ({','.join(['?'] * len(default_features))})",
+            (chat_id, *[f[0] for f in default_features])
+        )
 
     conn.commit()
     conn.close()
@@ -285,15 +263,16 @@ def disable_feature(chat_id: int, feature_name: str):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute('''UPDATE features SET is_enabled = 0 WHERE chat_id = ? AND feature_name = ?''', (chat_id, feature_name))
 
-def ban_user(user_id: int):
+def mediaban_user(user_id: int):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("INSERT OR IGNORE INTO banned_users (user_id) VALUES (?)", (user_id,))
 
-def unban_user(user_id: int):
+def mediaunban_user(user_id: int):
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("DELETE FROM banned_users WHERE user_id = ?", (user_id,))
 
-def is_user_banned(user_id: int) -> bool:
+def is_user_mediabanned(user_id: int) -> bool:
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.execute("SELECT 1 FROM banned_users WHERE user_id = ?", (user_id,))
         return cursor.fetchone() is not None
+    

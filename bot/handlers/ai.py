@@ -13,7 +13,7 @@ async def cmd_gemini(message: Message, custom_payload: dict = None):
     base_msg = await message.reply("🔄 Обработка...")
     split_text = message.text.split(maxsplit=1)
 
-    if db.is_user_banned(message.from_user.id):
+    if db.is_user_mediabanned(message.from_user.id):
         await message.reply("❌ Вы заблокированы, это действие вам запрещено")
         return
 
@@ -89,7 +89,7 @@ async def cmd_deepseek(message: Message, custom_payload: str = None):
     base_msg = await message.reply("🔄 Обработка...")
     split_text = message.text.split(maxsplit=1)
 
-    if db.is_user_banned(message.from_user.id):
+    if db.is_user_mediabanned(message.from_user.id):
         await message.reply("❌ Вы заблокированы, это действие вам запрещено")
         return
 

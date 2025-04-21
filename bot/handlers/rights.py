@@ -185,12 +185,12 @@ async def cmd_ban_user(message: Message, bot: Bot):
             await message.reply("Укажите пользователя через реплай, @username или айди.")
             return
         
-    if db.is_user_banned(target_id):
+    if db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже заблокирован")
         return
     
     try:
-        db.ban_user(target_id)
+        db.mediaban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был заблокирован")
     except Exception as e:
         report_id = uuid.uuid4()
@@ -243,12 +243,12 @@ async def cmd_unban_user(message: Message, bot: Bot):
             await message.reply("Укажите пользователя через реплай, @username или айди.")
             return
         
-    if not db.is_user_banned(target_id):
+    if not db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже разблокирован")
         return
     
     try:
-        db.unban_user(target_id)
+        db.mediaunban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception as e:
         report_id = uuid.uuid4()
