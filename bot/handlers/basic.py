@@ -163,28 +163,105 @@ async def cmd_say(message: Message):
 
 @base_router.message(Command("shutter"))
 async def cmd_shutter(message: Message):
+    def generate_stutter(word):
+        if len(word) < 2 or not word[0].isalpha():
+            return word
+        
+        # Разные варианты шаттера
+        stutter_type = random.choice([
+            'repeat', 
+            'repeat',  # Повторяем дважды для большей вероятности
+            'hyphenated',
+            'double_hyphen',
+            'ellipsis',
+            'spacey',
+            'mixed_case'
+        ])
+        
+        # Случайное количество повторов (1-3)
+        repeats = random.randint(1, 3)
+        first_letter = word[0].upper() if random.choice([True, False]) else word[0].lower()
+        second_letter = word[1].lower() if random.choice([True, False]) else word[1].upper()
+        
+        # Добавляем междометия
+        if random.random() < 0.3:
+            interjections = ['м-м', 'э-э', 'х-х', 'а-а', 'з-з']
+            word = f"{random.choice(interjections)}... {word}"
+
+        # Генерация разных типов шаттера
+        if stutter_type == 'repeat':
+            parts = [f"{first_letter}-" * repeats + word]
+        elif stutter_type == 'hyphenated':
+            parts = [f"{first_letter}-{second_letter}-{word}"]
+        elif stutter_type == 'double_hyphen':
+            parts = [f"{first_letter}--{second_letter}--{word}"]
+        elif stutter_type == 'ellipsis':
+            parts = [f"{first_letter}...{second_letter}...{word}"]
+        elif stutter_type == 'spacey':
+            parts = [f"{first_letter} {second_letter} {word}"]
+        elif stutter_type == 'mixed_case':
+            parts = [f"{first_letter.lower()}-{second_letter.upper()}-{word}"]
+        
+        # Случайное обрезание слова
+        if random.random() < 0.2:
+            parts.append('...')
+        
+        return ''.join(parts)
+    
+    # Получение текста
     if message.reply_to_message:
         text = message.reply_to_message.text
     else:
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.reply("❌ А что конвертировать?")
+            await message.reply("❌ А... а что конвертировать-то?~~ 🥺")
             return
         text = parts[1]
 
     words = text.split()
     result = []
 
+    emojis = [
+        '😳', '😣', '🥵', '😰', '😥', '😓', '😖', '😵', '💦', 
+        '🌊', '💫', '✨', '🌸', '🫠', '🤤', '🙀', '🎀', '💔'
+    ]
+    
     for word in words:
-        if random.random() < 0.5:
-            if len(word) > 2 and word[0].isalpha():
-                stutter = f"{word[0]}-{word[:2]}-{word}"
-                result.append(stutter)
-            else:
-                result.append(word)
+        if random.random() < 0.8:
+            stuttered = generate_stutter(word)
+            
+            # Добавление эмодзи внутри слов
+            if random.random() < 0.4:
+                stuttered = stuttered.replace(' ', f" {random.choice(emojis)} ", 1)
+                
+            result.append(stuttered)
         else:
             result.append(word)
-
-    emojis = ['😅', '😰', '💦', '🥺', '😫', '😖']
-    final_text = " ".join(result) + f" ~~{random.choice(emojis)}"
+        
+        # Добавление случайных эмодзи после слов
+        if random.random() < 0.3:
+            result.append(random.choice(emojis))
+    
+    # Финал с дополнительными эффектами
+    final_text = ' '.join(result)
+    
+    # Добавляем суффиксы с эмодзи
+    suffixes = [
+        f"~~ {random.choice(emojis)}",
+        f"/// {random.choice(emojis)}",
+        f"☆*:.｡.o(≧▽≦)o.｡.:*☆",
+        f"{random.choice(['~', '*', ''])} {random.choice(emojis)} {random.choice(emojis)}"
+    ]
+    
+    # Случайный префикс
+    if random.random() < 0.15:
+        prefixes = ["А-а... ", "Э-э... ", "М-м... ", "✨ ", "💫 "]
+        final_text = random.choice(prefixes) + final_text
+    
+    final_text += f" {random.choice(suffixes)}"
+    
+    # Случайные многоточия в конце
+    if random.random() < 0.25:
+        final_text += random.choice(["...", "..~~", "……"])
+    
     await message.reply(final_text)
