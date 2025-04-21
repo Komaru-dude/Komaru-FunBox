@@ -214,7 +214,7 @@ async def cmd_shutter(message: Message):
     else:
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.reply("❌ А... а что конвертировать-то?~~ 🥺")
+            await message.reply("❌ А что конвертировать?")
             return
         text = parts[1]
 
