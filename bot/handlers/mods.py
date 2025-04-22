@@ -2,6 +2,7 @@ import os, subprocess, time
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
+from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from bot import db
 from bot.utils.aio_tools import fetch_user_data, error_report
@@ -147,11 +148,11 @@ async def cmd_warn(message: Message, bot: Bot):
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         
-        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}")
+        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}", parse_mode=ParseMode.HTML)
         if user_data[2] > user_data[9]:
             until_date = int(time.time()) + 2 * 3600
 
-            await message.answer(f"🔇 Пользователь {target_user_link} был замьючен!\nМодератор: Авто-мод\nПричина: Превышение лимита предупреждений")
+            await message.answer(f"🔇 Пользователь {target_user_link} был замьючен!\nМодератор: Авто-мод\nПричина: Превышение лимита предупреждений", parse_mode=ParseMode.HTML)
             await bot.restrict_chat_member(chat_id, target_id, permissions=ChatPermissions(can_send_messages=False), until_date=until_date)
             db.update_user_warn_limit(target_id, chat_id, 3)
         db.update_user_warns(target_id, chat_id, reason)
