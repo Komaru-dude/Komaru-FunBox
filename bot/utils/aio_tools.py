@@ -1,5 +1,4 @@
-import aiohttp
-import os
+import aiohttp, os, uuid
 from aiogram import Bot
 from aiogram.types import Message
 
@@ -108,3 +107,8 @@ async def make_post_request(payload):
                 return await response.json(), None
             except Exception as e:
                 return None, f"❌ Ошибка обработки ответа: {str(e)}"
+        
+async def error_report(message: Message, bot: Bot, command, traceback):
+    report_id = uuid.uuid4
+    await message.reply(f"❌ Возникла ошибка при обработке команды\nReport ID: {report_id}")
+    await bot.send_message(os.getenv("OWNER_ID"), f"❌ Во время обработки {command} возникла ошибка!\n🔢Report ID: {report_id}\n\n📛 Traceback:\n{traceback}")
