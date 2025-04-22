@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-default_features = [('who', 1), ('tag', 1), ('autovideo', 1), ('warn', 0), ('mute', 0), ('ban', 0)]
+default_features = [('who', 1), ('tag', 0), ('autovideo', 1), ('warn', 0), ('mute', 0), ('ban', 0)]
 
 # Абсолютный путь к базе данных
 DB_PATH = DATA_DIR / "users.db"
