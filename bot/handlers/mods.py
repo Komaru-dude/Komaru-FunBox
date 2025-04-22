@@ -183,8 +183,7 @@ async def warn_cmd(message: Message, bot: Bot):
         user_data = db.get_user_data(target_user.id, chat_id)
         
         # Проверка лимита
-        if user_data.warns >= user_data.warn_limit:
-            # Мьют на 24 часа
+        if user_data[2] >= user_data[9]:
             until_date = datetime.now() + timedelta(hours=24)
             await bot.restrict_chat_member(
                 chat_id,
@@ -194,19 +193,19 @@ async def warn_cmd(message: Message, bot: Bot):
             )
             
             # Обновление данных
-            db.update_user_mutes(target_user.id, chat_id, "Автоматический мьют")
+            db.update_user_mutes(target_user.id, chat_id, "Превышение лимита предупреждений")
             db.update_user_warn_limit(target_user.id, chat_id, 3)
             db.update_rep(user_id, chat_id, "manual_rem", 15)
             
             await message.reply(
                 f"🔇 Пользователь {target_user.id} получил мьют до {until_date:%d.%m.%Y %H:%M}\n"
-                f"📝 Причина: превышение лимита предупреждений ({user_data.warns}/{user_data.warn_limit})"
+                f"📝 Причина: превышение лимита предупреждений ({user_data[2]}/{user_data[9]})"
             )
         else:
             await message.reply(
                 f"⚠ {target_user.id} получил предупреждение\n"
                 f"📝 Причина: {reason}\n"
-                f"🔢 {user_data.warns+1}/{user_data.warn_limit}"
+                f"🔢 {user_data[2]+1}/{user_data[9]}"
             )
 
     except Exception as e:
