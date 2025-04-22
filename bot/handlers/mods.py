@@ -1,9 +1,10 @@
-import os, subprocess
+import os, subprocess, time
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, ChatPermissions
+from aiogram.exceptions import TelegramBadRequest
 from bot import db
-from bot.utils.aio_tools import fetch_json
+from bot.utils.aio_tools import fetch_user_data, error_report
 
 mods_router = Router()
 API_URL = "http://127.0.0.1:8001"
@@ -105,4 +106,57 @@ async def cmd_history(message: Message):
         f"История наказаний:\n{history_text}"
     )
     await message.reply(response)
+    
+@mods_router.message(Command("warn"))
+async def cmd_warn(message: Message, bot: Bot):
+    command = "warn"
+
+    try:    
+        split_text = message.text.split(maxsplit=3)
+        chat_id = message.chat.id
+        if not db.has_permission(message.from_user.id, chat_id, 2) or (db.has_permission(message.from_user.id, message.chat.id, 1) and db.is_feature_enabled(message.chat.id, "warn")):
+            await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+            return
+    
+        if not message.reply_to_message and len(split_text) < 2:
+            await message.reply("❌ Некорректный синтаксис: /warn реплай/@username/ID причина")
+            return
+
+        if message.reply_to_message:
+            target_id = message.reply_to_message.from_user.id
+            target_first_name = message.reply_to_message.from_user.first_name
+            reason = split_text[1] if len(split_text) >= 2 else "Не указана"
+        elif split_text[1].startswith("@"):
+            username = split_text[1].lstrip("@")
+            data = await fetch_user_data(username=username, chat_id=chat_id)
+            if 'error' in data:
+                await error_report(message, bot, command, data['error'])
+                return
+            target_id = data['user_id']
+            target_first_name = data['first_name']
+        elif split_text[1].isdigit():
+            target_id = split_text[1]
+            data = await fetch_user_data(user_id=target_id, chat_id=chat_id)
+            target_first_name = data['first_name']
+        else:
+            await error_report(message, bot, command, "Не выявленная ошибка синтаксиса.")
+
+        user_data = db.get_user_data(target_id, chat_id)
+        target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
+        mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+        
+        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}")
+        if user_data[2] > user_data[9]:
+            until_date = int(time.time()) + 2 * 3600
+
+            await message.answer(f"🔇 Пользователь {target_user_link} был замьючен!\nМодератор: Авто-мод\nПричина: Превышение лимита предупреждений")
+            await bot.restrict_chat_member(chat_id, target_id, permissions=ChatPermissions(can_send_messages=False), until_date=until_date)
+            db.update_user_warn_limit(target_id, chat_id, 3)
+        db.update_user_warns(target_id, chat_id, reason)
+
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
+    except Exception as e:
+        await error_report(message, bot, command, e)
+        return
     
