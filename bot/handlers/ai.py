@@ -13,9 +13,6 @@ async def cmd_gemini(message: Message, custom_payload: dict = None):
     base_msg = await message.reply("🔄 Обработка...")
     split_text = message.text.split(maxsplit=1)
 
-    await message.reply("Нельзя")
-    return
-
     if db.is_user_mediabanned(message.from_user.id):
         await message.reply("❌ Вы заблокированы, это действие вам запрещено")
         return
@@ -63,8 +60,6 @@ async def cmd_gemini(message: Message, custom_payload: dict = None):
 @ai_router.message(Command("aggemini"))
 async def cmd_aggemini(message: Message):
     split_text = message.text.split(maxsplit=1)
-    await message.reply("Нельзя")
-    return
 
     if len(split_text) < 2 and not message.reply_to_message:
         await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
@@ -93,8 +88,6 @@ async def cmd_aggemini(message: Message):
 async def cmd_deepseek(message: Message, custom_payload: str = None):
     base_msg = await message.reply("🔄 Обработка...")
     split_text = message.text.split(maxsplit=1)
-    await message.reply("Нельзя")
-    return
 
     if db.is_user_mediabanned(message.from_user.id):
         await message.reply("❌ Вы заблокированы, это действие вам запрещено")
@@ -144,8 +137,6 @@ async def cmd_deepseek(message: Message, custom_payload: str = None):
 @ai_router.message(Command("agdeepseek"))
 async def cmd_agdeepseek(message: Message):
     split_text = message.text.split(maxsplit=1)
-    await message.reply("Нельзя")
-    return
 
     if len(split_text) < 2 and not message.reply_to_message:
         await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
@@ -173,8 +164,6 @@ async def cmd_agdeepseek(message: Message):
 @ai_router.message(Command("search"))
 async def cmd_search(message: Message):
     split_text = message.text.split(maxsplit=1)
-    await message.reply("Нельзя")
-    return
 
     if len(split_text) < 2 and not message.reply_to_message:
         await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
