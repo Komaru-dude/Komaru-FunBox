@@ -50,7 +50,7 @@ def format_duration(duration: timedelta) -> str:
     return " ".join(parts[:2]) if parts else "менее минуты"
 
 def parse_command(text: str) -> dict:
-    parts = text.split(maxsplit=3)
+    parts = text.split(maxsplit=2)
     return {
         'duration': parts[1] if len(parts) > 1 else None,
         'reason': parts[2] if len(parts) > 2 else 'Без причины'
