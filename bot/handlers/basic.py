@@ -29,7 +29,7 @@ async def get_target_user(message: Message):
     
     if target.startswith('@'):
         try:
-            user_data = await fetch_json(f"http://127.0.0.1:8000/user/{target}")
+            user_data = await fetch_json(f"http://127.0.0.1:8001/user/{target}")
             return type('User', (), {
                 'id': user_data['user_id'],
                 'first_name': user_data.get('first_name', 'Неизвестно')
