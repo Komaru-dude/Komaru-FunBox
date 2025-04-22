@@ -149,7 +149,7 @@ async def cmd_warn(message: Message, bot: Bot):
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         
         await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}", parse_mode=ParseMode.HTML)
-        if user_data[2] > user_data[9]:
+        if user_data[2] >= user_data[9]:
             until_date = int(time.time()) + 2 * 3600
 
             await message.answer(f"🔇 Пользователь {target_user_link} был замьючен!\nМодератор: Авто-мод\nПричина: Превышение лимита предупреждений", parse_mode=ParseMode.HTML)
