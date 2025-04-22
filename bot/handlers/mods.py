@@ -134,10 +134,12 @@ async def cmd_warn(message: Message, bot: Bot):
                 return
             target_id = data['user_id']
             target_first_name = data['first_name']
+            reason = split_text[2] if len(split_text) >= 3 else "Не указана"
         elif split_text[1].isdigit():
             target_id = split_text[1]
             data = await fetch_user_data(user_id=target_id, chat_id=chat_id)
             target_first_name = data['first_name']
+            reason = split_text[2] if len(split_text) >= 3 else "Не указана"
         else:
             await error_report(message, bot, command, "Не выявленная ошибка синтаксиса.")
 
