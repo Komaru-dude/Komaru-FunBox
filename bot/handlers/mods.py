@@ -4,7 +4,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
 from aiogram.exceptions import TelegramBadRequest
 from bot import db
-from bot.utils.aio_tools import fetch_json
+from bot.utils.aio_tools import fetch_json, get_user
 from datetime import datetime, timedelta
 
 mods_router = Router()
@@ -55,24 +55,6 @@ def parse_command(text: str) -> dict:
         'duration': parts[1] if len(parts) > 1 else None,
         'reason': parts[2] if len(parts) > 2 else 'Без причины'
     }
-
-async def get_target_user(message: Message, bot: Bot):
-    if message.reply_to_message:
-        return message.reply_to_message.from_user
-    
-    parts = message.text.split()
-    if len(parts) < 2:
-        raise ValueError("Не указан пользователь")
-    
-    target = parts[1]
-    if target.startswith('@'):
-        user_data = await fetch_json(f"http://127.0.0.1:8001/user/{target}")
-        return type('User', (), {'id': user_data['user_id']})
-    
-    if target.isdigit():
-        return type('User', (), {'id': int(target)})
-    
-    raise ValueError("Неверный формат идентификатора")
 
 @mods_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot):
@@ -226,7 +208,7 @@ async def cmd_mute(message: Message, bot: Bot):
     try:
         # Парсинг аргументов
         args = parse_command(message.text)
-        target_user = await get_target_user(message, bot)
+        target_user = await get_user(message)
         duration = parse_time(args.get('duration', '24h')) 
         reason = args.get('reason', 'Без причины')
 
@@ -264,7 +246,7 @@ async def cmd_ban(message: Message, bot: Bot):
 
     try:
         args = parse_command(message.text)
-        target_user = await get_target_user(message, bot)
+        target_user = await get_user(message)
         duration = parse_time(args.get('duration', 'forever'))
         reason = args.get('reason', 'Без причины')
 
@@ -296,7 +278,7 @@ async def cmd_unmute(message: Message, bot: Bot):
         return await message.reply("⛔ Недостаточно прав")
 
     try:
-        target_user = await get_target_user(message, bot)
+        target_user = await get_user(message)
         
         # Снятие мута
         await bot.restrict_chat_member(
@@ -323,7 +305,7 @@ async def cmd_unban(message: Message, bot: Bot):
         return await message.reply("⛔ Недостаточно прав")
 
     try:
-        target_user = await get_target_user(message, bot)
+        target_user = await get_user(message)
         
         # Снятие бана
         await bot.unban_chat_member(chat_id, target_user.id)
