@@ -7,7 +7,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot import db
 from bot.db import RANK_TO_LEVEL
-from bot.handlers.mods import fetch_json
 from bot.utils import aio_tools
 
 rights_router = Router()
@@ -160,11 +159,11 @@ async def cmd_ban_user(message: Message, bot: Bot):
         if len(split_text) > 1 and split_text[1].startswith("@"):
             username = split_text[1][1:]
             try:
-                data = await fetch_json(f"{API_URL}/user/{username}")
+                data = await aio_tools.fetch_json(f"{API_URL}/user/{username}")
 
                 if "user_id" in data:
                     target_id = data["user_id"]
-                    name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    name_data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
                     first_name = name_data.get("first_name", "Неизвестный")
                 else:
                     await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
@@ -176,7 +175,7 @@ async def cmd_ban_user(message: Message, bot: Bot):
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
             try:
-                data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
                 first_name = data.get("first_name", "Неизвестный")
             except Exception as e:
                 await message.reply(f"Произошла ошибка {e} при обработке запроса.")
@@ -218,11 +217,11 @@ async def cmd_unban_user(message: Message, bot: Bot):
         if len(split_text) > 1 and split_text[1].startswith("@"):
             username = split_text[1][1:]
             try:
-                data = await fetch_json(f"{API_URL}/user/{username}")
+                data = await aio_tools.fetch_json(f"{API_URL}/user/{username}")
 
                 if "user_id" in data:
                     target_id = data["user_id"]
-                    name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    name_data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
                     first_name = name_data.get("first_name", "Неизвестный")
                 else:
                     await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
@@ -234,7 +233,7 @@ async def cmd_unban_user(message: Message, bot: Bot):
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
             try:
-                data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
                 first_name = data.get("first_name", "Неизвестный")
             except Exception as e:
                 await message.reply(f"Произошла ошибка {e} при обработке запроса.")
