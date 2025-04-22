@@ -2,6 +2,7 @@ import aiohttp, os, subprocess, traceback, uuid
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
+from aiogram.exceptions import TelegramBadRequest
 from bot import db
 from bot.utils.aio_tools import fetch_json
 from datetime import datetime, timedelta
@@ -208,6 +209,8 @@ async def warn_cmd(message: Message, bot: Bot):
                 f"🔢 {user_data[2]+1}/{user_data[9]}"
             )
 
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Ошибка телеграмм: {e}")
     except Exception as e:
         await message.reply(f"❌ Ошибка: {str(e)}")
         await bot.send_message(os.getenv("OWNER_ID"), f"⚠ Ошибка в /warn: {traceback.format_exc()}")
@@ -245,6 +248,8 @@ async def cmd_mute(message: Message, bot: Bot):
             f"📝 Причина: {reason}"
         )
 
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Ошибка телеграмм: {e}")
     except Exception as e:
         await message.reply(f"❌ Ошибка: {str(e)}")
         await bot.send_message(os.getenv("OWNER_ID"), f"⚠ Ошибка в /mute: {traceback.format_exc()}")
@@ -276,6 +281,8 @@ async def cmd_ban(message: Message, bot: Bot):
             f"📝 Причина: {reason}"
         )
 
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Ошибка телеграмм: {e}")
     except Exception as e:
         await message.reply(f"❌ Ошибка: {str(e)}")
         await bot.send_message(os.getenv("OWNER_ID"), f"⚠ Ошибка в /ban: {traceback.format_exc()}")
@@ -301,6 +308,8 @@ async def cmd_unmute(message: Message, bot: Bot):
         
         await message.reply(f"🔔 {target_user.id} размьючен")
 
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Ошибка телеграмм: {e}")
     except Exception as e:
         await message.reply(f"❌ Ошибка: {str(e)}")
         await bot.send_message(os.getenv("OWNER_ID"), f"⚠ Ошибка в /unmute: {traceback.format_exc()}")
@@ -320,6 +329,8 @@ async def cmd_unban(message: Message, bot: Bot):
         await bot.unban_chat_member(chat_id, target_user.id)
         await message.reply(f"🎉 {target_user.id} разбанен")
 
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Ошибка телеграмм: {e}")
     except Exception as e:
         await message.reply(f"❌ Ошибка: {str(e)}")
         await bot.send_message(os.getenv("OWNER_ID"), f"⚠ Ошибка в /unban: {traceback.format_exc()}")
