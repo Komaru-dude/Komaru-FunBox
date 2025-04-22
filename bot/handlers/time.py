@@ -71,3 +71,25 @@ async def cats_birthdays(message: Message):
         await message.reply("\n".join(responses))
     else:
         await message.reply("Непредвиденная ошибка во время выполнения команды.")
+
+@time_router.message(Command("revx"))
+async def time_to_new_year(message: Message):
+    tz = moscow_tz
+
+    event_date = datetime(2026, 4, 18, 0, 0, 0)
+    event_date = tz.localize(event_date)
+    
+    now = datetime.now(tz)
+    time_delta = event_date - now
+
+    if time_delta.days < 0 or (time_delta.days == 0 and time_delta.seconds <= 0):
+        await message.reply("🎉 УРА! Др ревха наступил!")
+        return
+
+    days = time_delta.days
+    hours, remainder = divmod(time_delta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    await message.reply(
+        f"До днюхи ревха осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
+    )
