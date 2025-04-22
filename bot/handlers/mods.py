@@ -65,7 +65,7 @@ async def get_target_user(message: Message, bot: Bot):
     
     target = parts[1]
     if target.startswith('@'):
-        user_data = await fetch_json(f"http://127.0.0.1:8000/user/{target}")
+        user_data = await fetch_json(f"http://127.0.0.1:8001/user/{target}")
         return type('User', (), {'id': user_data['user_id']})
     
     if target.isdigit():
@@ -171,7 +171,7 @@ async def warn_cmd(message: Message, bot: Bot):
             reason = parts[2] if len(parts) > 2 else "Без причины"
             
             if target.startswith('@'):
-                user_data = await fetch_json(f"http://127.0.0.1:8000/user/{target}")
+                user_data = await fetch_json(f"http://127.0.0.1:8001/user/{target}")
                 target_user = type('User', (), {'id': user_data['user_id']})
             elif target.isdigit():
                 target_user = type('User', (), {'id': int(target)})
