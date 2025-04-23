@@ -19,35 +19,51 @@ async def get_last_profile_photo(user_id, bot):
     
     return largest_photo
 
-def replace_green_screen(template_path, new_bg_path, output_path): # Работает ужасно
+def replace_green_screen(template_path, new_bg_path, output_path): # Всё так же ужасно
     template = cv2.imread(template_path)
     new_bg = cv2.imread(new_bg_path)
 
-    # 1. Создаём маску зелёного экрана
-    hsv = cv2.cvtColor(template, cv2.COLOR_BGR2HSV)
-    lower_green = np.array([35, 50, 50])
-    upper_green = np.array([85, 255, 255])
+    # 1. Препроцессинг изображения
+    blurred = cv2.GaussianBlur(template, (5,5), 0)
+    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+    # 2. Настройки для конкретных цветов
+    lower_green = np.array([25, 40, 40])
+    upper_green = np.array([45, 255, 255])
+
+    # 3. Создание маски с адаптивным порогом
     mask = cv2.inRange(hsv, lower_green, upper_green)
+    
+    # 4. Улучшенная постобработка маски
+    kernel = np.ones((5,5), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=2)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-    # 2. Находим ограничивающий прямоугольник области замены
-    x, y, w, h = cv2.boundingRect(mask)
+    # 5. Поиск главного контура с проверкой
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        raise ValueError("❌ Зелёная область не найдена")
 
-    # 3. Вычисляем масштаб, чтобы фон покрыл весь прямоугольник без искажений
-    bg_h, bg_w = new_bg.shape[:2]
-    scale = max(w / bg_w, h / bg_h)
-    resized = cv2.resize(new_bg, (int(bg_w * scale), int(bg_h * scale)))
+    main_contour = max(contours, key=cv2.contourArea)
+    x,y,w,h = cv2.boundingRect(main_contour)
 
-    # 4. Обрезаем центральную часть под размер прямоугольника
-    start_x = (resized.shape[1] - w) // 2
-    start_y = (resized.shape[0] - h) // 2
-    cropped_bg = resized[start_y:start_y + h, start_x:start_x + w]
+    # 6. Верификация области замены
+    roi_mask = mask[y:y+h, x:x+w]
+    green_coverage = np.count_nonzero(roi_mask) / roi_mask.size
+    if green_coverage < 0.65:  # Минимум 65% зелёного в области
+        raise ValueError(f"⚠️ Плохая маска: {green_coverage*100:.1f}% заполнения")
 
-    # 5. Вставляем «поджатый» фон в область маски
+    # 7. Точное наложение фона
+    resized_bg = cv2.resize(new_bg, (w, h))
     result = template.copy()
-    full_bg = np.zeros_like(template)
-    full_bg[y:y + h, x:x + w] = cropped_bg
-    result[mask != 0] = full_bg[mask != 0]
-
+    
+    # Создаём составное изображение
+    background = cv2.bitwise_and(resized_bg, resized_bg, mask=roi_mask)
+    foreground = cv2.bitwise_and(template[y:y+h, x:x+w], 
+                               template[y:y+h, x:x+w], 
+                               mask=cv2.bitwise_not(roi_mask))
+    
+    result[y:y+h, x:x+w] = cv2.add(foreground, background)
     cv2.imwrite(output_path, result)
 
 @image_router.message(Command("lick"))
