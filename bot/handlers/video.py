@@ -89,9 +89,14 @@ async def cmd_gif(message: Message, bot: Bot):
             "-gifflags", "-offsetting",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
+            stderr=asyncio.subprocess.PIPE
         )
-        await process.communicate()
+        stderr = await process.communicate()
+
+        if stderr:
+            error_log = stderr.decode('utf-8')
+            await error_report(message, bot, command, error_log)
+            return
 
         if output_path.exists():
             gif = FSInputFile(output_path)
