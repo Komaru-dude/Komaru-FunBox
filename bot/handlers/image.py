@@ -1,5 +1,6 @@
 import asyncio
 import traceback
+import logging
 from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -97,10 +98,11 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "-strip",
             "-optimize", "0",
             str(output_path),
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
         )
-        await process.communicate()
+        stdout, stderr = await process.communicate()
+        logging.error(stdout, stderr)
 
         if output_path.exists():
             photo = FSInputFile(output_path)
