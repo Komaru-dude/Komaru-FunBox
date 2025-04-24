@@ -81,7 +81,7 @@ async def cmd_gif(message: Message, bot: Bot):
             "-i", str(input_path),
             "-c:v", "gif",
             "-vf",
-            "fps=24,scale=320:-1,trim=duration=7",
+            "fps=24,scale=320:-1,trim=duration=5",
             "-loop", "0",
             "-gifflags", "-offsetting",
             str(output_path),
