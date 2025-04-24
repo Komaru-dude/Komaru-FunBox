@@ -115,9 +115,12 @@ async def cmd_warn(message: Message, bot: Bot):
     try:    
         split_text = message.text.split(maxsplit=3)
         chat_id = message.chat.id
-        if not db.has_permission(message.from_user.id, chat_id, 2) or (db.has_permission(message.from_user.id, message.chat.id, 1) and db.is_feature_enabled(message.chat.id, "warn")):
+        if not db.has_permission(message.from_user.id, chat_id, 1):
             await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
             return
+        
+        if not db.is_feature_enabled(chat_id, "warn"):
+            await message.reply("❌ Функция отключена.")
     
         if not message.reply_to_message and len(split_text) < 2:
             await message.reply("❌ Некорректный синтаксис: /warn реплай/@username/ID причина")
@@ -148,7 +151,7 @@ async def cmd_warn(message: Message, bot: Bot):
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         
-        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}", parse_mode=ParseMode.HTML)
+        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}\nКол-во варнов: {user_data[2]}", parse_mode=ParseMode.HTML)
         if user_data[2] >= user_data[9]:
             until_date = int(time.time()) + 2 * 3600
 
