@@ -89,7 +89,7 @@ async def cmd_gif(message: Message, bot: Bot):
         # 1. Генерация палитры
         cmd1 = [
             "ffmpeg", "-y", "-i", str(inp),
-            "-vf", "fps=20,scale=480:-1:flags=lanczos,palettegen",
+            "-vf", "fps=20,scale=320:-1:flags=lanczos,palettegen",
             str(pal)
         ]
         p1 = await asyncio.create_subprocess_exec(*cmd1, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -98,7 +98,7 @@ async def cmd_gif(message: Message, bot: Bot):
         # 2. Применение палитры
         cmd2 = [
             "ffmpeg", "-y", "-i", str(inp), "-i", str(pal),
-            "-filter_complex", "fps=20,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=none",
+            "-filter_complex", "fps=20,scale=320:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=none",
             str(out)
         ]
         p2 = await asyncio.create_subprocess_exec(*cmd2, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
