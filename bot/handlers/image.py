@@ -94,8 +94,6 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "b='0/0 0.5/0.9 1/1',"
             "-qscale:v", "1",
             "-dct", "fastint",
-            "-huffman", "optimal",
-            "-optimize", "0",
             str(output_path),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
