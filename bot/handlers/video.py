@@ -1,8 +1,8 @@
 import asyncio
 import uuid
-import os
 import traceback
 from pathlib import Path
+from asyncio import subprocess
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
@@ -70,56 +70,50 @@ async def cmd_video(message: Message, bot: Bot):
 
 @video_router.message(Command("gif"))
 async def cmd_gif(message: Message, bot: Bot):
-    command = "gif"
-    input_path = output_path = None
-    processing_msg = None
+    if db.is_user_mediabanned(message.from_user.id):
+        return await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+
+    video = message.video or (message.reply_to_message and message.reply_to_message.video)
+    if not video:
+        return await message.reply("❌ Пришлите видео или ответьте на видео")
+
+    processing = await message.reply("🔄 Обработка GIF...")
+    file = await bot.get_file(video.file_id)
+
+    inp = CACHE_DIR / f"{video.file_id}.mp4"
+    pal = CACHE_DIR / f"{video.file_id}_pal.png"
+    out = CACHE_DIR / f"{video.file_id}.gif"
+    await bot.download_file(file.file_path, destination=inp)
+
     try:
-        if db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
+        # 1. Генерация палитры
+        cmd1 = [
+            "ffmpeg", "-y", "-i", str(inp),
+            "-vf", "fps=20,scale=480:-1:flags=lanczos,palettegen",
+            str(pal)
+        ]
+        p1 = await asyncio.create_subprocess_exec(*cmd1, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        await p1.communicate()
 
-        video = message.video or (message.reply_to_message.video if message.reply_to_message else None)
-        if not video:
-            return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
-        
-        processing_msg = await message.reply("🔄 Обработка...")
+        # 2. Применение палитры
+        cmd2 = [
+            "ffmpeg", "-y", "-i", str(inp), "-i", str(pal),
+            "-filter_complex", "fps=20,scale=480:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=none",
+            str(out)
+        ]
+        p2 = await asyncio.create_subprocess_exec(*cmd2, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        await p2.communicate()
 
-        file_id = video.file_id
-        file = await message.bot.get_file(file_id)
-
-        input_path = CACHE_DIR / f"{file_id}.mp4"
-        output_path = CACHE_DIR / f"{file_id}.gif"
-
-        await message.bot.download_file(file.file_path, destination=input_path)
-
-        process = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-y",
-            "-i", str(input_path),
-            "-vf",
-            "fps=24,trim=duration=5",
-            "-loop", "0",
-            "-preset", "ultraslow",
-            str(output_path),
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
-        )
-        await process.communicate()
-
-        if output_path.exists():
-            gif = FSInputFile(output_path)
+        if out.exists():
+            gif = FSInputFile(out)
             if message.reply_to_message:
                 await message.reply_to_message.reply_animation(gif)
             else:
                 await message.reply_animation(gif)
         else:
             await message.reply("❌ Ошибка при конвертации.")
-    except Exception:
-        er_traceback = traceback.format_exc()
-        await error_report(message, bot, command, er_traceback)
     finally:
-        if input_path and input_path.exists():
-            input_path.unlink(missing_ok=True)
-        if output_path and output_path.exists():
-            output_path.unlink(missing_ok=True)
-        if processing_msg:
-            await processing_msg.delete()
+        for path in (inp, pal, out):
+            if path.exists():
+                path.unlink()
+        await processing.delete()
