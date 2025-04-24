@@ -84,7 +84,6 @@ async def cmd_gif(message: Message, bot: Bot):
             "split=2[a][b];"
             "[a]palettegen=stats_mode=diff:max_colors=64[p];"
             "[b][p]paletteuse",
-            "-crf 32",
             "-loop", "0",
             "-gifflags", "-offsetting",
             str(output_path),
