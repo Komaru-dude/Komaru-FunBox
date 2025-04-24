@@ -91,7 +91,6 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "curves=r='0/0 0.5/0.9 1/1':"
             "g='0/0 0.5/0.9 1/1':"
             "b='0/0 0.5/0.9 1/1',"
-            "format=yuvj420p",
             "-qscale:v", "1",
             "-dct", "fastint",
             "-huffman", "optimal",
