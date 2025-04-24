@@ -148,6 +148,10 @@ async def cmd_warn(message: Message, bot: Bot):
         else:
             await error_report(message, bot, command, "Не выявленная ошибка синтаксиса.")
 
+        if target_id == message.from_user.id:
+            await message.reply("❌ Зачем предупреждать самого себя?")
+            return
+
         user_data = db.get_user_data(target_id, chat_id)
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
