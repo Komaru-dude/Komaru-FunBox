@@ -58,14 +58,16 @@ async def cmd_lick(message: Message, bot: Bot):
 @image_router.message(Command("jpeg"))
 async def cmd_jpeg(message: Message, bot: Bot):
     command = "jpeg"
-    input_path = output_path = None
-    processing_msg = None
+    input_path = output_path = processing_msg = image = None
     try:
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        image = message.photo[-1] or (message.reply_to_message.photo[-1] if message.reply_to_message else None)
+        if message.photo:
+            image = message.photo[-1]
+        elif message.reply_to_message and message.reply_to_message.photo:
+            image = message.reply_to_message.photo[-1]
         if not image:
             return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
         
