@@ -110,5 +110,5 @@ async def make_post_request(payload):
         
 async def error_report(message: Message, bot: Bot, command, traceback):
     report_id = uuid.uuid4()
-    await message.reply(f"❌ Возникла ошибка при обработке команды\nReport ID: {report_id}")
+    await message.reply(f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}")
     await bot.send_message(os.getenv("OWNER_ID"), f"❌ Во время обработки {command} возникла ошибка!\n🔢Report ID: {report_id}\n\n📛 Traceback:\n{traceback}")
