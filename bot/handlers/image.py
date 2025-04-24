@@ -88,7 +88,7 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "-vf",
             "scale=150:-1:flags=neighbor,"
             "scale=1920:-1:flags=neighbor,"
-            "noise=alls=50:allf=t+u,"
+            "noise=alls=20:allf=t+u,"
             "curves=r='0/0 0.5/0.6 1/1':"
             "g='0/0 0.5/0.6 1/1':"
             "b='0/0 0.5/0.6 1/1'",
