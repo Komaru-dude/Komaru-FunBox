@@ -79,13 +79,9 @@ async def cmd_gif(message: Message, bot: Bot):
         process = await asyncio.create_subprocess_exec(
             "ffmpeg", "-y",
             "-i", str(input_path),
-            "-c:v gif",
+            "-c:v", "gif",
             "-vf",
-            "fps=24, scale=320:-1"
-            "trim=duration=7,"
-            "split=2[a][b];"
-            "[a]palettegen=stats_mode=diff:max_colors=64[p];"
-            "[b][p]paletteuse",
+            "fps=24,scale=320:-1,trim=duration=7",
             "-loop", "0",
             "-gifflags", "-offsetting",
             str(output_path),
