@@ -93,8 +93,8 @@ async def cmd_gif(message: Message, bot: Bot):
         )
         stderr = await process.communicate()
 
-        if stderr:
-            error_log = stderr.decode('utf-8')
+        if stderr[1]:
+            error_log = stderr[1].decode('utf-8')
             await error_report(message, bot, command, error_log)
             return
 
