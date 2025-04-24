@@ -84,7 +84,19 @@ async def cmd_jpeg(message: Message, bot: Bot):
         process = await asyncio.create_subprocess_exec(
             "ffmpeg", "-y",
             "-i", str(input_path),
-            "-q:v", "31",
+            "-vf",
+            "scale=140:-1:flags=neighbor,"
+            "scale=1920:-1:flags=neighbor,"
+            "noise=alls=200:allf=t+u,"
+            "curves=r='0/0 0.5/0.9 1/1':"
+            "g='0/0 0.5/0.9 1/1':"
+            "b='0/0 0.5/0.9 1/1',"
+            "format=yuvj420p",
+            "-qscale:v", "1",
+            "-dct", "fastint",
+            "-huffman", "optimal",
+            "-strip",
+            "-optimize", "0",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
