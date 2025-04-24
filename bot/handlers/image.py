@@ -85,7 +85,6 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "ffmpeg", "-y",
             "-i", str(input_path),
             "-q:v", "31",
-            "-pix_fmt", "yuv420p",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
