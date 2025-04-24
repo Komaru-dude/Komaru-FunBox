@@ -89,9 +89,9 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "scale=150:-1:flags=neighbor,"
             "scale=1920:-1:flags=neighbor,"
             "noise=alls=20:allf=t+u,"
-            "curves=r='0/0 0.5/0.6 1/1':"
-            "g='0/0 0.5/0.6 1/1':"
-            "b='0/0 0.5/0.6 1/1'",
+            "curves=r='0/0 0.4/0.7 1/1':"
+            "g='0/0 0.4/0.7 1/1':"
+            "b='0/0 0.4/0.7 1/1'",
             "-qscale:v", "1",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
