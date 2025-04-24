@@ -86,7 +86,7 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "ffmpeg", "-y",
             "-i", str(input_path),
             "-vf",
-            "scale=100:-1:flags=neighbor,"
+            "scale=150:-1:flags=neighbor,"
             "scale=1920:-1:flags=neighbor,"
             "noise=alls=50:allf=t+u,"
             "curves=r='0/0 0.5/0.8 1/1':"
