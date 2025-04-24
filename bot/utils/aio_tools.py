@@ -111,4 +111,10 @@ async def make_post_request(payload):
 async def error_report(message: Message, bot: Bot, command, traceback):
     report_id = uuid.uuid4()
     await message.reply(f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}")
-    await bot.send_message(os.getenv("OWNER_ID"), f"❌ Во время обработки {command} возникла ошибка!\n🔢Report ID: {report_id}\n\n📛 Traceback:\n{traceback}")
+    er_rep = f"❌ Во время обработки {command} возникла ошибка!\n🔢Report ID: {report_id}\n\n📛 Traceback:\n{traceback}"
+    if len(er_rep) > 4096:
+        chunks = [er_rep[i:i + 4096] for i in range(0, len(er_rep), 4096)]
+    else:
+        chunks = [er_rep]
+    for idx, chunk in enumerate(chunks):
+        await bot.send_message(os.getenv("OWNER_ID"), chunk)
