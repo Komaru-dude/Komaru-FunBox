@@ -157,9 +157,11 @@ async def cmd_warn(message: Message, bot: Bot):
             until_date = int(time.time()) + 2 * 3600
 
             await message.answer(f"🔇 Пользователь {target_user_link} был замьючен!\nМодератор: Авто-мод\nПричина: Превышение лимита предупреждений", parse_mode=ParseMode.HTML)
-            await bot.restrict_chat_member(chat_id, target_id, permissions=ChatPermissions(can_send_messages=False), until_date=until_date)
             db.update_user_warn_limit(target_id, chat_id, 3)
-        db.update_user_warns(target_id, chat_id, reason)
+            db.update_user_warns(target_id, chat_id, reason)
+            await bot.restrict_chat_member(chat_id, target_id, permissions=ChatPermissions(can_send_messages=False), until_date=until_date)
+        else:
+            db.update_user_warns(target_id, chat_id, reason)
 
     except TelegramBadRequest as e:
         await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
