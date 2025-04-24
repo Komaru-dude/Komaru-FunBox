@@ -121,6 +121,7 @@ async def cmd_warn(message: Message, bot: Bot):
         
         if not db.is_feature_enabled(chat_id, "warn"):
             await message.reply("❌ Функция отключена.")
+            return
     
         if not message.reply_to_message and len(split_text) < 2:
             await message.reply("❌ Некорректный синтаксис: /warn реплай/@username/ID причина")
