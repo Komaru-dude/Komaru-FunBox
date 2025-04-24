@@ -126,4 +126,5 @@ async def cmd_gif(message: Message, bot: Bot):
             input_path.unlink(missing_ok=True)
         if output_path and output_path.exists():
             output_path.unlink(missing_ok=True)
-        await processing_msg.delete()
+        if processing_msg:
+            await processing_msg.delete()
