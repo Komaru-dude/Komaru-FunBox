@@ -7,7 +7,7 @@ import sys
 import shutil
 from pathlib import Path
 from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher, F
+from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 from .handlers.basic import base_router
@@ -29,7 +29,6 @@ logging.basicConfig(level=logging.INFO)
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
-@dp.message.filter(F.chat.type != "channel")
 
 def clear_cache():
     """Очищает папку cache относительно расположения бота."""
