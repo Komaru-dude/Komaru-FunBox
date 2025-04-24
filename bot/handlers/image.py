@@ -1,9 +1,12 @@
 import asyncio
+import traceback
 from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from bot.utils.image_tools import replace_green_screen
+from bot.utils.aio_tools import error_report
+from bot import db
 
 image_router = Router()
 CACHE_DIR = Path(__file__).resolve().parent.parent / 'cache'
@@ -51,3 +54,56 @@ async def cmd_lick(message: Message, bot: Bot):
     finally:
         user_photo_path.unlink(missing_ok=True)
         output_path.unlink(missing_ok=True)
+
+@image_router.message(Command("jpeg"))
+async def cmd_jpeg(message: Message, bot: Bot):
+    command = "jpeg"
+    input_path = output_path = None
+    try:
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+
+        image = message.photo[-1] or (message.reply_to_message.photo[-1] if message.reply_to_message else None)
+        if not image:
+            return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
+        
+        processing_msg = await message.reply("🔄 Обработка...")
+
+        file_id = image.file_id
+        file = await message.bot.get_file(file_id)
+
+        input_path = CACHE_DIR / f"{file_id}.jpg"
+        output_path = CACHE_DIR / f"{file_id}-jpeged.jpg"
+
+        await message.bot.download_file(file.file_path, destination=input_path)
+
+        process = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-y",
+            "-i", str(input_path),
+            "-q:v", "31",
+            "-pix_fmt", "yuv420p",
+            str(output_path),
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await process.communicate()
+
+        if output_path.exists():
+            photo = FSInputFile(output_path)
+            if message.reply_to_message:
+                await message.reply_to_message.reply_photo(photo)
+            else:
+                await message.reply_photo(photo)
+        else:
+            await message.reply("❌ Ошибка при конвертации.")
+    except Exception:
+        er_traceback = traceback.format_exc()
+        await error_report(message, bot, command, er_traceback)
+    finally:
+        if input_path and input_path.exists():
+            input_path.unlink(missing_ok=True)
+        if output_path and output_path.exists():
+            output_path.unlink(missing_ok=True)
+        if processing_msg:
+            await processing_msg.delete()
