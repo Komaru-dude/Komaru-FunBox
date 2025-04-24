@@ -68,7 +68,7 @@ async def cmd_gif(message: Message, bot: Bot):
 
         file_id = video.file_id
         file = await message.bot.get_file(file_id)
-    
+
         input_path = CACHE_DIR / f"{file_id}.mp4"
         output_path = CACHE_DIR / f"{file_id}.gif"
 
@@ -85,7 +85,10 @@ async def cmd_gif(message: Message, bot: Bot):
 
         if output_path.exists():
             gif = FSInputFile(output_path)
-            await message.answer_animation(gif)
+            if message.reply_to_message:
+                await message.reply_to_message.reply_animation(gif)
+            else:
+                await message.reply_animation(gif)
         else:
             await message.reply("❌ Ошибка при конвертации.")
     except Exception as e:
