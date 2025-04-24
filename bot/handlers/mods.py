@@ -152,7 +152,7 @@ async def cmd_warn(message: Message, bot: Bot):
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         
-        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}\nКол-во варнов: {user_data[2]}", parse_mode=ParseMode.HTML)
+        await message.reply(f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}\nКол-во варнов: {user_data[2]}/{user_data[9]}", parse_mode=ParseMode.HTML)
         if user_data[2] >= user_data[9]:
             until_date = int(time.time()) + 2 * 3600
 
