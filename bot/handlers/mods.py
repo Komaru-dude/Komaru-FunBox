@@ -89,7 +89,7 @@ async def cmd_disable_func(message: Message, bot: Bot):
 @mods_router.message(Command("history"))
 async def cmd_history(message: Message):
     user_id = message.from_user.id
-    history = db.get_history(user_id)
+    history = db.get_history(user_id, message.chat.id)
     
     if not history:
         await message.reply("У вас пока нет наказаний.")
