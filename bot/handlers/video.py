@@ -97,6 +97,7 @@ async def cmd_gif(message: Message, bot: Bot):
             "-vf",
             "fps=24,trim=duration=5",
             "-loop", "0",
+            "-preset", "ultraslow",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
