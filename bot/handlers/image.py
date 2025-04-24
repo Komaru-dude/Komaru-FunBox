@@ -92,7 +92,7 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "curves=r='0/0 0.5/0.6 1/1':"
             "g='0/0 0.5/0.6 1/1':"
             "b='0/0 0.5/0.6 1/1'",
-            "-qscale:v", "1",
+            "-qscale:v", "31",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
