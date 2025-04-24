@@ -59,6 +59,7 @@ async def cmd_lick(message: Message, bot: Bot):
 async def cmd_jpeg(message: Message, bot: Bot):
     command = "jpeg"
     input_path = output_path = None
+    processing_msg = None
     try:
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
