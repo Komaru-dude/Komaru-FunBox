@@ -61,11 +61,11 @@ async def cmd_gif(message: Message, bot: Bot):
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
-    
-        if not message.video:
-            return await message.reply("❌ Отправьте видео для конвертации в GIF")
-            
-        video = message.video
+
+        video = message.video or (message.reply_to_message.video if message.reply_to_message else None)
+        if not video:
+            return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
+
         file_id = video.file_id
         file = await message.bot.get_file(file_id)
     
