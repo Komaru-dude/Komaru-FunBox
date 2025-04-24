@@ -65,6 +65,8 @@ async def cmd_gif(message: Message, bot: Bot):
         video = message.video or (message.reply_to_message.video if message.reply_to_message else None)
         if not video:
             return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
+        
+        processing_msg = await message.reply("🔄 Обработка...")
 
         file_id = video.file_id
         file = await message.bot.get_file(file_id)
@@ -77,9 +79,9 @@ async def cmd_gif(message: Message, bot: Bot):
         process = await asyncio.create_subprocess_exec(
             "ffmpeg", "-y",
             "-i", str(input_path),
-            "-c:v libx264",
+            "-c:v gif",
             "-vf",
-            "fps=24,"
+            "fps=24, scale=320:-1"
             "trim=duration=7,"
             "split=2[a][b];"
             "[a]palettegen=stats_mode=diff:max_colors=64[p];"
@@ -112,3 +114,4 @@ async def cmd_gif(message: Message, bot: Bot):
             input_path.unlink(missing_ok=True)
         if output_path and output_path.exists():
             output_path.unlink(missing_ok=True)
+        await processing_msg.delete()
