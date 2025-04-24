@@ -95,14 +95,13 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "-qscale:v", "1",
             "-dct", "fastint",
             "-huffman", "optimal",
-            "-strip",
             "-optimize", "0",
             str(output_path),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        logging.error(stdout, stderr)
+        logging.error(f"{stdout, stderr}")
 
         if output_path.exists():
             photo = FSInputFile(output_path)
