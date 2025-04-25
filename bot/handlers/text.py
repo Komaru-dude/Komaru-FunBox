@@ -62,7 +62,7 @@ async def text(message: Message, bot: Bot):
                 "messages": [{"role": "user", "content": request}]
             }
         }
-        await cmd_gemini(message, custom_payload=custom_payload)
+        await cmd_gemini(message, bot, custom_payload=custom_payload)
         return
     elif message.text.startswith(("http://", "https://")) and db.is_feature_enabled(chat_id, "autovideo"):
         parsed_url = urlparse(message.text)
