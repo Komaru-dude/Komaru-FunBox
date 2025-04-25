@@ -205,7 +205,7 @@ async def cmd_image(message: Message, bot: Bot):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            await message.answer("✍️ Напиши, что нарисовать. Пример: /image кошечка дуде")
+            await message.answer("✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде")
             return
 
         prompt = args[1]
