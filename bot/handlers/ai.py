@@ -93,7 +93,6 @@ async def cmd_aggemini(message: Message, bot: Bot):
 @ai_router.message(Command("deepseek"))
 async def cmd_deepseek(message: Message, bot: Bot, custom_payload: str = None):
     try:
-        base_msg = await message.reply("🔄 Обработка...")
         split_text = message.text.split(maxsplit=1)
 
         if db.is_user_mediabanned(message.from_user.id):
@@ -101,7 +100,7 @@ async def cmd_deepseek(message: Message, bot: Bot, custom_payload: str = None):
             return
 
         if len(split_text) < 2 and not message.reply_to_message:
-            await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
+            await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
             return
     
         if len(split_text) >= 2 and message.reply_to_message:
