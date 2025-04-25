@@ -49,8 +49,8 @@ async def cmd_lick(message: Message, bot: Bot):
         # Отправляем результат
         await message.answer_photo(FSInputFile(output_path))
         
-    except Exception as e:
-        await message.reply(f"❌ Ошибка: {e}")
+    except Exception:
+        await error_report(message, bot, "lick", traceback.format_exc())
     finally:
         user_photo_path.unlink(missing_ok=True)
         output_path.unlink(missing_ok=True)
