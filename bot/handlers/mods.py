@@ -1,4 +1,4 @@
-import os, subprocess, time
+import os, subprocess, time, traceback
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
@@ -21,10 +21,8 @@ async def cmd_restart(message: Message, bot: Bot):
 
     try:
         subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
-    except Exception as e:
-        await message.reply("Не удалось перезагрузиться!")
-        await bot.send_message(chat_id=os.getenv("OWNER_ID"), 
-                                text=f"Во время обработки команды /restart произошла ошибка: {e}")
+    except Exception:
+        await error_report(message, bot, "restart", traceback.format_exc())
 
 @mods_router.message(Command("enable"))
 async def cmd_enable_func(message: Message, bot: Bot):
@@ -53,8 +51,7 @@ async def cmd_enable_func(message: Message, bot: Bot):
         db.enable_feature(chat_id, func)
         await message.reply("✅ Функция включена.")
     except Exception as e:
-        await message.reply("❌ Не удалось включить функцию.")
-        await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /enable произошла ошибка: {e}")
+        await error_report(message, bot, "enable", traceback.format_exc())
 
 @mods_router.message(Command("disable"))
 async def cmd_disable_func(message: Message, bot: Bot):
@@ -82,36 +79,38 @@ async def cmd_disable_func(message: Message, bot: Bot):
     try:
         db.disable_feature(chat_id, func)
         await message.reply("✅ Функция выключена.")
-    except Exception as e:
-        await message.reply("❌ Не удалось выключить функцию.")
-        await bot.send_message(os.getenv("OWNER_ID"), text=f"Во время выполнения /disable произошла ошибка: {e}")
+    except Exception:
+        await error_report(message, bot, "disable", traceback.format_exc())
 
 @mods_router.message(Command("history"))
-async def cmd_history(message: Message):
-    user_id = message.from_user.id
-    history = db.get_history(user_id, message.chat.id)
-    
-    if not history:
-        await message.reply("У вас пока нет наказаний.")
-        return
+async def cmd_history(message: Message, bot: Bot):
+    try:
+        user_id = message.from_user.id
+        history = db.get_history(user_id, message.chat.id)
+        
+        if not history:
+            await message.reply("У вас пока нет наказаний.")
+            return
 
-    history_text = ""
-    for i, entry in enumerate(history, start=1):
-        punishment_type = entry["type"]
-        reason = entry.get("reason", "Без причины")
-        history_text += f"{i}. {punishment_type.capitalize()} - Причина: {reason}.\n"
-    
-    warns_count = len(history)
-    response = (
-        f"Всего наказаний: {warns_count}\n"
-        f"История наказаний:\n{history_text}"
-    )
-    await message.reply(response)
+        history_text = ""
+        for i, entry in enumerate(history, start=1):
+            punishment_type = entry["type"]
+            reason = entry.get("reason", "Без причины")
+            history_text += f"{i}. {punishment_type.capitalize()} - Причина: {reason}.\n"
+        
+        warns_count = len(history)
+        response = (
+            f"Всего наказаний: {warns_count}\n"
+            f"История наказаний:\n{history_text}"
+        )
+        await message.reply(response)
+
+    except Exception:
+        await error_report(message, bot, "history", traceback.format_exc())
     
 @mods_router.message(Command("warn"))
 async def cmd_warn(message: Message, bot: Bot):
     command = "warn"
-
     try:    
         split_text = message.text.split(maxsplit=3)
         chat_id = message.chat.id
@@ -169,7 +168,7 @@ async def cmd_warn(message: Message, bot: Bot):
 
     except TelegramBadRequest as e:
         await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
-    except Exception as e:
-        await error_report(message, bot, command, e)
+    except Exception:
+        await error_report(message, bot, command, traceback.format_exc())
         return
     

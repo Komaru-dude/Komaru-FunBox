@@ -1,4 +1,4 @@
-import aiohttp, os,  uuid
+import aiohttp, os, uuid, traceback
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -18,16 +18,19 @@ class SetRankStates(StatesGroup):
 
 @rights_router.message(Command("set_rank"))
 async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    owner_id = await aio_tools.get_chat_owner_id(bot, chat_id)
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        owner_id = await aio_tools.get_chat_owner_id(bot, chat_id)
 
-    if not (db.has_permission(user_id, chat_id, 2) or owner_id == user_id):
-        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
-        return
-    
-    await state.set_state(SetRankStates.waiting_for_username)
-    await message.reply("✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди).")
+        if not (db.has_permission(user_id, chat_id, 2) or owner_id == user_id):
+            await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+            return
+        
+        await state.set_state(SetRankStates.waiting_for_username)
+        await message.reply("✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди).")
+    except Exception:
+        await aio_tools.error_report(message, bot, "set_rank", traceback.format_exc())
 
 @rights_router.message(SetRankStates.waiting_for_username)
 async def process_username(message: Message, state: FSMContext):
@@ -169,8 +172,8 @@ async def cmd_ban_user(message: Message, bot: Bot):
                     await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
                     return
 
-            except Exception as e:
-                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
+            except Exception:
+                await aio_tools.error_report(message, bot, "ban_media", traceback.format_exc())
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
@@ -192,9 +195,7 @@ async def cmd_ban_user(message: Message, bot: Bot):
         db.mediaban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был заблокирован")
     except Exception as e:
-        report_id = uuid.uuid4()
-        await message.reply(f"❌ Не удалось заблокировать\nReport id: {report_id}")
-        await bot.send_message(os.getenv("OWNER_ID"), f"Report id: {report_id}\n\nMessage: {message.text}\n\nLogs: {e}")
+        await aio_tools.error_report(message, bot, "ban_media", traceback.format_exc())
 
 @rights_router.message(Command("unban_media"))
 async def cmd_unban_user(message: Message, bot: Bot):
@@ -227,8 +228,8 @@ async def cmd_unban_user(message: Message, bot: Bot):
                     await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
                     return
 
-            except Exception as e:
-                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
+            except Exception:
+                await aio_tools.error_report(message, bot, "unban_media", traceback.format_exc())
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
@@ -250,6 +251,4 @@ async def cmd_unban_user(message: Message, bot: Bot):
         db.mediaunban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception as e:
-        report_id = uuid.uuid4()
-        await message.reply(f"❌ Не удалось разблокировать\nReport id: {report_id}")
-        await bot.send_message(os.getenv("OWNER_ID"), f"Report id: {report_id}\n\nMessage: {message.text}\n\nLogs: {e}")
+        await aio_tools.error_report(message, bot, "unban_media", traceback.format_exc())
