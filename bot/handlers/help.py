@@ -1,7 +1,7 @@
 import traceback
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message, Bot
+from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot.utils.aio_tools import error_report
 
