@@ -35,13 +35,18 @@ def clear_cache():
     try:
         bot_dir = Path(__file__).resolve().parent
         cache_dir = bot_dir / "cache"
+        
+        logging.info(f"Рассчитываем путь к кэшу: {cache_dir}")
+        
+        # Если папка существует - удаляем
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
-            cache_dir.mkdir(parents=True, exist_ok=True)
-            logging.info("Кэш успешно очищен!")
-        else:
-            logging.warning("Папка кэша не найдена.")
-            
+            logging.info("Папка кэша удалена.")
+        
+        # Создаем папку, если отсутствует
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        logging.info("Кэш успешно очищен!")
+
     except Exception as e:
         logging.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
 
