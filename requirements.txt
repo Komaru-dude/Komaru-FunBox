@@ -11,7 +11,7 @@ click==8.1.8
 dotenv==0.9.9
 fastapi==0.115.12
 frozenlist==1.5.0
-h11==0.14.0
+h11==0.16.0
 idna==3.10
 magic-filter==1.0.12
 multidict==6.4.2
