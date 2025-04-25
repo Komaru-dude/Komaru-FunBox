@@ -111,35 +111,15 @@ async def cmd_deepseek(message: Message, bot: Bot, custom_payload: str = None):
         else:
             request = split_text[1]
 
-        payload = custom_payload or {
+        custom_payload = {
             "model": "deepseek-r1",
             "request": {
                 "messages": [{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
             }
         }
 
-        data, error = await make_post_request(payload)
+        await cmd_gemini(message, bot, custom_payload=custom_payload)
 
-        if error:
-            await base_msg.edit_text(error)
-            return
-
-        if not data.get("choices"):
-            answer = "⚠️ Ошибка: пустой ответ от API"
-        else:
-            answer = data["choices"][0]["message"]["content"]
-            answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
-
-        raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
-        if len(raw_answer) > 4096:
-            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
-        else:
-            chunks = [raw_answer]
-        for idx, chunk in enumerate(chunks):
-            if idx == 0:
-                await base_msg.edit_text(chunk)
-            else:
-                await base_msg.reply(chunk)
     except Exception:
         await error_report(message, bot, "deepseek", traceback.format_exc())
 
@@ -169,7 +149,7 @@ async def cmd_agdeepseek(message: Message, bot: Bot):
             }
         }
 
-        await cmd_deepseek(message, bot, custom_payload=custom_payload)
+        await cmd_gemini(message, bot, custom_payload=custom_payload)
     except Exception:
         await error_report(message, bot, "agdeepseek", traceback.format_exc())
 
