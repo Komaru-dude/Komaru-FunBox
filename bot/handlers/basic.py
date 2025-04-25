@@ -346,12 +346,12 @@ async def cmd_info(message: Message, bot: Bot):
             f"👤 Информация о {clickable_name}\n"
             f"🆔 ID: {target_user.id}\n"
             f"📊 Статистика:\n"
-            f"  ⚠ Предупреждения: {user_data[2]}/{user_data[9]}\n"
-            f"  🔇 Мьюты: {user_data[4]}\n"
-            f"  🔨 Баны: {user_data[3]}\n"
-            f"  💎 Репутация: {user_data[5]}\n"
-            f"  📨 Сообщений: {user_data[7]}\n"
-            f"  🏅 Ранг: {user_data[6]}\n"
+            f"⚠ Предупреждения: {user_data[2]}/{user_data[9]}\n"
+            f"🔇 Мьюты: {user_data[4]}\n"
+            f"🔨 Баны: {user_data[3]}\n"
+            f"💎 Репутация: {user_data[5]}\n"
+            f"📨 Сообщений: {user_data[7]}\n"
+            f"🏅 Ранг: {user_data[6]}\n"
         )
         
         await message.reply(info_text, parse_mode=ParseMode.HTML)
