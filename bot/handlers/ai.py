@@ -46,6 +46,8 @@ async def cmd_gemini(message: Message, bot: Bot, custom_payload: dict = None):
             answer = "⚠️ Ошибка: пустой ответ от API"
         else:
             answer = data["choices"][0]["message"]["content"]
+            if payload.get("model") == "deepseek-r1":
+                answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
 
         raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
         if len(raw_answer) > 4096:
