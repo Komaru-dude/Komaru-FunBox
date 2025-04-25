@@ -1,6 +1,5 @@
 import asyncio
 import traceback
-import logging
 from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command

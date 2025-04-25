@@ -1,6 +1,5 @@
 import asyncio
 import uuid
-import os
 import traceback
 from pathlib import Path
 from aiogram import Router, Bot

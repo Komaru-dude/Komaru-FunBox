@@ -1,4 +1,4 @@
-import json, random, aiohttp
+import json, random
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.enums import ParseMode
