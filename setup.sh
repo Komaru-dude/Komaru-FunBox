@@ -45,6 +45,11 @@ if [ -d "${INSTALL_DIR}" ]; then
     rm -rf "${INSTALL_DIR}"
 fi
 sudo -u ${USER_NAME} git clone -b $branch_name ${REPO_URL} "${INSTALL_DIR}"
+if [ "$branch_name" = "test" ]; then
+    touch test
+else
+    rm -f test  # на всякий случай удаляем, если был
+fi
 
 echo "🐍 Creating Python virtual environment..."
 sudo -u ${USER_NAME} python3 -m venv "${INSTALL_DIR}/venv"
