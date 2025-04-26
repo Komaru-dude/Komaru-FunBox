@@ -1,10 +1,10 @@
 import random
 import traceback
-import aiohttp
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message, URLInputFile, BufferedInputFile
+from aiogram.types import Message, URLInputFile
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest
 from bot import db
 from bot.utils.aio_tools import error_report
 
@@ -56,24 +56,24 @@ async def cmd_http_cat(message: Message, bot: Bot):
         if len(split_text) > 1:
             try:
                 user_code = int(split_text[1])
-                code = 405 if user_code == 418 else user_code if user_code in cat_http_codes else None
+                code = 405 if user_code == 418 else user_code
+                if code not in cat_http_codes:
+                    code = None
             except ValueError:
                 pass
 
         code = code or random.choice(cat_http_codes)
         url = f"https://http.cat/{code}.jpg"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    await message.reply(f"❌ Не удалось получить HTTP кота: {code}")
-                    return
-                content = await resp.read()
 
-        await message.reply_photo(
-            photo=BufferedInputFile(content, filename=f"{code}.jpg"),
-            caption=f"Ваш HTTP кот: {code}"
-        )
-    except Exception:
+        try:
+            await message.reply_photo(
+                url,
+                caption=f"Ваш HTTP кот: {code}"
+            )
+        except TelegramBadRequest as e:
+            await message.reply(f"❌ Не удалось отправить кота: {e.message}")
+            
+    except Exception as e:
         await error_report(message, bot, "http_cat", traceback.format_exc())
 
 @easter_router.message(Command("http_dog"))
@@ -89,24 +89,24 @@ async def cmd_http_dog(message: Message, bot: Bot):
         if len(split_text) > 1:
             try:
                 user_code = int(split_text[1])
-                code = 405 if user_code == 418 else user_code if user_code in dog_http_codes else None
+                code = 405 if user_code == 418 else user_code
+                if code not in dog_http_codes:
+                    code = None
             except ValueError:
                 pass
 
         code = code or random.choice(dog_http_codes)
         url = f"https://http.dog/{code}.jpg"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status != 200:
-                    await message.reply(f"❌ Не удалось получить HTTP собаку: {code}")
-                    return
-                content = await resp.read()
 
-        await message.reply_photo(
-            photo=BufferedInputFile(content, filename=f"{code}.jpg"),
-            caption=f"Ваша HTTP собака: {code}"
-        )
-    except Exception:
+        try:
+            await message.reply_photo(
+                url,
+                caption=f"Ваша HTTP собака: {code}"
+            )
+        except TelegramBadRequest as e:
+            await message.reply(f"❌ Не удалось отправить собаку: {e.message}")
+            
+    except Exception as e:
         await error_report(message, bot, "http_dog", traceback.format_exc())
 
 @easter_router.message(Command("cat"))
