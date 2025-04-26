@@ -59,9 +59,13 @@ sudo -u ${USER_NAME} "${INSTALL_DIR}/venv/bin/pip" install -r "${INSTALL_DIR}/re
 
 ENV_FILE="${INSTALL_DIR}/.env"
 if [ ! -f "${ENV_FILE}" ]; then
-    echo "🛠 Creating .env file template..."
-    sudo -u ${USER_NAME} touch "${ENV_FILE}"
-    echo "⚠️⚠️⚠️ NOTE: You must configure .env yourself using the example in env_example ⚠️⚠️⚠️"
+    echo "🛠 Setting up .env file..."
+    sudo -u ${USER_NAME} mv ${INSTALL_DIR}/env_example ${ENV_FILE}
+    echo "⚠️ IMPORTANT: You will need to configure the .env file. Please review and set it up properly."
+    echo "Press any key to continue..."
+    read -n 1 -s
+    sudo -u ${USER_NAME} nano ${ENV_FILE}
+    echo "⚠️⚠️⚠️ NOTE: If you haven't set up .env correctly, you'll have to do it yourself. ⚠️⚠️⚠️"
 fi
 
 echo "⚙ Creating systemd service..."
