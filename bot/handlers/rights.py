@@ -27,6 +27,10 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
             await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
             return
         
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+        
         await state.set_state(SetRankStates.waiting_for_username)
         await message.reply("✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди).")
     except Exception:

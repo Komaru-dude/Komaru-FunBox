@@ -184,6 +184,10 @@ async def cmd_image(message: Message, bot: Bot):
         if len(args) < 2:
             await message.answer("✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде")
             return
+        
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
 
         prompt = args[1]
 
