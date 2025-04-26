@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 import traceback
+import shutil
 from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -70,39 +71,62 @@ async def cmd_video(message: Message, bot: Bot):
 @video_router.message(Command("gif"))
 async def cmd_gif(message: Message, bot: Bot):
     command = "gif"
-    input_path = output_path = None
+    input_path = None
+    frames_dir = None
+    output_path = None
     processing_msg = None
+    
     try:
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        video = message.video or (message.reply_to_message.video if message.reply_to_message else None)
+        video = None
+        if message.video:
+            video = message.video
+        elif message.reply_to_message and message.reply_to_message.video:
+            video = message.reply_to_message.video
+            
         if not video:
             return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
-        
+
         processing_msg = await message.reply("🔄 Обработка...")
 
         file_id = video.file_id
-        file = await message.bot.get_file(file_id)
+        file = await bot.get_file(file_id)
 
         input_path = CACHE_DIR / f"{file_id}.mp4"
+        frames_dir = CACHE_DIR / f"{file_id}_frames"
         output_path = CACHE_DIR / f"{file_id}.gif"
 
-        await message.bot.download_file(file.file_path, destination=input_path)
+        await bot.download_file(file.file_path, destination=input_path)
+        frames_dir.mkdir(parents=True, exist_ok=True)
 
+        frames_pattern = frames_dir / "frame_%04d.png"
         process = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-y",
-            "-i", str(input_path),
-            "-vf",
-            "fps=24,trim=duration=5",
-            "-loop", "0",
-            "-preset", "ultraslow",
-            str(output_path),
+            "ffmpeg", "-i", str(input_path),
+            "-vf", "fps=24,scale=-1:480",
+            str(frames_pattern),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL
         )
         await process.communicate()
+
+        if process.returncode != 0:
+            raise RuntimeError("Ошибка ffmpeg при извлечении кадров")
+
+        gifski_process = await asyncio.create_subprocess_exec(
+            "gifski",
+            "--quality", "80",
+            "-o", str(output_path),
+            *sorted(frames_dir.glob("frame_*.png"), key=lambda p: p.name),
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL
+        )
+        await gifski_process.communicate()
+        
+        if gifski_process.returncode != 0:
+            raise RuntimeError("Ошибка gifski при создании GIF")
 
         if output_path.exists():
             gif = FSInputFile(output_path)
@@ -112,13 +136,20 @@ async def cmd_gif(message: Message, bot: Bot):
                 await message.reply_animation(gif)
         else:
             await message.reply("❌ Ошибка при конвертации.")
+            
     except Exception:
-        er_traceback = traceback.format_exc()
-        await error_report(message, bot, command, er_traceback)
+        await error_report(message, bot, command, traceback.format_exc())
+        
     finally:
-        if input_path and input_path.exists():
-            input_path.unlink(missing_ok=True)
-        if output_path and output_path.exists():
-            output_path.unlink(missing_ok=True)
+        try:
+            if input_path and input_path.exists():
+                input_path.unlink(missing_ok=True)
+            if frames_dir and frames_dir.exists():
+                shutil.rmtree(frames_dir)
+            if output_path and output_path.exists():
+                output_path.unlink(missing_ok=True)
+        except Exception as cleanup_error:
+            print(f"Ошибка при очистке: {cleanup_error}")
+            
         if processing_msg:
             await processing_msg.delete()
