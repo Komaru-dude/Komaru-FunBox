@@ -5,7 +5,7 @@ from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from bot import db
-from bot.utils.aio_tools import fetch_json, error_report
+from bot.utils.aio_tools import fetch_json, error_report, get_user_id, fetch_user_data
 
 base_router = Router()
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,34 +16,6 @@ API_URL = "http://127.0.0.1:8001"
 cpu_loads = []
 memory_loads = []
 start_time = time.time()
-
-async def get_target_user(message: Message):
-    if message.reply_to_message:
-        return message.reply_to_message.from_user
-    
-    parts = message.text.split()
-    if len(parts) < 2:
-        return message.from_user
-    
-    target = parts[1]
-    
-    if target.startswith('@'):
-        try:
-            user_data = await fetch_json(f"http://127.0.0.1:8001/user/{target}")
-            return type('User', (), {
-                'id': user_data['user_id'],
-                'first_name': user_data.get('first_name', 'Неизвестно')
-            })
-        except Exception as e:
-            raise ValueError(f"Не найден пользователь {target}") from e
-
-    if target.isdigit():
-        return type('User', (), {
-            'id': int(target),
-            'first_name': "Неизвестный"
-        })
-    
-    raise ValueError("Неверный формат. Используйте @юзернейм или ID")
 
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):
@@ -332,19 +304,25 @@ async def cmd_shutter(message: Message, bot: Bot):
 async def cmd_info(message: Message, bot: Bot):
     try:
         chat_id = message.chat.id
-        
-        target_user = await get_target_user(message)
-        
-        user_data = db.get_user_data(target_user.id, chat_id)
+        user_id, error = await get_user_id(message)
+
+        if error:
+            return await error_report(message, bot, "info", e)
+
+        user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
+        if 'error' in user_info:
+            return await message.reply(f"❌ {user_info['error']}")
+
+        user_data = db.get_user_data(user_info['user_id'], chat_id)
         if not user_data:
             return await message.reply("❌ Пользователь не найден в базе данных")
 
-        profile_link = f"tg://user?id={target_user.id}"
-        clickable_name = f'<a href="{profile_link}">{target_user.first_name}</a>'
-        
+        profile_link = f"tg://user?id={user_info['user_id']}"
+        clickable_name = f'<a href="{profile_link}">{user_info["first_name"]}</a>'
+
         info_text = (
             f"👤 Информация о {clickable_name}\n"
-            f"🆔 ID: {target_user.id}\n"
+            f"🆔 ID: {user_info['user_id']}\n"
             f"📊 Статистика:\n"
             f"⚠ Предупреждения: {user_data[2]}/{user_data[9]}\n"
             f"🔇 Мьюты: {user_data[4]}\n"
@@ -353,8 +331,8 @@ async def cmd_info(message: Message, bot: Bot):
             f"📨 Сообщений: {user_data[7]}\n"
             f"🏅 Ранг: {user_data[6]}\n"
         )
-        
+
         await message.reply(info_text, parse_mode=ParseMode.HTML)
-        
-    except Exception:
+
+    except Exception as e:
         await error_report(message, bot, "info", traceback.format_exc())
