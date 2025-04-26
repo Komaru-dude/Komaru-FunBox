@@ -97,10 +97,6 @@ async def cmd_deepseek(message: Message, bot: Bot, custom_payload: str = None):
     try:
         split_text = message.text.split(maxsplit=1)
 
-        if db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
-
         if len(split_text) < 2 and not message.reply_to_message:
             await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
             return
