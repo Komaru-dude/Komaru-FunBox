@@ -7,6 +7,17 @@ from bot import db
 
 ai_router = Router()
 url = os.getenv("API_URL")
+jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
+
+SUPPORTED_LANGUAGES = {
+    "zh": "Китайский",
+    "en": "Английский",
+    "es": "Испанский",
+    "fr": "Французский",
+    "de": "Немецкий",
+    "ru": "Русский",
+    "ja": "Японский"
+}
 
 @ai_router.message(Command("gemini"))
 async def cmd_gemini(message: Message, bot: Bot, custom_payload: dict = None):
@@ -219,3 +230,76 @@ async def cmd_image(message: Message, bot: Bot):
 
     except Exception:
         await error_report(message, bot, "image", traceback.format_exc())
+
+@ai_router.message(Command("translate"))
+async def cmd_translate(message: Message, bot: Bot):
+    try:
+        base_msg = await message.reply("🔄 Обработка...")
+        user_input = message.text.split(maxsplit=2)
+
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+
+        target_lang = "en"
+        text_to_translate = ""
+        
+        if len(user_input) >= 2:
+            lang_candidate = user_input[1].lower()
+            if lang_candidate in SUPPORTED_LANGUAGES:
+                target_lang = lang_candidate
+                text_to_translate = user_input[2] if len(user_input) > 2 else ""
+
+        if not text_to_translate and message.reply_to_message:
+            text_to_translate = message.reply_to_message.text
+        elif not text_to_translate:
+            await base_msg.edit_text(
+                "❌ Укажите текст и язык перевода!\n"
+                "Пример: `/translate en Привет мир`\n\n"
+                "Доступные языки:\n" + 
+                "\n".join([f"{code} - {name}" for code, name in SUPPORTED_LANGUAGES.items()])
+            )
+            return
+
+        custom_headers = {
+            "Content-Type": "application/json",
+            "x-api-key": jigsaw_api_key
+        }
+
+        payload = {
+            "text": [text_to_translate],
+            "target_language": target_lang
+        }
+
+        response, error = await make_post_request(
+            url="https://api.jigsawstack.com/v1/ai/translate",
+            payload=payload,
+            headers=custom_headers
+        )
+
+        if error:
+            await base_msg.edit_text(error)
+            return
+
+        if not response.get("success"):
+            await base_msg.edit_text("❌ Ошибка при переводе")
+            return
+
+        translated = "\n".join(response["translated_text"])
+        lang_name = SUPPORTED_LANGUAGES.get(target_lang, f"⚠️ Язык {lang_candidate} не поддерживается, будет выполнятся перевод на английский")
+        
+        answer = (
+            f"🌍 Перевод на {lang_name} ({target_lang}):\n"
+            f"{translated}\n\n"
+            f"🔢 Использовано токенов: {response['_usage']['total_tokens']}"
+        )
+
+        chunks = [answer[i:i+4096] for i in range(0, len(answer), 4096)]
+        for idx, chunk in enumerate(chunks):
+            if idx == 0:
+                await base_msg.edit_text(chunk)
+            else:
+                await message.reply(chunk)
+        
+    except Exception as e:
+        await error_report(message, bot, "translate", traceback.format_exc())
