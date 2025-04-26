@@ -305,6 +305,7 @@ async def cmd_info(message: Message, bot: Bot):
     try:
         chat_id = message.chat.id
         split_text = message.text.split()
+        error = None
         if len(split_text) < 2:
             user_id = message.from_user.id
         else:
