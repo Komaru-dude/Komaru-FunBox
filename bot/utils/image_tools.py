@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def replace_green_screen(template_path, new_bg_path, output_path): # Всё так же ужасно
+def replace_green_screen(template_path, new_bg_path, output_path): # Всё так же ужасно, не используйте это
     template = cv2.imread(template_path)
     new_bg = cv2.imread(new_bg_path)
 

@@ -20,7 +20,8 @@ async def get_last_profile_photo(user_id, bot):
     last_photo_set = profile_photos.photos[0]
     return last_photo_set[-1]
 
-@image_router.message(Command("lick"))
+# Сделать нормальную реализацию позже
+# @image_router.message(Command("lick"))
 async def cmd_lick(message: Message, bot: Bot):
     user_id = message.reply_to_message.from_user.id if message.reply_to_message else message.from_user.id
 
