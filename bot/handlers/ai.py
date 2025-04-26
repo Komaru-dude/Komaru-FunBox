@@ -36,7 +36,7 @@ async def cmd_gemini(message: Message, bot: Bot, custom_payload: dict = None):
             }
         }
 
-        data, error = await make_post_request(payload)
+        data, error = await make_post_request(url, payload)
 
         if error:
             await base_msg.edit_text(error)
