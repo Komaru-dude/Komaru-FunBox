@@ -13,3 +13,6 @@ API_HASH=your_api_hash
 
 # Ваш url для апи нейросетей
 API_URL=http://api.onlysq.ru/ai/v2
+
+# Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
+JIGSAW_API_KEY=your_api_key

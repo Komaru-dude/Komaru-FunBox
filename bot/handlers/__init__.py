@@ -8,7 +8,8 @@ required_vars = {
     "OWNER_ID": "ID владельца бота",
     "API_ID": "Telegram API ID",
     "API_HASH": "Telegram API HASH",
-    "API_URL": "URL апи для ИИ (почему бы не использовать onlysq?)"
+    "API_URL": "URL апи для ИИ (почему бы не использовать onlysq?)",
+    "JIGSAW_API_KEY": "Апи ключ для jigsaw функций"
 }
 
 for var, description in required_vars.items():
