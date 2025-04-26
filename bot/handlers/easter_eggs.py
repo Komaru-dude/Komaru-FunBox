@@ -1,8 +1,9 @@
 import random
 import traceback
+import aiohttp
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message, URLInputFile
+from aiogram.types import Message, URLInputFile, BufferedInputFile
 from aiogram.enums import ParseMode
 from bot import db
 from bot.utils.aio_tools import error_report
@@ -60,8 +61,16 @@ async def cmd_http_cat(message: Message, bot: Bot):
                 pass
 
         code = code or random.choice(cat_http_codes)
+        url = f"https://http.cat/{code}.jpg"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    await message.reply(f"❌ Не удалось получить HTTP кота: {code}")
+                    return
+                content = await resp.read()
+
         await message.reply_photo(
-            photo=URLInputFile(f"https://http.cat/{code}.jpg", f"{code}.jpg"),
+            photo=BufferedInputFile(content, filename=f"{code}.jpg"),
             caption=f"Ваш HTTP кот: {code}"
         )
     except Exception:
@@ -85,8 +94,16 @@ async def cmd_http_dog(message: Message, bot: Bot):
                 pass
 
         code = code or random.choice(dog_http_codes)
+        url = f"https://http.dog/{code}.jpg"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    await message.reply(f"❌ Не удалось получить HTTP собаку: {code}")
+                    return
+                content = await resp.read()
+
         await message.reply_photo(
-            photo=URLInputFile(f"https://http.dog/{code}.jpg", f"{code}.jpg"),
+            photo=BufferedInputFile(content, filename=f"{code}.jpg"),
             caption=f"Ваша HTTP собака: {code}"
         )
     except Exception:
