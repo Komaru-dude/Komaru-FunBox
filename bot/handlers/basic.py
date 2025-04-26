@@ -340,7 +340,7 @@ async def cmd_info(message: Message, bot: Bot):
             return await message.reply("❌ Пользователь не найден в базе данных")
 
         profile_link = f"tg://user?id={target_user.id}"
-        clickable_name = f'<a href="{profile_link}">{message.from_user.first_name}</a>'
+        clickable_name = f'<a href="{profile_link}">{target_user.first_name}</a>'
         
         info_text = (
             f"👤 Информация о {clickable_name}\n"
