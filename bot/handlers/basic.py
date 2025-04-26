@@ -307,7 +307,7 @@ async def cmd_info(message: Message, bot: Bot):
         user_id, error = await get_user_id(message)
 
         if error:
-            return await error_report(message, bot, "info", error)
+            return await message.reply(f"❌ {error}")
 
         user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
         if 'error' in user_info:
