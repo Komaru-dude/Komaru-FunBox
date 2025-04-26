@@ -8,7 +8,7 @@ time_router = Router()
 moscow_tz = pytz.timezone('Europe/Moscow')
 
 @time_router.message(Command("new_year"))
-async def time_to_new_year(message: Message):
+async def cmd_time_to_new_year(message: Message):
     tz = moscow_tz
 
     event_date = datetime(2026, 1, 1, 0, 0, 0)
@@ -30,7 +30,7 @@ async def time_to_new_year(message: Message):
     )
 
 @time_router.message(Command("birthdays"))
-async def cats_birthdays(message: Message):
+async def cmd_cats_birthdays(message: Message):
     tz = moscow_tz
 
     cats = {
@@ -73,7 +73,7 @@ async def cats_birthdays(message: Message):
         await message.reply("Непредвиденная ошибка во время выполнения команды.")
 
 @time_router.message(Command("revx"))
-async def time_to_new_year(message: Message):
+async def cmd_time_to_revx(message: Message):
     tz = moscow_tz
 
     event_date = datetime(2026, 4, 18, 0, 0, 0)
