@@ -6,14 +6,9 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
-from bot.utils.aio_tools import error_report
+from bot.utils.aio_tools import fetch_json, error_report
 
 tag_router = Router()
-
-async def fetch(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.text()
 
 @tag_router.message(Command("tag"))
 async def cmd_tag(message: Message, bot: Bot):
@@ -60,17 +55,10 @@ async def cmd_tagall(message: Message, bot: Bot):
 
         try:
             url = f"http://127.0.0.1:8001/chat_members/{chat_id}"
-            response_text = await fetch(url)
-            response_data = json.loads(response_text)
+            response_data = await fetch_json(url)
             members = response_data.get("members", [])
-        except aiohttp.ClientError as e:
-            await message.reply("❌ Ошибка соединения с сервером.")
-            return
-        except json.JSONDecodeError:
-            await message.reply("❌ Ошибка обработки данных участников.")
-            return
         except Exception as e:
-            await message.reply(f"❌ Ошибка: {str(e)}")
+            await message.reply(f"❌ Ошибка при получении участников: {str(e)}")
             return
 
         bot_id = (await message.bot.get_me()).id
