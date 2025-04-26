@@ -50,6 +50,10 @@ async def text(message: Message, bot: Bot):
             db.init_chat_features(chat_id)
         if not text_msg:
             return
+        
+        commands = await get_chat_commands(chat_id)
+        split_text = text_msg.split(maxsplit=1)
+        command = split_text[0].lstrip('/').lower()
 
         if (
             text_msg.lower() == "это что?"
@@ -72,38 +76,31 @@ async def text(message: Message, bot: Bot):
             if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
                 await cmd_video(message, bot, url=message.text)
                 return
+        elif command not in commands:
+            if not message.reply_to_message and len(split_text) < 2:
+                await message.reply("Укажи пользователя после команды или ответь на его сообщение.")
+                return
 
-        commands = await get_chat_commands(chat_id)
-        split_text = text_msg.split(maxsplit=1)
-        command = split_text[0].lstrip('/').lower()
+            target_user_id, error_msg = await get_user_id(message)
+            if not target_user_id:
+                await message.reply(error_msg or "Не удалось найти пользователя.")
+                return
 
-        if command not in commands:
-            return
+            user_data = await fetch_user_data(user_id=target_user_id, chat_id=chat_id)
+            if not user_data or 'error' in user_data:
+                await message.reply(user_data.get('error', 'Ошибка получения данных'))
+                return
 
-        if not message.reply_to_message and len(split_text) < 2:
-            await message.reply("Укажи пользователя после команды или ответь на его сообщение.")
-            return
+            user1_link = f'<a href="tg://user?id={user1.id}">{user1.first_name}</a>'
+            user2_link = f'<a href="tg://user?id={target_user_id}">{user_data.get("first_name", "Пользователь")}</a>'
 
-        target_user_id, error_msg = await get_user_id(message)
-        if not target_user_id:
-            await message.reply(error_msg or "Не удалось найти пользователя.")
-            return
+            cmd = commands[command]
+            text_template = random.choice(cmd["messages"])
+            result_text = text_template.format(user1=user1_link, user2=user2_link)
 
-        user_data = await fetch_user_data(user_id=target_user_id, chat_id=chat_id)
-        if not user_data or 'error' in user_data:
-            await message.reply(user_data.get('error', 'Ошибка получения данных'))
-            return
-
-        user1_link = f'<a href="tg://user?id={user1.id}">{user1.first_name}</a>'
-        user2_link = f'<a href="tg://user?id={target_user_id}">{user_data.get("first_name", "Пользователь")}</a>'
-
-        cmd = commands[command]
-        text_template = random.choice(cmd["messages"])
-        result_text = text_template.format(user1=user1_link, user2=user2_link)
-
-        if message.reply_to_message:
-            await message.reply_to_message.reply(result_text, parse_mode=ParseMode.HTML)
-        else:
-            await message.answer(result_text, parse_mode=ParseMode.HTML)
+            if message.reply_to_message:
+                await message.reply_to_message.reply(result_text, parse_mode=ParseMode.HTML)
+            else:
+                await message.answer(result_text, parse_mode=ParseMode.HTML)
     except Exception:
         await error_report(message, bot, "text", traceback.format_exc())
