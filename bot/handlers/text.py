@@ -76,7 +76,7 @@ async def text(message: Message, bot: Bot):
             if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
                 await cmd_video(message, bot, url=message.text)
                 return
-        elif command not in commands:
+        elif command in commands:
             if not message.reply_to_message and len(split_text) < 2:
                 await message.reply("Укажи пользователя после команды или ответь на его сообщение.")
                 return
