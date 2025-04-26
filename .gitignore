@@ -1,9 +1,10 @@
 .vscode
 .venv
+venv
 .env
 data
+bot/cache
+test
 __pycache__
 .session
 .session-journal
-venv
-test
