@@ -304,7 +304,11 @@ async def cmd_shutter(message: Message, bot: Bot):
 async def cmd_info(message: Message, bot: Bot):
     try:
         chat_id = message.chat.id
-        user_id, error = await get_user_id(message)
+        split_text = message.text.split()
+        if len(split_text) < 2:
+            user_id = message.from_user.id
+        else:
+            user_id, error = await get_user_id(message)
 
         if error:
             return await message.reply(f"❌ {error}")
