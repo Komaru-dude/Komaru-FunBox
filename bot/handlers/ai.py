@@ -351,7 +351,7 @@ async def cmd_vocr(message: Message, bot: Bot):
         }
 
         vocr_resp, error = await make_post_request(vocr_url, payload, headers)
-        answer = str(vocr_resp)
+        answer = "\n".join([section['text'] for section in vocr_resp['sections']])
         if error:
             await message.reply(error)
         else:
