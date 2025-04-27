@@ -303,3 +303,57 @@ async def cmd_translate(message: Message, bot: Bot):
         
     except Exception as e:
         await error_report(message, bot, "translate", traceback.format_exc())
+
+@ai_router.message(Command("vocr"))
+async def cmd_vocr(message: Message, bot: Bot):
+    try:
+        photo = message.photo[-1]
+        file_id = photo.file_id
+
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        file_bytes = await bot.download_file(file_path)
+
+        content_type = "image/jpeg"
+
+        file_key = f"{file_id}.jpg"
+
+        upload_url = f"https://api.jigsawstack.com/v1/store/file?key={file_key}"
+        headers = {
+            "x-api-key": jigsaw_api_key,
+            "Content-Type": content_type
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(upload_url, data=file_bytes, headers=headers) as resp_upload:
+                if resp_upload.status != 200:
+                    await message.reply(f"❌ Ошибка загрузки файла: статус {resp_upload.status}")
+                    return
+                upload_resp = await resp_upload.json()
+                file_store_key = upload_resp.get("key")
+                if not file_store_key:
+                    await message.reply("❌ Не получен file_store_key после загрузки")
+                    return
+
+        vocr_url = "https://api.jigsawstack.com/v1/vocr"
+        payload = {
+            "prompt": ["first name", "last name"],
+            "file_store_key": file_store_key
+        }
+        headers = {
+            "x-api-key": jigsaw_api_key
+        }
+
+        vocr_resp, error = await make_post_request(vocr_url, payload, headers)
+        if error:
+            await message.reply(error)
+        else:
+            await message.reply(str(vocr_resp))
+
+        delete_url = f"https://api.jigsawstack.com/v1/store/file/read/{file_store_key}"
+        async with aiohttp.ClientSession() as session:
+            async with session.delete(delete_url, headers={"x-api-key": jigsaw_api_key}) as resp_delete:
+                if resp_delete.status != 200:
+                    await message.reply(f"⚠️ Ошибка удаления файла: статус {resp_delete.status}")
+    except Exception:
+        await error_report(message, bot, "vocr", traceback.format_exc())
