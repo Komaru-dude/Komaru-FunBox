@@ -68,7 +68,7 @@ async def cmd_video(message: Message, bot: Bot):
         if processing_msg:
             await processing_msg.delete()
 
-@video_router.message(Command("gif"))
+# @video_router.message(Command("gif"))
 async def cmd_gif(message: Message, bot: Bot):
     command = "gif"
     input_path = None
