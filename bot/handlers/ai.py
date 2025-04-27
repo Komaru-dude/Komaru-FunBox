@@ -307,7 +307,13 @@ async def cmd_translate(message: Message, bot: Bot):
 @ai_router.message(Command("vocr"))
 async def cmd_vocr(message: Message, bot: Bot):
     try:
-        photo = message.photo[-1]
+        base_msg = await message.reply("🔄 Обработка...")
+        if message.photo:
+            photo = message.photo[-1]
+        elif message.reply_to_message and message.reply_to_message.photo:
+            photo = message.reply_to_message.photo[-1]
+        if not photo:
+            return await message.reply("❌ Отправьте фото или ответьте на фото для его распознавания.")
         file_id = photo.file_id
 
         file = await bot.get_file(file_id)
@@ -344,11 +350,16 @@ async def cmd_vocr(message: Message, bot: Bot):
             "x-api-key": jigsaw_api_key
         }
 
-        vocr_resp, error = await make_post_request(vocr_url, payload, headers)
+        answer, error = await make_post_request(vocr_url, payload, headers)
         if error:
             await message.reply(error)
         else:
-            await message.reply(str(vocr_resp))
+            chunks = [answer[i:i+4096] for i in range(0, len(answer), 4096)]
+            for idx, chunk in enumerate(chunks):
+                if idx == 0:
+                    await base_msg.edit_text(chunk)
+                else:
+                    await message.reply(chunk)
 
         delete_url = f"https://api.jigsawstack.com/v1/store/file/read/{file_store_key}"
         async with aiohttp.ClientSession() as session:
