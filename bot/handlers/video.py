@@ -29,9 +29,8 @@ async def download_video(url: str) -> dict:
         return {"status": "error", "message": stderr.decode()}
     
 @video_router.message(Command("video"))
-async def cmd_video(message: Message, bot: Bot):
+async def cmd_video(message: Message, bot: Bot, url = None):
     command = "video"
-    url = None
     file_path = None
     processing_msg = None
 
@@ -40,13 +39,14 @@ async def cmd_video(message: Message, bot: Bot):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        processing_msg = await message.answer("⏳ Скачиваю, ждите")
-
         split_text = message.text.split()
-        if len(split_text) > 1 and split_text[1]:
-            url = split_text[1]
-        else:
-            return await message.reply("❌ Укажите URL видео в команде")
+        if not url:
+            if len(split_text) > 1 and split_text[1]:
+                url = split_text[1]
+            else:
+                return await message.reply("❌ Укажите URL видео в команде")
+            
+        processing_msg = await message.answer("⏳ Скачиваю, ждите")
 
         result = await download_video(url)
         if result["status"] != "success":
