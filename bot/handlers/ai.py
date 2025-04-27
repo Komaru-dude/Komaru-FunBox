@@ -343,7 +343,7 @@ async def cmd_vocr(message: Message, bot: Bot):
 
         vocr_url = "https://api.jigsawstack.com/v1/vocr"
         payload = {
-            "prompt": ["first name", "last name"],
+            "prompt": [],
             "file_store_key": file_store_key
         }
         headers = {
