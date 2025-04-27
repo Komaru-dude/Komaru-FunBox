@@ -70,7 +70,7 @@ async def cmd_jpeg(message: Message, bot: Bot):
         elif message.reply_to_message and message.reply_to_message.photo:
             image = message.reply_to_message.photo[-1]
         if not image:
-            return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
+            return await message.reply("❌ Отправьте фото или ответьте на фото для шакализации")
         
         processing_msg = await message.reply("🔄 Обработка...")
 
