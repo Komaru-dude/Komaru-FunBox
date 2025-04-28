@@ -1,5 +1,4 @@
-import os, aiohttp, re, traceback
-from openai import AsyncOpenAI
+import os, aiohttp, re, traceback, openai
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
@@ -71,6 +70,8 @@ async def cmd_gemini(message: Message, bot: Bot, custom_response: dict = None):
                 await base_msg.edit_text(chunk)
             else:
                 await base_msg.reply(chunk)
+    except openai.InternalServerError:
+        await message.reply("⚠️ Внутренняя ошибка API")
     except Exception:
         await error_report(message, bot, "gemini", traceback.format_exc())
 
@@ -90,7 +91,7 @@ async def cmd_aggemini(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
         response = await client.chat.completions.create(
             model="gemini-2.0-flash",
             messages=[{
@@ -100,7 +101,8 @@ async def cmd_aggemini(message: Message, bot: Bot):
         )
 
         await cmd_gemini(message, bot, custom_response=response)
-
+    except openai.InternalServerError:
+        await message.reply("⚠️ Внутренняя ошибка API")
     except Exception:
         await error_report(message, bot, "aggemini", traceback.format_exc())
 
@@ -120,14 +122,15 @@ async def cmd_deepseek(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
         response = await client.chat.completions.create(
             model="deepseek-r1",
             messages=[{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
         )
 
         await cmd_gemini(message, bot, custom_response=response)
-
+    except openai.InternalServerError:
+        await message.reply("⚠️ Внутренняя ошибка API")
     except Exception:
         await error_report(message, bot, "deepseek", traceback.format_exc())
 
@@ -147,7 +150,7 @@ async def cmd_agdeepseek(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
         response = await client.chat.completions.create(
             model="deepseek-r1",
             messages=[{
@@ -157,7 +160,8 @@ async def cmd_agdeepseek(message: Message, bot: Bot):
         )
 
         await cmd_gemini(message, bot, custom_response=response)
-
+    except openai.InternalServerError:
+        await message.reply("⚠️ Внутренняя ошибка API")
     except Exception:
         await error_report(message, bot, "agdeepseek", traceback.format_exc())
 
@@ -177,14 +181,15 @@ async def cmd_search(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
         response = await client.chat.completions.create(
             model="searchgpt",
             messages=[{"role": "user", "content": request}]
         )
 
         await cmd_gemini(message, bot, custom_response=response)
-
+    except openai.InternalServerError:
+        await message.reply("⚠️ Внутренняя ошибка API")
     except Exception:
         await error_report(message, bot, "search", traceback.format_exc())
 
