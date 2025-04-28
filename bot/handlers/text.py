@@ -1,6 +1,8 @@
 import json
 import random
 import traceback
+import os
+import openai
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
@@ -63,13 +65,15 @@ async def text(message: Message, bot: Bot):
             and db.is_feature_enabled(chat_id, "who")
         ):
             request = f"Твоя задача кратко объяснить что такое, вот запрос пользователя: {message.reply_to_message.text}"
-            custom_payload = {
-                "model": "gemini-2.0-flash",
-                "request": {
-                    "messages": [{"role": "user", "content": request}]
-                }
-            }
-            await cmd_gemini(message, bot, custom_payload=custom_payload)
+            client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+            response = await client.chat.completions.create(
+                model="gemini-2.0-flash",
+                messages=[{
+                    "role": "user",
+                    "content": f"{request}"
+                }]
+            )
+            await cmd_gemini(message, bot, custom_response=response)
             return
         elif message.text.startswith(("http://", "https://")) and db.is_feature_enabled(chat_id, "autovideo"):
             parsed_url = urlparse(message.text)
