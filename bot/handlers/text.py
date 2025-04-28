@@ -1,8 +1,6 @@
 import json
 import random
 import traceback
-import os
-import openai
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
