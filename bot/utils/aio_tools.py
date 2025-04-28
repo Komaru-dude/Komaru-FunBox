@@ -1,4 +1,4 @@
-import aiohttp, os, uuid
+import aiohttp, os, uuid, logging
 from aiogram import Bot
 from aiogram.types import Message
 
@@ -110,14 +110,22 @@ async def make_post_request(url, payload, headers=None):
                 return await response.json(), None
             except Exception as e:
                 return None, f"❌ Ошибка обработки ответа: {str(e)}"
-        
+
 async def error_report(message: Message, bot: Bot, command, traceback):
     report_id = uuid.uuid4()
+
+    reply_info = f"\n📦 Ответ на сообщение: {message.reply_to_message.text}" if message.reply_to_message else ""
+
     await message.reply(f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}")
-    er_rep = f"❌ Во время обработки {command} возникла ошибка!\n🔢Report ID: {report_id}\n\n📛 Traceback:\n{traceback}"
-    if len(er_rep) > 4096:
-        chunks = [er_rep[i:i + 4096] for i in range(0, len(er_rep), 4096)]
-    else:
-        chunks = [er_rep]
-    for idx, chunk in enumerate(chunks):
-        await bot.send_message(os.getenv("OWNER_ID"), chunk)
+
+    error_report_text = (f"❌ Во время обработки команды {command} возникла ошибка!\n"
+                         f"🔢 Report ID: {report_id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
+                         f"📛 Traceback:\n{traceback}")
+
+    chunks = [error_report_text[i:i + 4096] for i in range(0, len(error_report_text), 4096)]
+
+    for chunk in chunks:
+        try:
+            await bot.send_message(os.getenv("OWNER_ID"), chunk)
+        except Exception as e:
+            logging.error(f"Ошибка при отправке отчёта владельцу: {e}")
