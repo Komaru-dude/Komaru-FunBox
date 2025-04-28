@@ -43,7 +43,7 @@ async def cmd_gemini(message: Message, bot: Bot, custom_response: dict = None):
         if custom_response is not None:
             response = custom_response
         else:
-            client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+            client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
             response = await client.chat.completions.create(
                 model="gemini-2.0-flash",
                 messages=[{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
