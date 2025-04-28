@@ -8,47 +8,65 @@ from bot.utils.aio_tools import fetch_json, error_report
 
 tag_router = Router()
 
+
 @tag_router.message(Command("tag"))
 async def cmd_tag(message: Message, bot: Bot):
     try:
         chat_id = message.chat.id
         split_text = message.text.split(maxsplit=2)
 
-        if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(message.from_user.id, chat_id, 1):
-            await message.reply("❌ Функция не включена в чате, а вы не имеете прав модератора.")
+        if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(
+            message.from_user.id, chat_id, 1
+        ):
+            await message.reply(
+                "❌ Функция не включена в чате, а вы не имеете прав модератора."
+            )
             return
-        
+
         if len(split_text) < 2:
             await message.reply("❌ А кого упоминать?")
             return
-        
+
         tag_argument = split_text[1]
         if not tag_argument.isdigit():
             await message.reply("❌ Некорректный ID пользователя. Укажите числовой ID.")
             return
-        
+
         if len(split_text) == 3:
             tag_text = split_text[2]
             tag_id = tag_argument
-            await message.answer(f'{tag_text}<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
+            await message.answer(
+                f'{tag_text}<a href="tg://user?id={tag_id}">\u2060</a>',
+                parse_mode=ParseMode.HTML,
+            )
         else:
             tag_id = tag_argument
-            await message.answer(f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>', parse_mode=ParseMode.HTML)
+            await message.answer(
+                f'Вы были упомянуты!<a href="tg://user?id={tag_id}">\u2060</a>',
+                parse_mode=ParseMode.HTML,
+            )
     except Exception:
         await error_report(message, bot, "tag", traceback.format_exc())
+
 
 @tag_router.message(Command("tagall"))
 async def cmd_tagall(message: Message, bot: Bot):
     try:
         if message.chat.type not in ["group", "supergroup"]:
-            await message.reply("❌ Эта команда работает только в группах и супергруппах.")
+            await message.reply(
+                "❌ Эта команда работает только в группах и супергруппах."
+            )
             return
 
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(user_id, chat_id, 1):
-            await message.reply("❌ Функция не включена в чате, а вы не имеете прав модератора.")
+        if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(
+            user_id, chat_id, 1
+        ):
+            await message.reply(
+                "❌ Функция не включена в чате, а вы не имеете прав модератора."
+            )
             return
 
         try:
@@ -71,12 +89,14 @@ async def cmd_tagall(message: Message, bot: Bot):
             return
 
         chunk_size = 5
-        chunks = [tags[i:i + chunk_size] for i in range(0, len(tags), chunk_size)]
+        chunks = [tags[i : i + chunk_size] for i in range(0, len(tags), chunk_size)]
 
         for idx, chunk in enumerate(chunks):
-            tags_str = ' '.join(chunk)
+            tags_str = " ".join(chunk)
             if idx == 0:
-                await message.answer(f"❗️ Упоминаю всех! {tags_str}", parse_mode=ParseMode.HTML)
+                await message.answer(
+                    f"❗️ Упоминаю всех! {tags_str}", parse_mode=ParseMode.HTML
+                )
             else:
                 await message.answer(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
     except Exception:

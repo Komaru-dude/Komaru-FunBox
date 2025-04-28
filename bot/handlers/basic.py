@@ -1,4 +1,8 @@
-import random, os, time, psutil, traceback
+import random
+import os
+import time
+import psutil
+import traceback
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
@@ -9,7 +13,7 @@ from bot.utils.aio_tools import fetch_json, error_report, get_user_id, fetch_use
 
 base_router = Router()
 current_dir = os.path.dirname(os.path.abspath(__file__))
-media_folder = os.path.join(current_dir, '..', 'media')
+media_folder = os.path.join(current_dir, "..", "media")
 sticker_extensions = {".webp", ".tgs", ".webm"}
 API_URL = "http://127.0.0.1:8001"
 # Списки хранения данных для /status
@@ -17,12 +21,16 @@ cpu_loads = []
 memory_loads = []
 start_time = time.time()
 
+
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):
-    await message.reply("Привет!\n"
-                        "Это развлекательный и модерационный бот бот.\n"
-                        "Если хочешь узнать более подробную информацию о командах: /help")
-    
+    await message.reply(
+        "Привет!\n"
+        "Это развлекательный и модерационный бот бот.\n"
+        "Если хочешь узнать более подробную информацию о командах: /help"
+    )
+
+
 @base_router.message(Command("status"))
 async def cmd_status(message: Message, bot: Bot):
     try:
@@ -46,11 +54,19 @@ async def cmd_status(message: Message, bot: Bot):
         # Убираем данные старше 5 минут
         five_minutes_ago = current_time - 300
         cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
-        memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
+        memory_loads[:] = [
+            (t, load) for t, load in memory_loads if t >= five_minutes_ago
+        ]
 
         # Вычисляем среднее значение за последние 5 минут
-        avg_cpu_load = sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
-        avg_memory_load = sum(load for _, load in memory_loads) / len(memory_loads) if memory_loads else 0
+        avg_cpu_load = (
+            sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
+        )
+        avg_memory_load = (
+            sum(load for _, load in memory_loads) / len(memory_loads)
+            if memory_loads
+            else 0
+        )
 
         days = uptime_seconds // 86400
         hours = (uptime_seconds % 86400) // 3600
@@ -58,13 +74,16 @@ async def cmd_status(message: Message, bot: Bot):
         seconds = uptime_seconds % 60
 
         uptime_str = f"{days}д {hours}ч {minutes}м {seconds}с"
-        await sent_message.edit_text(f"⏳ Пинг: {int(ping)} мс\n"
-                                    f"🚀 Бот работает: {uptime_str}\n"
-                                    f"📊 Средняя загруженность ЦПУ (5м): {avg_cpu_load:.2f}%\n"
-                                    f"📊 Средняя загруженность ОЗУ (5м): {avg_memory_load:.2f}%")
+        await sent_message.edit_text(
+            f"⏳ Пинг: {int(ping)} мс\n"
+            f"🚀 Бот работает: {uptime_str}\n"
+            f"📊 Средняя загруженность ЦПУ (5м): {avg_cpu_load:.2f}%\n"
+            f"📊 Средняя загруженность ОЗУ (5м): {avg_memory_load:.2f}%"
+        )
     except Exception:
         await error_report(message, bot, "status", traceback.format_exc())
-    
+
+
 @base_router.message(Command("random"))
 async def cmd_random(message: Message, bot: Bot):
     try:
@@ -82,6 +101,7 @@ async def cmd_random(message: Message, bot: Bot):
     except Exception:
         await error_report(message, bot, "random", traceback.format_exc())
 
+
 @base_router.message(Command("cancel"))
 async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
     try:
@@ -93,6 +113,7 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
             await message.reply("❌ Отменено")
     except Exception:
         await error_report(message, bot, "cancel", traceback.format_exc())
+
 
 @base_router.message(Command("privetbradok"))
 async def cmd_privebradok(message: Message, bot: Bot):
@@ -114,10 +135,14 @@ async def cmd_privebradok(message: Message, bot: Bot):
 
                     if "user_id" in data:
                         target_id = data["user_id"]
-                        name_data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                        name_data = await fetch_json(
+                            f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                        )
                         first_name = name_data.get("first_name", "Неизвестный")
                     else:
-                        await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
+                        await message.reply(
+                            f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
+                        )
                         return
 
                 except Exception as e:
@@ -126,13 +151,17 @@ async def cmd_privebradok(message: Message, bot: Bot):
             elif len(split_text) > 1 and split_text[1].isdigit():
                 target_id = split_text[1]
                 try:
-                    data = await fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    data = await fetch_json(
+                        f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                    )
                     first_name = data.get("first_name", "Неизвестный")
                 except Exception as e:
                     await message.reply(f"Произошла ошибка {e} при обработке запроса.")
                     return
             else:
-                await message.reply("Укажите пользователя через реплай, @username или айди.")
+                await message.reply(
+                    "Укажите пользователя через реплай, @username или айди."
+                )
                 return
 
         user2_link = f'<a href="tg://user?id={target_id}">{first_name}</a>'
@@ -140,11 +169,17 @@ async def cmd_privebradok(message: Message, bot: Bot):
         stick = random.choice([True, False])
 
         if message.reply_to_message and not stick:
-            await message.reply_to_message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
+            await message.reply_to_message.reply(
+                f"Привет {user2_link}!", parse_mode=ParseMode.HTML
+            )
         elif not stick:
             await message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
         else:
-            stickers = [f for f in os.listdir(media_folder) if os.path.splitext(f)[1].lower() in sticker_extensions]
+            stickers = [
+                f
+                for f in os.listdir(media_folder)
+                if os.path.splitext(f)[1].lower() in sticker_extensions
+            ]
             if not stickers:
                 raise FileNotFoundError("Нет стикеров в ../media")
             random_stick = random.choice(stickers)
@@ -156,6 +191,7 @@ async def cmd_privebradok(message: Message, bot: Bot):
     except Exception:
         await error_report(message, bot, "privetbradok", traceback.format_exc())
 
+
 @base_router.message(Command("say"))
 async def cmd_say(message: Message, bot: Bot):
     try:
@@ -165,55 +201,65 @@ async def cmd_say(message: Message, bot: Bot):
             try:
                 await message.delete()
             except:
-                await message.answer("Брадочки, оформите права на удаление сообщений 😢")
+                await message.answer(
+                    "Брадочки, оформите права на удаление сообщений 😢"
+                )
         else:
             await message.reply("А что говорить то?")
     except Exception:
         await error_report(message, bot, "say", traceback.format_exc())
 
+
 @base_router.message(Command("shutter"))
 async def cmd_shutter(message: Message, bot: Bot):
     try:
+
         def generate_stutter(word):
             if len(word) < 2 or not word[0].isalpha():
                 return word
-            
-            stutter_type = random.choice([
-                'repeat', 
-                'repeat', 
-                'hyphenated',
-                'double_hyphen',
-                'ellipsis',
-                'spacey',
-                'mixed_case'
-            ])
-            
+
+            stutter_type = random.choice(
+                [
+                    "repeat",
+                    "repeat",
+                    "hyphenated",
+                    "double_hyphen",
+                    "ellipsis",
+                    "spacey",
+                    "mixed_case",
+                ]
+            )
+
             repeats = random.randint(1, 3)
-            first_letter = word[0].upper() if random.choice([True, False]) else word[0].lower()
-            second_letter = word[1].lower() if random.choice([True, False]) else word[1].upper()
-            
+            first_letter = (
+                word[0].upper() if random.choice([True, False]) else word[0].lower()
+            )
+            second_letter = (
+                word[1].lower() if random.choice([True, False]) else word[1].upper()
+            )
+
             if random.random() < 0.3:
-                interjections = ['м-м', 'э-э', 'х-х', 'а-а', 'з-з']
+                interjections = ["м-м", "э-э", "х-х", "а-а", "з-з"]
                 word = f"{random.choice(interjections)}... {word}"
 
-            if stutter_type == 'repeat':
+            if stutter_type == "repeat":
                 parts = [f"{first_letter}-" * repeats + word]
-            elif stutter_type == 'hyphenated':
+            elif stutter_type == "hyphenated":
                 parts = [f"{first_letter}-{second_letter}-{word}"]
-            elif stutter_type == 'double_hyphen':
+            elif stutter_type == "double_hyphen":
                 parts = [f"{first_letter}--{second_letter}--{word}"]
-            elif stutter_type == 'ellipsis':
+            elif stutter_type == "ellipsis":
                 parts = [f"{first_letter}...{second_letter}...{word}"]
-            elif stutter_type == 'spacey':
+            elif stutter_type == "spacey":
                 parts = [f"{first_letter} {second_letter} {word}"]
-            elif stutter_type == 'mixed_case':
+            elif stutter_type == "mixed_case":
                 parts = [f"{first_letter.lower()}-{second_letter.upper()}-{word}"]
-            
+
             if random.random() < 0.2:
-                parts.append('...')
-            
-            return ''.join(parts)
-        
+                parts.append("...")
+
+            return "".join(parts)
+
         if message.reply_to_message:
             text = message.reply_to_message.text
         else:
@@ -227,69 +273,85 @@ async def cmd_shutter(message: Message, bot: Bot):
         result = []
 
         emojis = [
-            '😳', '😣', '🥵', '😰', '😥', '😓', '😖', '😵', '💦', 
-            '🌊', '💫', '✨', '🌸', '🫠', '🤤', '🙀', '🎀', '💔'
+            "😳",
+            "😣",
+            "🥵",
+            "😰",
+            "😥",
+            "😓",
+            "😖",
+            "😵",
+            "💦",
+            "🌊",
+            "💫",
+            "✨",
+            "🌸",
+            "🫠",
+            "🤤",
+            "🙀",
+            "🎀",
+            "💔",
         ]
-        
+
         for word in words:
             if random.random() < 0.8:
                 stuttered = generate_stutter(word)
-                
+
                 if random.random() < 0.4:
-                    stuttered = stuttered.replace(' ', f" {random.choice(emojis)} ", 1)
-                    
+                    stuttered = stuttered.replace(" ", f" {random.choice(emojis)} ", 1)
+
                 result.append(stuttered)
             else:
                 result.append(word)
-            
+
             if random.random() < 0.2:
                 result.append(random.choice(emojis))
-        
-        final_text = ' '.join(result)
-        
+
+        final_text = " ".join(result)
+
         suffixes = [
             f"~~ {random.choice(emojis)}",
             f"/// {random.choice(emojis)}",
             f"☆*:.｡.o(≧▽≦)o.｡.:*☆",
             f"{random.choice(['~', '*', ''])} {random.choice(emojis)} {random.choice(emojis)}",
-            "(｡♥‿♥｡)", 
-            "(≧◡≦) ♡", 
-            "(｡•́‿•̀｡)ฅ", 
-            "(^•ﻌ•^) ฅ", 
-            "(๑>◡<๑)", 
-            "(づ｡◕‿‿◕｡)づ", 
-            "(*≧ω≦)", 
-            "(ღ✪v✪)｡o♡", 
-            "(U ᵕ U❁)", 
-            "(๑˃ᴗ˂)ﻭ", 
-            "(*°▽°*)", 
-            "(✿◠‿◠)", 
-            "(ฅ^•ﻌ•^ฅ)", 
-            "♡＾▽＾♡", 
-            "(๑ᴖ◡ᴖ๑)", 
-            "(⁄ ⁄•⁄ω⁄•⁄ ⁄)", 
-            "(ʘ‿ʘ)✿", 
-            "(◕‿◕✿)", 
-            "(✧ω✧)", 
-            "(๑´• .̫ • `๑)", 
-            "(っ˘ω˘ς )", 
-            "(*ฅ́˘ฅ̀*)♡", 
-            "(つ≧▽≦)つ", 
-            "(◍•ᴗ•◍)♡", 
-            "✧(＾◡＾)✿"
+            "(｡♥‿♥｡)",
+            "(≧◡≦) ♡",
+            "(｡•́‿•̀｡)ฅ",
+            "(^•ﻌ•^) ฅ",
+            "(๑>◡<๑)",
+            "(づ｡◕‿‿◕｡)づ",
+            "(*≧ω≦)",
+            "(ღ✪v✪)｡o♡",
+            "(U ᵕ U❁)",
+            "(๑˃ᴗ˂)ﻭ",
+            "(*°▽°*)",
+            "(✿◠‿◠)",
+            "(ฅ^•ﻌ•^ฅ)",
+            "♡＾▽＾♡",
+            "(๑ᴖ◡ᴖ๑)",
+            "(⁄ ⁄•⁄ω⁄•⁄ ⁄)",
+            "(ʘ‿ʘ)✿",
+            "(◕‿◕✿)",
+            "(✧ω✧)",
+            "(๑´• .̫ • `๑)",
+            "(っ˘ω˘ς )",
+            "(*ฅ́˘ฅ̀*)♡",
+            "(つ≧▽≦)つ",
+            "(◍•ᴗ•◍)♡",
+            "✧(＾◡＾)✿",
         ]
-        
+
         if random.random() < 0.15:
             prefixes = ["А-а... ", "Э-э... ", "М-м... ", "✨ ", "💫 "]
             final_text = random.choice(prefixes) + final_text
-        
+
         final_text += f" {random.choice(suffixes)}"
-        
+
         if random.random() < 0.25:
             final_text += random.choice(["...", "..~~", "……"])
-        
+
         if len(final_text) > 4096:
-            chunks = [final_text[i:i + 4096] for i in range(0, len(final_text), 4096)]
+            chunks = [final_text[i : i + 4096] for i in range(0, len(final_text), 4096)]
         else:
             chunks = [final_text]
         for idx, chunk in enumerate(chunks):
@@ -299,6 +361,7 @@ async def cmd_shutter(message: Message, bot: Bot):
                 await message.answer(chunk)
     except Exception:
         await error_report(message, bot, "shutter", traceback.format_exc())
+
 
 @base_router.message(Command("info"))
 async def cmd_info(message: Message, bot: Bot):
@@ -315,10 +378,10 @@ async def cmd_info(message: Message, bot: Bot):
             return await message.reply(f"❌ {error}")
 
         user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
-        if 'error' in user_info:
+        if "error" in user_info:
             return await message.reply(f"❌ {user_info['error']}")
 
-        user_data = db.get_user_data(user_info['user_id'], chat_id)
+        user_data = db.get_user_data(user_info["user_id"], chat_id)
         if not user_data:
             return await message.reply("❌ Пользователь не найден в базе данных")
 

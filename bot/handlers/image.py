@@ -9,52 +9,59 @@ from bot.utils.aio_tools import error_report
 from bot import db
 
 image_router = Router()
-CACHE_DIR = Path(__file__).resolve().parent.parent / 'cache'
+CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
+
 
 async def get_last_profile_photo(user_id, bot):
     profile_photos = await bot.get_user_profile_photos(user_id)
-    
+
     if not profile_photos or profile_photos.total_count == 0:
         return None
 
     last_photo_set = profile_photos.photos[0]
     return last_photo_set[-1]
 
+
 # Сделать нормальную реализацию позже
 # @image_router.message(Command("lick"))
 async def cmd_lick(message: Message, bot: Bot):
-    user_id = message.reply_to_message.from_user.id if message.reply_to_message else message.from_user.id
+    user_id = (
+        message.reply_to_message.from_user.id
+        if message.reply_to_message
+        else message.from_user.id
+    )
 
     if not (profile_photo := await get_last_profile_photo(user_id, bot)):
         await message.reply("❌ У пользователя нет фото профиля!")
         return
 
     # Пути к файлам
-    media_dir = Path(__file__).resolve().parent.parent / 'media'
-    template_path = media_dir / 'lickbg.jpg'
+    media_dir = Path(__file__).resolve().parent.parent / "media"
+    template_path = media_dir / "lickbg.jpg"
 
     try:
         file = await bot.get_file(profile_photo.file_id)
-        user_photo_path = CACHE_DIR / f'user_{user_id}_photo.jpg'
+        user_photo_path = CACHE_DIR / f"user_{user_id}_photo.jpg"
         await bot.download_file(file.file_path, destination=user_photo_path)
-        
+
         # Обрабатываем изображение
-        output_path = CACHE_DIR / f'lick_result_{user_id}.jpg'
+        output_path = CACHE_DIR / f"lick_result_{user_id}.jpg"
         await asyncio.to_thread(
             replace_green_screen,
             template_path=str(template_path),
             new_bg_path=str(user_photo_path),
-            output_path=str(output_path)
+            output_path=str(output_path),
         )
 
         # Отправляем результат
         await message.answer_photo(FSInputFile(output_path))
-        
+
     except Exception:
         await error_report(message, bot, "lick", traceback.format_exc())
     finally:
         user_photo_path.unlink(missing_ok=True)
         output_path.unlink(missing_ok=True)
+
 
 @image_router.message(Command("jpeg"))
 async def cmd_jpeg(message: Message, bot: Bot):
@@ -70,8 +77,10 @@ async def cmd_jpeg(message: Message, bot: Bot):
         elif message.reply_to_message and message.reply_to_message.photo:
             image = message.reply_to_message.photo[-1]
         if not image:
-            return await message.reply("❌ Отправьте фото или ответьте на фото для шакализации")
-        
+            return await message.reply(
+                "❌ Отправьте фото или ответьте на фото для шакализации"
+            )
+
         processing_msg = await message.reply("🔄 Обработка...")
 
         file_id = image.file_id
@@ -83,8 +92,10 @@ async def cmd_jpeg(message: Message, bot: Bot):
         await message.bot.download_file(file.file_path, destination=input_path)
 
         process = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-y",
-            "-i", str(input_path),
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(input_path),
             "-vf",
             "scale=50:-1:flags=neighbor,"
             "scale=1920:-1:flags=neighbor,"
@@ -92,10 +103,11 @@ async def cmd_jpeg(message: Message, bot: Bot):
             "curves=r='0/0 0.4/0.7 1/1':"
             "g='0/0 0.4/0.7 1/1':"
             "b='0/0 0.4/0.7 1/1'",
-            "-qscale:v", "1",
+            "-qscale:v",
+            "1",
             str(output_path),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
+            stderr=asyncio.subprocess.DEVNULL,
         )
         await process.communicate()
 

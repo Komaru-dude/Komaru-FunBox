@@ -10,26 +10,37 @@ from bot import db
 from bot.utils.aio_tools import error_report
 
 video_router = Router()
-CACHE_DIR = Path(__file__).resolve().parent.parent / 'cache'
+CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
+
 
 async def download_video(url: str) -> dict:
     random_filename = f"{uuid.uuid4().hex}.mp4"
     output_path = CACHE_DIR / random_filename
 
     process = await asyncio.create_subprocess_exec(
-        'yt-dlp', '-f', 'worst/worstvideo+worstaudio/best', '-o', str(output_path), url,
+        "yt-dlp",
+        "-f",
+        "worst/worstvideo+worstaudio/best",
+        "-o",
+        str(output_path),
+        url,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+        stderr=asyncio.subprocess.PIPE,
     )
     stdout, stderr = await process.communicate()
 
     if process.returncode == 0 and output_path.exists():
-        return {"status": "success", "output": stdout.decode(), "file_path": str(output_path)}
+        return {
+            "status": "success",
+            "output": stdout.decode(),
+            "file_path": str(output_path),
+        }
     else:
         return {"status": "error", "message": stderr.decode()}
-    
+
+
 @video_router.message(Command("video"))
-async def cmd_video(message: Message, bot: Bot, url = None):
+async def cmd_video(message: Message, bot: Bot, url=None):
     command = "video"
     file_path = None
     processing_msg = None
@@ -45,7 +56,7 @@ async def cmd_video(message: Message, bot: Bot, url = None):
                 url = split_text[1]
             else:
                 return await message.reply("❌ Укажите URL видео в команде")
-            
+
         processing_msg = await message.answer("⏳ Скачиваю, ждите")
 
         result = await download_video(url)
@@ -60,13 +71,14 @@ async def cmd_video(message: Message, bot: Bot, url = None):
     except Exception:
         error_traceback = traceback.format_exc()
         await error_report(message, bot, command, error_traceback)
-        
+
     finally:
         if file_path and Path(file_path).exists():
-            process = await asyncio.create_subprocess_exec('rm', '-f', file_path)
+            process = await asyncio.create_subprocess_exec("rm", "-f", file_path)
             await process.wait()
         if processing_msg:
             await processing_msg.delete()
+
 
 # @video_router.message(Command("gif"))
 async def cmd_gif(message: Message, bot: Bot):
@@ -75,7 +87,7 @@ async def cmd_gif(message: Message, bot: Bot):
     frames_dir = None
     output_path = None
     processing_msg = None
-    
+
     try:
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
@@ -86,9 +98,11 @@ async def cmd_gif(message: Message, bot: Bot):
             video = message.video
         elif message.reply_to_message and message.reply_to_message.video:
             video = message.reply_to_message.video
-            
+
         if not video:
-            return await message.reply("❌ Отправьте видео или ответьте на видео для конвертации в GIF")
+            return await message.reply(
+                "❌ Отправьте видео или ответьте на видео для конвертации в GIF"
+            )
 
         processing_msg = await message.reply("🔄 Обработка...")
 
@@ -104,11 +118,14 @@ async def cmd_gif(message: Message, bot: Bot):
 
         frames_pattern = frames_dir / "frame_%04d.png"
         process = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-i", str(input_path),
-            "-vf", "fps=24,scale=-1:480",
+            "ffmpeg",
+            "-i",
+            str(input_path),
+            "-vf",
+            "fps=24,scale=-1:480",
             str(frames_pattern),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
+            stderr=asyncio.subprocess.DEVNULL,
         )
         await process.communicate()
 
@@ -117,14 +134,16 @@ async def cmd_gif(message: Message, bot: Bot):
 
         gifski_process = await asyncio.create_subprocess_exec(
             "gifski",
-            "--quality", "80",
-            "-o", str(output_path),
+            "--quality",
+            "80",
+            "-o",
+            str(output_path),
             *sorted(frames_dir.glob("frame_*.png"), key=lambda p: p.name),
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL
+            stderr=asyncio.subprocess.DEVNULL,
         )
         await gifski_process.communicate()
-        
+
         if gifski_process.returncode != 0:
             raise RuntimeError("Ошибка gifski при создании GIF")
 
@@ -136,10 +155,10 @@ async def cmd_gif(message: Message, bot: Bot):
                 await message.reply_animation(gif)
         else:
             await message.reply("❌ Ошибка при конвертации.")
-            
+
     except Exception:
         await error_report(message, bot, command, traceback.format_exc())
-        
+
     finally:
         try:
             if input_path and input_path.exists():
@@ -150,6 +169,6 @@ async def cmd_gif(message: Message, bot: Bot):
                 output_path.unlink(missing_ok=True)
         except Exception as cleanup_error:
             print(f"Ошибка при очистке: {cleanup_error}")
-            
+
         if processing_msg:
             await processing_msg.delete()

@@ -1,4 +1,6 @@
-import aiohttp, os, traceback
+import aiohttp
+import os
+import traceback
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
@@ -12,9 +14,11 @@ from bot.utils import aio_tools
 rights_router = Router()
 API_URL = "http://127.0.0.1:8001"
 
+
 class SetRankStates(StatesGroup):
     waiting_for_username = State()
     waiting_for_rank = State()
+
 
 @rights_router.message(Command("set_rank"))
 async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
@@ -24,17 +28,22 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
         owner_id = await aio_tools.get_chat_owner_id(bot, chat_id)
 
         if not (db.has_permission(user_id, chat_id, 2) or owner_id == user_id):
-            await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнения этой команды."
+            )
             return
-        
+
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
-        
+
         await state.set_state(SetRankStates.waiting_for_username)
-        await message.reply("✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди).")
+        await message.reply(
+            "✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди)."
+        )
     except Exception:
         await aio_tools.error_report(message, bot, "set_rank", traceback.format_exc())
+
 
 @rights_router.message(SetRankStates.waiting_for_username)
 async def process_username(message: Message, state: FSMContext):
@@ -49,13 +58,17 @@ async def process_username(message: Message, state: FSMContext):
                 user_id = entity.user.id
                 break
             elif entity.type == "mention":
-                mention = text[entity.offset:entity.offset+entity.length].lstrip('@')
+                mention = text[entity.offset : entity.offset + entity.length].lstrip(
+                    "@"
+                )
                 async with aiohttp.ClientSession() as session:
                     try:
-                        async with session.get(f'http://127.0.0.1:8001/user/{mention}') as resp:
+                        async with session.get(
+                            f"http://127.0.0.1:8001/user/{mention}"
+                        ) as resp:
                             data = await resp.json()
-                            user_id = data.get('user_id')
-                            error_msg = data.get('error')
+                            user_id = data.get("user_id")
+                            error_msg = data.get("error")
                     except Exception as e:
                         error_msg = f"Ошибка API: {str(e)}"
                 break
@@ -65,19 +78,23 @@ async def process_username(message: Message, state: FSMContext):
             user_id = int(text)
             async with aiohttp.ClientSession() as session:
                 try:
-                    async with session.get(f'http://127.0.0.1:8001/username/{chat_id}/{user_id}') as resp:
-                        if (await resp.json()).get('error'):
+                    async with session.get(
+                        f"http://127.0.0.1:8001/username/{chat_id}/{user_id}"
+                    ) as resp:
+                        if (await resp.json()).get("error"):
                             error_msg = "Пользователь не найден"
                 except Exception as e:
                     error_msg = f"Ошибка API: {str(e)}"
         else:
-            username = text.lstrip('@')
+            username = text.lstrip("@")
             async with aiohttp.ClientSession() as session:
                 try:
-                    async with session.get(f'http://127.0.0.1:8001/user/{username}') as resp:
+                    async with session.get(
+                        f"http://127.0.0.1:8001/user/{username}"
+                    ) as resp:
                         data = await resp.json()
-                        user_id = data.get('user_id')
-                        error_msg = data.get('error')
+                        user_id = data.get("user_id")
+                        error_msg = data.get("error")
                 except Exception as e:
                     error_msg = f"Ошибка API: {str(e)}"
 
@@ -90,31 +107,33 @@ async def process_username(message: Message, state: FSMContext):
 
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(f'http://127.0.0.1:8001/first_name/{chat_id}/{user_id}') as resp:
+            async with session.get(
+                f"http://127.0.0.1:8001/first_name/{chat_id}/{user_id}"
+            ) as resp:
                 data = await resp.json()
-                first_name = data.get('first_name', 'Пользователь')
+                first_name = data.get("first_name", "Пользователь")
         except:
             first_name = "Пользователь"
 
     builder = InlineKeyboardBuilder()
     for rank in ["Участник", "Модератор", "Администратор"]:
         builder.button(text=rank, callback_data=f"setrank_{rank}")
-    
+
     builder.adjust(1)
-    
+
     await state.update_data(target_user_id=user_id, first_name=first_name)
     await message.reply(
-        f"Выберите новый ранг для {first_name}:",
-        reply_markup=builder.as_markup()
+        f"Выберите новый ранг для {first_name}:", reply_markup=builder.as_markup()
     )
     await state.set_state(SetRankStates.waiting_for_rank)
+
 
 @rights_router.callback_query(SetRankStates.waiting_for_rank)
 async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot: Bot):
     data = await state.get_data()
-    target_user_id = data['target_user_id']
-    first_name = data['first_name']
-    selected_rank = callback.data.split('_')[1]
+    target_user_id = data["target_user_id"]
+    first_name = data["first_name"]
+    selected_rank = callback.data.split("_")[1]
 
     current_user = callback.from_user
     user_id = current_user.id
@@ -130,7 +149,9 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
     required_level = RANK_TO_LEVEL.get(selected_rank, 999)
 
     if not (is_chat_owner or is_global_owner) and user_level < required_level:
-        await callback.answer("❌ Недостаточно прав для установки этого ранга!", show_alert=True)
+        await callback.answer(
+            "❌ Недостаточно прав для установки этого ранга!", show_alert=True
+        )
         return
 
     try:
@@ -141,9 +162,10 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
     except Exception as e:
         await callback.message.edit_text("❌ Ошибка при обновлении ранга")
         await bot.send_message(owner_bot_id, f"Ошибка в /set_rank: {str(e)}")
-    
+
     await state.clear()
     await callback.answer()
+
 
 @rights_router.message(Command("ban_media"))
 async def cmd_ban_user(message: Message, bot: Bot):
@@ -170,36 +192,47 @@ async def cmd_ban_user(message: Message, bot: Bot):
 
                 if "user_id" in data:
                     target_id = data["user_id"]
-                    name_data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    name_data = await aio_tools.fetch_json(
+                        f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                    )
                     first_name = name_data.get("first_name", "Неизвестный")
                 else:
-                    await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
+                    await message.reply(
+                        f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
+                    )
                     return
 
             except Exception:
-                await aio_tools.error_report(message, bot, "ban_media", traceback.format_exc())
+                await aio_tools.error_report(
+                    message, bot, "ban_media", traceback.format_exc()
+                )
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
             try:
-                data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                data = await aio_tools.fetch_json(
+                    f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                )
                 first_name = data.get("first_name", "Неизвестный")
             except Exception as e:
                 await message.reply(f"Произошла ошибка {e} при обработке запроса.")
                 return
         else:
-            await message.reply("Укажите пользователя через реплай, @username или айди.")
+            await message.reply(
+                "Укажите пользователя через реплай, @username или айди."
+            )
             return
-        
+
     if db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже заблокирован")
         return
-    
+
     try:
         db.mediaban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был заблокирован")
     except Exception as e:
         await aio_tools.error_report(message, bot, "ban_media", traceback.format_exc())
+
 
 @rights_router.message(Command("unban_media"))
 async def cmd_unban_user(message: Message, bot: Bot):
@@ -226,33 +259,45 @@ async def cmd_unban_user(message: Message, bot: Bot):
 
                 if "user_id" in data:
                     target_id = data["user_id"]
-                    name_data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                    name_data = await aio_tools.fetch_json(
+                        f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                    )
                     first_name = name_data.get("first_name", "Неизвестный")
                 else:
-                    await message.reply(f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}")
+                    await message.reply(
+                        f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
+                    )
                     return
 
             except Exception:
-                await aio_tools.error_report(message, bot, "unban_media", traceback.format_exc())
+                await aio_tools.error_report(
+                    message, bot, "unban_media", traceback.format_exc()
+                )
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = split_text[1]
             try:
-                data = await aio_tools.fetch_json(f"{API_URL}/first_name/{message.chat.id}/{target_id}")
+                data = await aio_tools.fetch_json(
+                    f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                )
                 first_name = data.get("first_name", "Неизвестный")
             except Exception as e:
                 await message.reply(f"Произошла ошибка {e} при обработке запроса.")
                 return
         else:
-            await message.reply("Укажите пользователя через реплай, @username или айди.")
+            await message.reply(
+                "Укажите пользователя через реплай, @username или айди."
+            )
             return
-        
+
     if not db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже разблокирован")
         return
-    
+
     try:
         db.mediaunban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception as e:
-        await aio_tools.error_report(message, bot, "unban_media", traceback.format_exc())
+        await aio_tools.error_report(
+            message, bot, "unban_media", traceback.format_exc()
+        )

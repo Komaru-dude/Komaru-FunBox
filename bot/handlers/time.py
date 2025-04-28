@@ -1,12 +1,14 @@
+import pytz
+import traceback
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
 from datetime import datetime
 from bot.utils.aio_tools import error_report
-import pytz, traceback
 
 time_router = Router()
-moscow_tz = pytz.timezone('Europe/Moscow')
+moscow_tz = pytz.timezone("Europe/Moscow")
+
 
 @time_router.message(Command("new_year"))
 async def cmd_time_to_new_year(message: Message, bot: Bot):
@@ -15,7 +17,7 @@ async def cmd_time_to_new_year(message: Message, bot: Bot):
 
         event_date = datetime(2026, 1, 1, 0, 0, 0)
         event_date = tz.localize(event_date)
-        
+
         now = datetime.now(tz)
         time_delta = event_date - now
 
@@ -32,6 +34,7 @@ async def cmd_time_to_new_year(message: Message, bot: Bot):
         )
     except Exception:
         await error_report(message, bot, "new_year", traceback.format_exc())
+
 
 @time_router.message(Command("birthdays"))
 async def cmd_cats_birthdays(message: Message, bot: Bot):
@@ -56,7 +59,9 @@ async def cmd_cats_birthdays(message: Message, bot: Bot):
             next_birthday = birthday.replace(year=now.year)
 
             if next_birthday.date() == now.date():
-                responses.append(f"🎉 Сегодня день рождения у {name}! Поздравьте кошку! 🎂")
+                responses.append(
+                    f"🎉 Сегодня день рождения у {name}! Поздравьте кошку! 🎂"
+                )
                 continue
 
             if next_birthday < now:
@@ -79,6 +84,7 @@ async def cmd_cats_birthdays(message: Message, bot: Bot):
     except Exception:
         await error_report(message, bot, "birthdays", traceback.format_exc())
 
+
 @time_router.message(Command("revx"))
 async def cmd_time_to_revx(message: Message, bot: Bot):
     try:
@@ -86,7 +92,7 @@ async def cmd_time_to_revx(message: Message, bot: Bot):
 
         event_date = datetime(2026, 4, 18, 0, 0, 0)
         event_date = tz.localize(event_date)
-        
+
         now = datetime.now(tz)
         time_delta = event_date - now
 

@@ -7,6 +7,7 @@ from bot.utils.aio_tools import error_report
 
 help_router = Router()
 
+
 @help_router.message(Command("help"))
 async def cmd_help(message: Message, bot: Bot):
     try:
@@ -25,9 +26,9 @@ async def cmd_help(message: Message, bot: Bot):
             "cat_gif": "Отправляет рандомную гифку с котом",
             "shutter": "Преобразует текст в залипания",
             "gemini": "Бот сделает запрос к gemini",
-            "aggemini": "\"Злая\" версия /gemini",
+            "aggemini": '"Злая" версия /gemini',
             "deepseek": "Бот сделает запрос к deepseek-r1",
-            "agdeepseek": "\"Злая\" версия /deepseek",
+            "agdeepseek": '"Злая" версия /deepseek',
             "image": "Бот сделает запрос к Kandinsky",
             "search": "Поиск с помощью searchgpt",
             "translate": "Бот переведёт текст",
@@ -41,7 +42,7 @@ async def cmd_help(message: Message, bot: Bot):
             "jpeg": "Шакализирует картинку",
             "set_rank": "Устанавливает ранг",
             "enable": "Включить функцию в чате",
-            "disable": "Выключить функцию в чате"
+            "disable": "Выключить функцию в чате",
         }
 
         cmd_detailed_descriptions = {
@@ -57,7 +58,7 @@ async def cmd_help(message: Message, bot: Bot):
             "http_dog": "Отправляет в ответ рандомную собаку с http.dog.\nПоддерживается ручной ввод http кода.\nПример: <code>/http_dog 200</code>",
             "cat": "Отправляет фотку рандомного кота через <a href='https://catass.com'>этот</a> сервис",
             "cat_gif": "Отправляет гифку рандомного кота через <a href='https://catass.com'>этот</a> сервис",
-            "shutter": "Преобразует текст в запинания в стиле \"п-по-пожалуйста~~🥺\".\nРаботает как по тексту, так и по реплаям.\nПример: <code>/shutter Привет</code>",
+            "shutter": 'Преобразует текст в запинания в стиле "п-по-пожалуйста~~🥺".\nРаботает как по тексту, так и по реплаям.\nПример: <code>/shutter Привет</code>',
             "gemini": "Бот сделает запрос к текстовой модели gemini-2.0-flash с использованием <a href='https://api.onlysq.ru/'>этого</a> API.\nПример: <code>/gemini Придумай рецепт оладушков.</code>",
             "aggemini": "Более злая версия /gemini, маты, просьбы отправится куда подальше, всё это включено в эту команду.\nИспользуется <a href='https://api.onlysq.ru/'>этот</a> API.\nПример: <code>/aggemini Привет, я умный</code>",
             "deepseek": "Бот сделает запрос к текстовой модели deepseek-r1 с использованием <a href='https://api.onlysq.ru/'>этого</a> API.\n⚠️ Ответы могут быть долгими (>25 секунд)\nПример: <code>/deepseek Придумай рецепт оладушков.</code>",
@@ -75,25 +76,25 @@ async def cmd_help(message: Message, bot: Bot):
             "jpeg": "Крайне сильно шакализирует гифку с использованием ffmpeg\nРаботает по реплаям/прикреплённым изображениям",
             "set_rank": "Используется для установки ранга пользователю, ранги нужны для управления доступами к командам.\nДоступ только для ВЛАДЕЛЬЦА чата или Администратора.",
             "enable": "Включает функцию, требует права модератора.\nПример: <code>/enable who</code>",
-            "disable": "Выключает функцию, требует права модератора.\nПример: <code>/disable who</code>"
+            "disable": "Выключает функцию, требует права модератора.\nПример: <code>/disable who</code>",
         }
 
         mod_short_descriptions = {
-            "who": "Написали \"это что?\" — бот спросит нейросеть и ответит.",
+            "who": 'Написали "это что?" — бот спросит нейросеть и ответит.',
             "tag": "Даёт доступ обычным людям упоминать через /tag и /tagall",
             "autovideo": "Автоматическая загрузка видео",
             "warn": "Позволяет предупреждать пользователей",
             "mute": "Позволяет мьютить пользователей",
-            "ban": "Позволяет банить пользователей"
+            "ban": "Позволяет банить пользователей",
         }
 
         mod_detailed_descriptions = {
-            "who": "💬 Если кто-то ответит на сообщение словами \"это что?\", бот спросит у нейросети (gpt-4o-mini), что это такое.\n\n⚠️ Работает только с текстом",
+            "who": '💬 Если кто-то ответит на сообщение словами "это что?", бот спросит у нейросети (gpt-4o-mini), что это такое.\n\n⚠️ Работает только с текстом',
             "tag": "❇️ При включении функции <b>ЛЮБОЙ</b> человек сможет упоминать других через /tag и /tagall.\n📌 По умолчанию доступ только для модераторов.",
             "autovideo": "🔄 Автоматически загружает видео отправленные в чат.\nРаботают не все сайты из /video.",
             "warn": "📝 Модуль добавляет команду /warn для выдачи предупреждений.",
             "mute": "🔇 Позволяет временно отключать возможность отправки сообщений через /mute.",
-            "ban": "📛 Разрешает команду /ban для блокировки пользователей."
+            "ban": "📛 Разрешает команду /ban для блокировки пользователей.",
         }
 
         parts = message.text.split()
@@ -103,24 +104,42 @@ async def cmd_help(message: Message, bot: Bot):
             cmd_description = cmd_detailed_descriptions.get(argument)
             mod_description = mod_detailed_descriptions.get(argument)
             if cmd_description:
-                await message.reply(cmd_description, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+                await message.reply(
+                    cmd_description,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                )
             elif mod_description:
-                await message.reply(mod_description, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+                await message.reply(
+                    mod_description,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                )
             else:
-                command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items())
-                modules_list = "\n".join(f"{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
+                command_list = "\n".join(
+                    f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items()
+                )
+                modules_list = "\n".join(
+                    f"{mod} - {desc}" for mod, desc in mod_short_descriptions.items()
+                )
                 await message.reply(
                     f"Неизвестная команда или модуль.\n\n"
                     f"Доступные команды:\n{command_list}\n\n"
                     f"Доступные модули:\n{modules_list}\n\n"
                     "Для подробного описания используйте: /help <команда или модуль>\n"
-                    "Пример: /help image")
+                    "Пример: /help image"
+                )
         else:
-            command_list = "\n".join(f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items())
-            modules_list = "\n".join(f"{mod} - {desc}" for mod, desc in mod_short_descriptions.items())  
+            command_list = "\n".join(
+                f"/{cmd} - {desc}" for cmd, desc in cmd_short_descriptions.items()
+            )
+            modules_list = "\n".join(
+                f"{mod} - {desc}" for mod, desc in mod_short_descriptions.items()
+            )
             await message.reply(
                 f"Доступные команды:\n{command_list}\n\n"
                 f"Доступные модули:\n{modules_list}\n\n"
-                "Для подробного описания используйте: /help <команда или модуль>")
+                "Для подробного описания используйте: /help <команда или модуль>"
+            )
     except Exception:
         await error_report(message, bot, "help", traceback.format_exc())

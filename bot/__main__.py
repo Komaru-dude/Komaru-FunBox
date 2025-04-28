@@ -30,25 +30,27 @@ token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
 
+
 def clear_cache():
     """Очищает папку cache относительно расположения бота."""
     try:
         bot_dir = Path(__file__).resolve().parent
         cache_dir = bot_dir / "cache"
-        
+
         logging.info(f"Рассчитываем путь к кэшу: {cache_dir}")
-        
+
         # Если папка существует - удаляем
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
             logging.info("Папка кэша удалена.")
-        
+
         # Создаем папку, если отсутствует
         cache_dir.mkdir(parents=True, exist_ok=True)
         logging.info("Кэш успешно очищен!")
 
     except Exception as e:
         logging.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
+
 
 async def main():
     clear_cache()
@@ -65,13 +67,26 @@ async def main():
         tag_router,
         video_router,
         image_router,
-        text_router
+        text_router,
     )
 
-    uvicorn_exec = Path(sys.prefix) / 'Scripts' / 'uvicorn.exe' if sys.platform == 'win32' else Path(sys.prefix) / 'bin' / 'uvicorn'
+    uvicorn_exec = (
+        Path(sys.prefix) / "Scripts" / "uvicorn.exe"
+        if sys.platform == "win32"
+        else Path(sys.prefix) / "bin" / "uvicorn"
+    )
     pyrogram_process = subprocess.Popen(
-        [uvicorn_exec, "bot.utils.pyro_tools:server", "--host", "127.0.0.1", "--port", "8001"],
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == 'win32' else 0
+        [
+            uvicorn_exec,
+            "bot.utils.pyro_tools:server",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8001",
+        ],
+        creationflags=(
+            subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
+        ),
     )
 
     try:
@@ -80,7 +95,7 @@ async def main():
     finally:
         await bot.session.close()
         if pyrogram_process.poll() is None:
-            if sys.platform == 'win32':
+            if sys.platform == "win32":
                 pyrogram_process.send_signal(signal.CTRL_BREAK_EVENT)
             else:
                 pyrogram_process.send_signal(signal.SIGTERM)
@@ -89,8 +104,9 @@ async def main():
             except subprocess.TimeoutExpired:
                 pyrogram_process.kill()
 
+
 if __name__ == "__main__":
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     try:
         asyncio.run(main())
