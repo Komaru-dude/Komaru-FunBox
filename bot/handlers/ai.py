@@ -71,7 +71,7 @@ async def cmd_gemini(message: Message, bot: Bot, model: str = None, messages: li
             else:
                 await base_msg.reply(chunk)
     except openai.InternalServerError:
-        await message.reply("⚠️ Внутренняя ошибка API")
+        await base_msg.edit_text("⚠️ Внутренняя ошибка API")
     except Exception:
         await error_report(message, bot, "gemini", traceback.format_exc())
 
