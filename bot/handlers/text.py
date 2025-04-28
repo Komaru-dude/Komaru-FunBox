@@ -18,7 +18,7 @@ BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
 SUPPORTED_DOMAINS = [
-    "tiktok.com", "soundcloud.com", "vimeo.com",
+    "soundcloud.com", "vimeo.com",
     "twitch.tv", "bilibili.com", "facebook.com",
     "rumble.com", "odysee.com", "dailymotion.com", "vk.com",
     "youtube.com", "youtu.be"
