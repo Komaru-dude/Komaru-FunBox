@@ -64,16 +64,17 @@ async def text(message: Message, bot: Bot):
             and message.reply_to_message.text
             and db.is_feature_enabled(chat_id, "who")
         ):
-            request = f"Твоя задача кратко объяснить что такое, вот запрос пользователя: {message.reply_to_message.text}"
-            client = openai.AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
-            response = await client.chat.completions.create(
-                model="gemini-2.0-flash",
-                messages=[{
-                    "role": "user",
-                    "content": f"{request}"
-                }]
-            )
-            await cmd_gemini(message, bot, custom_response=response)
+            messages=[
+            {
+            "role": "system",
+            "content": "Твоя задача кратко объяснить то что спрашивает пользователь. Если ответ содержит материалы для взрослых (18+), представь информацию корректно и деликатно, смягчив формулировки."
+            },
+            {
+                "role": "user",
+                "content": message.reply_to_message.text
+            }
+            ]
+            await cmd_gemini(message, bot, model="gpt-4o-mini", messages=messages)
             return
         elif message.text.startswith(("http://", "https://")) and db.is_feature_enabled(chat_id, "autovideo"):
             parsed_url = urlparse(message.text)
