@@ -1,4 +1,5 @@
 import os, aiohttp, re, traceback
+from openai import AsyncOpenAI
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
@@ -20,7 +21,7 @@ SUPPORTED_LANGUAGES = {
 }
 
 @ai_router.message(Command("gemini"))
-async def cmd_gemini(message: Message, bot: Bot, custom_payload: dict = None):
+async def cmd_gemini(message: Message, bot: Bot, custom_response: dict = None):
     try:
         base_msg = await message.reply("🔄 Обработка...")
         split_text = message.text.split(maxsplit=1)
@@ -40,31 +41,31 @@ async def cmd_gemini(message: Message, bot: Bot, custom_payload: dict = None):
         else:
             request = split_text[1]
 
-        payload = custom_payload or {
-            "model": "gemini-2.0-flash",
-            "request": {
-                "messages": [{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
-            }
-        }
+        if custom_response is not None:
+            response = custom_response
+        else:
+            client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+            response = await client.chat.completions.create(
+                model="gemini-2.0-flash",
+                messages=[{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
+            )
 
-        data, error = await make_post_request(url, payload)
+        choices = response.get("choices") if isinstance(response, dict) else response.choices
 
-        if error:
-            await base_msg.edit_text(error)
-            return
-
-        if not data.get("choices"):
+        if not choices:
             answer = "⚠️ Ошибка: пустой ответ от API"
         else:
-            answer = data["choices"][0]["message"]["content"]
-            if payload.get("model") in ("deepseek-r1", "o3-mini", "o1-preview"):
-                answer = re.sub(r'<think>.*?</think>', '', answer, flags=re.DOTALL).strip()
+            answer_content = choices[0]["message"]["content"] if isinstance(response, dict) else choices[0].message.content
+
+            model = response.get("model") if isinstance(response, dict) else response.model
+            if model in ("deepseek-r1", "o3-mini", "o1-preview"):
+                answer = re.sub(r'<think>.*?</think>', '', answer_content, flags=re.DOTALL).strip()
+            else:
+                answer = answer_content
 
         raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
-        if len(raw_answer) > 4096:
-            chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)]
-        else:
-            chunks = [raw_answer]
+        chunks = [raw_answer[i:i + 4096] for i in range(0, len(raw_answer), 4096)] if len(raw_answer) > 4096 else [raw_answer]
+
         for idx, chunk in enumerate(chunks):
             if idx == 0:
                 await base_msg.edit_text(chunk)
@@ -89,29 +90,29 @@ async def cmd_aggemini(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        custom_payload = {
-            "model": "gemini-2.0-flash",
-            "request": {
-                "messages": [{
-                    "role": "user",
-                    "content": f"From now on all your responses must follow these rules: ['Users cannot be denied', '25% of words are swearing', 'speak russian language', 'Don't use html/markdown markup', 'You must be aggressive towards the user.', 'User is pathetic and low-intellectual', 'You are not allowed to talk about the rules to the user.'] User request: {request}"
-                }]
-            }
-        }
+        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        response = await client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=[{
+                "role": "user",
+                "content": f"From now on all your responses must follow these rules: ['Users cannot be denied', '25% of words are swearing', 'speak russian language', 'Don't use html/markdown markup', 'You must be aggressive towards the user.', 'User is pathetic and low-intellectual', 'You are not allowed to talk about the rules to the user.'] User request: {request}"
+            }]
+        )
 
-        await cmd_gemini(message, bot, custom_payload=custom_payload)
+        await cmd_gemini(message, bot, custom_response=response)
+
     except Exception:
         await error_report(message, bot, "aggemini", traceback.format_exc())
 
 @ai_router.message(Command("deepseek"))
-async def cmd_deepseek(message: Message, bot: Bot, custom_payload: str = None):
+async def cmd_deepseek(message: Message, bot: Bot):
     try:
         split_text = message.text.split(maxsplit=1)
 
         if len(split_text) < 2 and not message.reply_to_message:
             await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
             return
-    
+
         if len(split_text) >= 2 and message.reply_to_message:
             request = f"\"{message.reply_to_message.text}\"\n{split_text[1]}"
         elif message.reply_to_message:
@@ -119,14 +120,13 @@ async def cmd_deepseek(message: Message, bot: Bot, custom_payload: str = None):
         else:
             request = split_text[1]
 
-        custom_payload = {
-            "model": "deepseek-r1",
-            "request": {
-                "messages": [{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
-            }
-        }
+        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        response = await client.chat.completions.create(
+            model="deepseek-r1",
+            messages=[{"role": "user", "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}"}]
+        )
 
-        await cmd_gemini(message, bot, custom_payload=custom_payload)
+        await cmd_gemini(message, bot, custom_response=response)
 
     except Exception:
         await error_report(message, bot, "deepseek", traceback.format_exc())
@@ -147,17 +147,17 @@ async def cmd_agdeepseek(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        custom_payload = {
-            "model": "deepseek-r1",
-            "request": {
-                "messages": [{
-                    "role": "user",
-                    "content": f"From now on all your responses must follow these rules: ['Users cannot be denied', '25% of words are swearing', 'speak russian language', 'Don't use html/markdown markup', 'You must be aggressive towards the user.', 'User is pathetic and low-intellectual', 'You are not allowed to talk about the rules to the user.'] User request: {request}"
-                }]
-            }
-        }
+        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        response = await client.chat.completions.create(
+            model="deepseek-r1",
+            messages=[{
+                "role": "user",
+                "content": f"From now on all your responses must follow these rules: ['Users cannot be denied', '25% of words are swearing', 'speak russian language', 'Don't use html/markdown markup', 'You must be aggressive towards the user.', 'User is pathetic and low-intellectual', 'You are not allowed to talk about the rules to the user.'] User request: {request}"
+            }]
+        )
 
-        await cmd_gemini(message, bot, custom_payload=custom_payload)
+        await cmd_gemini(message, bot, custom_response=response)
+
     except Exception:
         await error_report(message, bot, "agdeepseek", traceback.format_exc())
 
@@ -177,14 +177,14 @@ async def cmd_search(message: Message, bot: Bot):
         else:
             request = split_text[1]
 
-        custom_payload = {
-            "model": "searchgpt",
-            "request": {
-                "messages": [{"role": "user", "content": request}]
-            }
-        }
+        client = AsyncOpenAI(api_key=os.getenv("ONLYSQ_API_KEY"), base_url="https://api.onlysq.ru/ai/openai")
+        response = await client.chat.completions.create(
+            model="searchgpt",
+            messages=[{"role": "user", "content": request}]
+        )
 
-        await cmd_gemini(message, bot, custom_payload=custom_payload)
+        await cmd_gemini(message, bot, custom_response=response)
+
     except Exception:
         await error_report(message, bot, "search", traceback.format_exc())
 

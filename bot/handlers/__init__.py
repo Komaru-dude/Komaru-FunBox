@@ -9,7 +9,8 @@ required_vars = {
     "API_ID": "Telegram API ID",
     "API_HASH": "Telegram API HASH",
     "API_URL": "URL апи для ИИ (почему бы не использовать onlysq?)",
-    "JIGSAW_API_KEY": "Апи ключ для jigsaw функций"
+    "JIGSAW_API_KEY": "Апи ключ для jigsaw функций",
+    "ONLYSQ_API_KEY": "Апи ключ для onlysq"
 }
 
 for var, description in required_vars.items():
