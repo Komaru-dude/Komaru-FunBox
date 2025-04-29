@@ -10,7 +10,7 @@ from aiogram.exceptions import TelegramBadRequest
 from bot import db
 from bot.utils.aio_tools import error_report
 
-easter_router = Router()
+etc_router = Router()
 
 
 def load_http_codes(filename):
@@ -23,7 +23,7 @@ cat_http_codes = load_http_codes("cat_http_codes.json")
 dog_http_codes = load_http_codes("dog_http_codes.json")
 
 
-@easter_router.message(Command("coffee"))
+@etc_router.message(Command("coffee"))
 async def cmd_tea(message: Message, bot: Bot):
     try:
         if db.is_user_mediabanned(message.from_user.id):
@@ -47,7 +47,7 @@ async def cmd_tea(message: Message, bot: Bot):
         await error_report(message, bot, "coffee", traceback.format_exc())
 
 
-@easter_router.message(Command("http_cat"))
+@etc_router.message(Command("http_cat"))
 async def cmd_http_cat(message: Message, bot: Bot):
     try:
         split_text = message.text.split()
@@ -78,7 +78,7 @@ async def cmd_http_cat(message: Message, bot: Bot):
         await error_report(message, bot, "http_cat", traceback.format_exc())
 
 
-@easter_router.message(Command("http_dog"))
+@etc_router.message(Command("http_dog"))
 async def cmd_http_dog(message: Message, bot: Bot):
     try:
         split_text = message.text.split()
@@ -109,7 +109,7 @@ async def cmd_http_dog(message: Message, bot: Bot):
         await error_report(message, bot, "http_dog", traceback.format_exc())
 
 
-@easter_router.message(Command("cat"))
+@etc_router.message(Command("cat"))
 async def cmd_cat(message: Message, bot: Bot):
     try:
         if db.is_user_mediabanned(message.from_user.id):
@@ -123,7 +123,7 @@ async def cmd_cat(message: Message, bot: Bot):
         await error_report(message, bot, "cat", traceback.format_exc())
 
 
-@easter_router.message(Command("cat_gif"))
+@etc_router.message(Command("cat_gif"))
 async def cmd_cat_gif(message: Message, bot: Bot):
     try:
         if db.is_user_mediabanned(message.from_user.id):

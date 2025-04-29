@@ -11,7 +11,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 from .handlers.basic import base_router
-from .handlers.easter_eggs import easter_router
+from .handlers.etc import etc_router
 from .handlers.time import time_router
 from .handlers.help import help_router
 from .handlers.rp import rp_router
@@ -57,7 +57,7 @@ async def main():
 
     dp.include_routers(
         base_router,
-        easter_router,
+        etc_router,
         time_router,
         help_router,
         rp_router,
