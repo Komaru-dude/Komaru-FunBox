@@ -6,7 +6,7 @@ import re
 import os
 from pathlib import Path
 from urllib.parse import urlparse
-from aiogram import Router, Bot
+from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
@@ -55,7 +55,7 @@ async def get_chat_commands(chat_id: int):
     return {cmd["command"]: cmd for cmd in await load_commands(BASE_COMMANDS_PATH)}
 
 
-@text_router.message()
+@text_router.message(F.text)
 async def text(message: Message, bot: Bot, state: FSMContext):
     try:
         user1 = message.from_user
