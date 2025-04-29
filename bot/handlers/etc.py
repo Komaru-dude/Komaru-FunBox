@@ -140,9 +140,11 @@ async def cmd_cat_gif(message: Message, bot: Bot):
 async def send_weather(message: Message):
     location = message.text.split()[1] if len(message.text.split()) > 1 else "Oymyakon"
     encoded_location = quote(location)
-    url = f"https://wttr.in/{encoded_location}?format=%C+%t"
+    url = f"https://wttr.in/{encoded_location}?0"
 
     async with ClientSession() as session:
         async with session.get(url) as response:
-            weather = await response.text()
-            await message.answer(weather)
+            weather_art = await response.text()
+            await message.answer(
+                f"<code>{weather_art}</code>", parse_mode=ParseMode.HTML
+            )
