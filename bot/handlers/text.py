@@ -64,6 +64,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
 
         current_state = await state.get_state()
         if current_state == ArgueChatState.active.state:
+            base_msg = await message.reply("🔄 Обработка...")
             user_data = await state.get_data()
             messages = user_data.get("messages", [])
             user_message = text_msg.strip()
@@ -93,7 +94,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             ]
             for idx, chunk in enumerate(chunks):
                 if idx == 0:
-                    await message.reply(chunk)
+                    await base_msg.edit_text(chunk)
                 else:
                     await message.answer(chunk)
             return
