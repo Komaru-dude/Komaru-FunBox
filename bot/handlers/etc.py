@@ -1,8 +1,9 @@
 import random
 import traceback
 import json
+import re
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote_plus
 from aiohttp import ClientSession
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -138,11 +139,21 @@ async def cmd_cat_gif(message: Message, bot: Bot):
 
 @etc_router.message(Command("weather"))
 async def send_weather(message: Message):
+    def escape_ansi(line):
+        ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
+        return ansi_escape.sub("", line)
+    
     location = message.text.split()[1] if len(message.text.split()) > 1 else "Oymyakon"
-    encoded_location = quote(location)
-    url = f"https://wttr.in/{encoded_location}?format=%C+%t"
-
+    lang = "ru" if location and location[0].lower() in "ёйцукенгшщзхъфывапролджэячсмитьбю" else "en"
+    
+    encoded_location = quote_plus(location)
+    url = f"https://wttr.in/{encoded_location}?m&T0&lang={lang}"
+    
     async with ClientSession() as session:
         async with session.get(url) as response:
-            weather = await response.text()
-            await message.answer(weather)
+            weather_art = await response.text()
+            cleaned_art = escape_ansi(weather_art)
+            await message.answer(
+                f"<code>{cleaned_art}</code>",
+                parse_mode=ParseMode.HTML
+            )
