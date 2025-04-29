@@ -142,18 +142,21 @@ async def send_weather(message: Message):
     def escape_ansi(line):
         ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
         return ansi_escape.sub("", line)
-    
+
     location = message.text.split()[1] if len(message.text.split()) > 1 else "Oymyakon"
-    lang = "ru" if location and location[0].lower() in "ёйцукенгшщзхъфывапролджэячсмитьбю" else "en"
-    
+    lang = (
+        "ru"
+        if location and location[0].lower() in "ёйцукенгшщзхъфывапролджэячсмитьбю"
+        else "en"
+    )
+
     encoded_location = quote_plus(location)
     url = f"https://wttr.in/{encoded_location}?m&T0&lang={lang}"
-    
+
     async with ClientSession() as session:
         async with session.get(url) as response:
             weather_art = await response.text()
             cleaned_art = escape_ansi(weather_art)
             await message.reply(
-                f"<code>{cleaned_art}</code>",
-                parse_mode=ParseMode.HTML
+                f"<code>{cleaned_art}</code>", parse_mode=ParseMode.HTML
             )
