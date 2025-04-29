@@ -2,6 +2,8 @@ import random
 import traceback
 import json
 from pathlib import Path
+from urllib.parse import quote
+from aiohttp import ClientSession
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, URLInputFile
@@ -132,3 +134,15 @@ async def cmd_cat_gif(message: Message, bot: Bot):
         await message.reply_video(URLInputFile("https://cataas.com/cat/gif"))
     except Exception:
         await error_report(message, bot, "cat_gif", traceback.format_exc())
+
+
+@etc_router.message(Command("weather"))
+async def send_weather(message: Message):
+    location = message.get_args() or "Bucharest"
+    encoded_location = quote(location)
+    url = f"https://wttr.in/{encoded_location}?format=%C+%t"
+
+    async with ClientSession() as session:
+        async with session.get(url) as response:
+            weather = await response.text()
+            await message.answer(weather)
