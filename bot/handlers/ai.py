@@ -8,6 +8,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, BufferedInputFile
+from aiogram.enums import ParseMode
 from bot.utils.aio_tools import make_post_request, error_report
 from bot.utils.global_storage import argue_active_chats, argue_active_chats_lock
 from bot import db
@@ -422,7 +423,8 @@ async def cmd_arguechat(message: Message, bot: Bot, state: FSMContext):
         async with argue_active_chats_lock:
             if message.chat.id in argue_active_chats:
                 await message.reply(
-                    "📛 Чат уже запущен, введите <code>/argue_stop</code> или попросите ввести модераторов."
+                    "📛 Чат уже запущен, введите <code>/argue_stop</code> или попросите ввести модераторов.",
+                    parse_mode=ParseMode.HTML,
                 )
                 return
 
@@ -440,7 +442,8 @@ async def cmd_arguechat(message: Message, bot: Bot, state: FSMContext):
         async with argue_active_chats_lock:
             argue_active_chats.append(message.chat.id)
         await message.reply(
-            "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\nДля остановки используйте /argue_stop"
+            "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\nДля остановки используйте <code>/argue_stop</code>",
+            parse_mode=ParseMode.HTML,
         )
     except Exception:
         await error_report(message, bot, "arguechat", traceback.format_exc())
