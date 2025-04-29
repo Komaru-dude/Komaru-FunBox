@@ -153,7 +153,7 @@ async def send_weather(message: Message):
         async with session.get(url) as response:
             weather_art = await response.text()
             cleaned_art = escape_ansi(weather_art)
-            await message.answer(
+            await message.reply(
                 f"<code>{cleaned_art}</code>",
                 parse_mode=ParseMode.HTML
             )
