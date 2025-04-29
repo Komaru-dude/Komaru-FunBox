@@ -26,6 +26,7 @@ SUPPORTED_LANGUAGES = {
     "ja": "Японский",
 }
 
+
 class ArgueChatState(StatesGroup):
     active = State()
 
@@ -410,16 +411,19 @@ async def cmd_vocr(message: Message, bot: Bot):
     except Exception:
         await error_report(message, bot, "vocr", traceback.format_exc())
 
+
 @ai_router.message(Command("arguechat"))
 async def cmd_arguechat(message: Message, bot: Bot, state: FSMContext):
     try:
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
-        
+
         async with argue_active_chats_lock:
             if message.chat.id in argue_active_chats:
-                await message.reply("📛 Чат уже запущен, введите <code>/argue_stop</code> или попросите ввести модераторов.")
+                await message.reply(
+                    "📛 Чат уже запущен, введите <code>/argue_stop</code> или попросите ввести модераторов."
+                )
                 return
 
         await state.update_data(
@@ -441,6 +445,7 @@ async def cmd_arguechat(message: Message, bot: Bot, state: FSMContext):
     except Exception:
         await error_report(message, bot, "arguechat", traceback.format_exc())
 
+
 @ai_router.message(Command("argue_stop"))
 async def cmd_arguestop(message: Message, bot: Bot, state: FSMContext):
     try:
@@ -451,14 +456,16 @@ async def cmd_arguestop(message: Message, bot: Bot, state: FSMContext):
         if db.is_user_mediabanned(user_id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
-        
+
         if not db.has_permission(user_id, chat_id, 1) and current_state is None:
-            await message.reply("❌ У вас недостаточно прав для выполнения этой команды и вы не являетесь инициатором разговора.")
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнения этой команды и вы не являетесь инициатором разговора."
+            )
             return
-        
+
         if not current_state is None:
             await state.clear()
-        
+
         async with argue_active_chats_lock:
             if not chat_id in argue_active_chats:
                 await message.reply("📛 Чата не существует")
