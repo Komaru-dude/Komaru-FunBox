@@ -475,6 +475,6 @@ async def cmd_arguestop(message: Message, bot: Bot, state: FSMContext):
                 return
             else:
                 argue_active_chats.remove(chat_id)
-                await message.reply("✅ Успешно удалено")
+                await message.reply("✅ Успешно остановлено")
     except Exception:
         await error_report(message, bot, "argue_stop", traceback.format_exc())
