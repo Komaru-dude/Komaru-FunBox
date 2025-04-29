@@ -3,10 +3,8 @@ import aiohttp
 import re
 import traceback
 import openai
-from aiogram import Router, Bot, F
+from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, BufferedInputFile
 from bot.utils.aio_tools import make_post_request, error_report
 from bot import db
@@ -24,10 +22,6 @@ SUPPORTED_LANGUAGES = {
     "ru": "Русский",
     "ja": "Японский",
 }
-
-
-class ArgueChatState(StatesGroup):
-    active = State()
 
 
 @ai_router.message(Command("gemini"))
@@ -409,79 +403,3 @@ async def cmd_vocr(message: Message, bot: Bot):
                     )
     except Exception:
         await error_report(message, bot, "vocr", traceback.format_exc())
-
-
-@ai_router.message(Command("arguechat"))
-async def start_argue_chat(message: Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state == ArgueChatState.active:
-        await message.reply("❌ У вас уже есть активный спор. Закончите его сначала!")
-        return
-
-    if db.is_user_mediabanned(message.from_user.id):
-        await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-        return
-
-    await state.update_data(
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."  # Промпт с КиберТопора
-                ),
-            }
-        ]
-    )
-
-    await message.reply(
-        "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения."
-    )
-    await state.set_state(ArgueChatState.active)
-
-
-@ai_router.message(ArgueChatState.active, F.text)
-async def handle_argue_message(message: Message, bot: Bot, state: FSMContext):
-    user_data = await state.get_data()
-    messages = user_data.get("messages", [])
-    user_message = message.text.strip()
-
-    try:
-        messages.append({"role": "user", "content": user_message})
-
-        client = openai.AsyncOpenAI(
-            api_key=os.getenv("ONLYSQ_API_KEY"),
-            base_url="https://api.onlysq.ru/ai/openai",
-        )
-
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini", messages=messages
-        )
-
-        ai_response = response.choices[0].message.content
-        ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
-
-        messages.append({"role": "assistant", "content": ai_response})
-        if len(messages) > 6:
-            messages = [messages[0]] + messages[-5:]
-
-        await state.update_data(messages=messages)
-
-        chunks = [ai_response[i : i + 4096] for i in range(0, len(ai_response), 4096)]
-        for idx, chunk in enumerate(chunks):
-            if idx == 0:
-                await message.reply(chunk)
-            else:
-                await message.answer(chunk)
-
-    except openai.APIError as e:
-        await message.reply(f"⚠️ Ошибка API: {str(e)}")
-        await state.clear()
-    except Exception as e:
-        await error_report(message, bot, "arguechat", traceback.format_exc())
-        await state.clear()
-
-
-@ai_router.message(Command("stop"))
-async def stop_argue_chat(message: Message, state: FSMContext):
-    await state.clear()
-    await message.reply("🛑 Спор завершен. Вы всегда можете начать новый с /arguechat")
