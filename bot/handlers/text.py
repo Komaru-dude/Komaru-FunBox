@@ -62,14 +62,6 @@ async def text(message: Message, bot: Bot, state: FSMContext):
         chat_id = message.chat.id
         text_msg = message.text
 
-        if text_msg.startswith("/stop"):
-            if await state.get_state() == ArgueChatState.active.state:
-                await state.clear()
-                await message.reply(
-                    "🛑 Спор завершен. Вы всегда можете начать новый с /arguechat"
-                )
-                return
-
         current_state = await state.get_state()
         if current_state == ArgueChatState.active.state:
             base_msg = await message.reply("🔄 Обработка...")
@@ -133,7 +125,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             )
             await state.set_state(ArgueChatState.active)
             await message.reply(
-                "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения."
+                "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\nДля остановки используйте /cancel"
             )
             return
 
