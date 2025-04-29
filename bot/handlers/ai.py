@@ -337,7 +337,7 @@ async def cmd_vocr(message: Message, bot: Bot):
             photo = message.photo[-1]
         elif message.reply_to_message and message.reply_to_message.photo:
             photo = message.reply_to_message.photo[-1]
-        if not photo:
+        if not message.photo or message.reply_to_message.photo:
             return await message.reply(
                 "❌ Отправьте фото или ответьте на фото для его распознавания."
             )
