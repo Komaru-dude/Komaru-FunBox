@@ -5,8 +5,11 @@ import traceback
 import openai
 from aiogram import Router, Bot
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, BufferedInputFile
 from bot.utils.aio_tools import make_post_request, error_report
+from bot.utils.global_storage import argue_active_chats, argue_active_chats_lock
 from bot import db
 
 ai_router = Router()
@@ -22,6 +25,9 @@ SUPPORTED_LANGUAGES = {
     "ru": "Русский",
     "ja": "Японский",
 }
+
+class ArgueChatState(StatesGroup):
+    active = State()
 
 
 @ai_router.message(Command("gemini"))
@@ -403,3 +409,62 @@ async def cmd_vocr(message: Message, bot: Bot):
                     )
     except Exception:
         await error_report(message, bot, "vocr", traceback.format_exc())
+
+@ai_router.message(Command("arguechat"))
+async def cmd_arguechat(message: Message, bot: Bot, state: FSMContext):
+    try:
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+        
+        async with argue_active_chats_lock:
+            if message.chat.id in argue_active_chats:
+                await message.reply("📛 Чат уже запущен, введите <code>/argue_stop</code> или попросите ввести модераторов.")
+                return
+
+        await state.update_data(
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
+                    ),
+                }
+            ]
+        )
+        await state.set_state(ArgueChatState.active)
+        async with argue_active_chats_lock:
+            argue_active_chats.append(message.chat.id)
+        await message.reply(
+            "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\nДля остановки используйте /argue_stop"
+        )
+    except Exception:
+        await error_report(message, bot, "arguechat", traceback.format_exc())
+
+@ai_router.message(Command("argue_stop"))
+async def cmd_arguestop(message: Message, bot: Bot, state: FSMContext):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        current_state = await state.get_state()
+
+        if db.is_user_mediabanned(user_id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+        
+        if not db.has_permission(user_id, chat_id, 1) and current_state is None:
+            await message.reply("❌ У вас недостаточно прав для выполнения этой команды и вы не являетесь инициатором разговора.")
+            return
+        
+        if not current_state is None:
+            await state.clear()
+        
+        async with argue_active_chats_lock:
+            if not chat_id in argue_active_chats:
+                await message.reply("📛 Чата не существует")
+                return
+            else:
+                argue_active_chats.remove(chat_id)
+                await message.reply("✅ Успешно удалено")
+    except Exception:
+        await error_report(message, bot, "argue_stop", traceback.format_exc())

@@ -8,12 +8,12 @@ from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
-from bot.handlers.ai import cmd_gemini
+from bot.handlers.ai import cmd_gemini, ArgueChatState
 from bot.handlers.video import cmd_video
+from bot.utils.global_storage import argue_active_chats
 from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
 
 text_router = Router()
@@ -34,10 +34,6 @@ SUPPORTED_DOMAINS = [
     "youtu.be",
     # добавить позже ещё
 ]
-
-
-class ArgueChatState(StatesGroup):
-    active = State()
 
 
 async def load_commands(path: Path):
@@ -64,6 +60,9 @@ async def text(message: Message, bot: Bot, state: FSMContext):
 
         current_state = await state.get_state()
         if current_state == ArgueChatState.active.state:
+            if message.chat.id not in argue_active_chats:
+                await state.clear()
+                return
             base_msg = await message.reply("🔄 Обработка...")
             user_data = await state.get_data()
             messages = user_data.get("messages", [])
@@ -106,27 +105,6 @@ async def text(message: Message, bot: Bot, state: FSMContext):
         if not db.is_init(chat_id):
             db.init_chat_features(chat_id)
         if not text_msg:
-            return
-
-        if text_msg.startswith("/arguechat"):
-            if db.is_user_mediabanned(user1.id):
-                await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-                return
-
-            await state.update_data(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
-                        ),
-                    }
-                ]
-            )
-            await state.set_state(ArgueChatState.active)
-            await message.reply(
-                "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\nДля остановки используйте /cancel"
-            )
             return
 
         commands = await get_chat_commands(chat_id)
