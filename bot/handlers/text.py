@@ -1,9 +1,14 @@
 import json
 import random
 import traceback
+import openai
+import re
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
@@ -31,6 +36,10 @@ SUPPORTED_DOMAINS = [
 ]
 
 
+class ArgueChatState(StatesGroup):
+    active = State()
+
+
 async def load_commands(path: Path):
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -47,11 +56,47 @@ async def get_chat_commands(chat_id: int):
 
 
 @text_router.message()
-async def text(message: Message, bot: Bot):
+async def text(message: Message, bot: Bot, state: FSMContext):
     try:
         user1 = message.from_user
         chat_id = message.chat.id
         text_msg = message.text
+
+        current_state = await state.get_state()
+        if current_state == ArgueChatState.active.state:
+            user_data = await state.get_data()
+            messages = user_data.get("messages", [])
+            user_message = text_msg.strip()
+
+            messages.append({"role": "user", "content": user_message})
+
+            client = openai.AsyncOpenAI(
+                api_key=os.getenv("ONLYSQ_API_KEY"),
+                base_url="https://api.onlysq.ru/ai/openai",
+            )
+
+            response = await client.chat.completions.create(
+                model="gpt-4o-mini", messages=messages
+            )
+
+            ai_response = response.choices[0].message.content
+            ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
+
+            messages.append({"role": "assistant", "content": ai_response})
+            if len(messages) > 6:
+                messages = [messages[0]] + messages[-5:]
+
+            await state.update_data(messages=messages)
+
+            chunks = [
+                ai_response[i : i + 4096] for i in range(0, len(ai_response), 4096)
+            ]
+            for idx, chunk in enumerate(chunks):
+                if idx == 0:
+                    await message.reply(chunk)
+                else:
+                    await message.answer(chunk)
+            return
 
         if message.chat.type == "channel":
             return
@@ -61,6 +106,34 @@ async def text(message: Message, bot: Bot):
             db.init_chat_features(chat_id)
         if not text_msg:
             return
+
+        if text_msg.startswith("/arguechat"):
+            if db.is_user_mediabanned(user1.id):
+                await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+                return
+
+            await state.update_data(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
+                        ),
+                    }
+                ]
+            )
+            await state.set_state(ArgueChatState.active)
+            await message.reply(
+                "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения."
+            )
+            return
+        elif text_msg.startswith("/stop"):
+            if await state.get_state() == ArgueChatState.active.state:
+                await state.clear()
+                await message.reply(
+                    "🛑 Спор завершен. Вы всегда можете начать новый с /arguechat"
+                )
+                return
 
         commands = await get_chat_commands(chat_id)
         split_text = text_msg.split(maxsplit=1)
