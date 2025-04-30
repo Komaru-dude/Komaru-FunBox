@@ -6,6 +6,7 @@ import aiohttp
 import json
 import subprocess
 import traceback
+import logging
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
@@ -74,6 +75,7 @@ async def cmd_status(message: Message, bot: Bot):
 
         try:
             version_path = Path(__file__).resolve().parent.parent / "version.json"
+            logging.info(version_path)
             with version_path.open() as f:
                 version_data = json.load(f)
                 version = version_data.get("version", "unknown")
