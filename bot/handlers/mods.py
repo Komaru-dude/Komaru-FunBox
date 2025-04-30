@@ -1,5 +1,6 @@
 import time
 import traceback
+from datetime import datetime, timedelta
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
@@ -14,6 +15,22 @@ from bot.utils.aio_tools import (
 
 mods_router = Router()
 API_URL = "http://127.0.0.1:8001"
+
+
+def parse_time(time_str: str) -> timedelta | None:
+    units = {"d": 86400, "h": 3600, "m": 60, "s": 1}
+    seconds = 0
+    number = ""
+    for char in time_str:
+        if char.isdigit():
+            number += char
+        elif char in units:
+            if number:
+                seconds += int(number) * units[char]
+                number = ""
+        else:
+            return None
+    return timedelta(seconds=seconds) if seconds else None
 
 
 @mods_router.message(Command("enable"))
@@ -231,7 +248,144 @@ async def cmd_info(message: Message, bot: Bot):
 
 @mods_router.message(Command("mute"))
 async def cmd_mute(message: Message, bot: Bot):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    split_text = message.text.split(maxsplit=3)
-    
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        parts = message.text.split(maxsplit=3)
+
+        if not db.has_permission(user_id, chat_id, 2):
+            await message.reply("❌ У вас нет прав для этой команды")
+            return
+
+        target_user_id, error_msg = await get_user_id(message)
+        if not target_user_id:
+            await message.reply(f"❌ {error_msg}")
+            return
+
+        if message.reply_to_message:
+            time_arg = parts[1] if len(parts) > 1 else None
+            reason = parts[2] if len(parts) > 2 else "Без причины"
+            await message.reply_to_message.delete()
+        else:
+            time_arg = parts[2] if len(parts) > 2 else None
+            reason = parts[3] if len(parts) > 3 else "Без причины"
+
+        duration = parse_time(time_arg) if time_arg else None
+        until_date = datetime.now() + duration if duration else None
+
+        await bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=target_user_id,
+            permissions=ChatPermissions(can_send_messages=False),
+            until_date=until_date,
+        )
+
+        db.add_user(target_user_id, chat_id)
+        db.update_user_mutes(target_user_id, chat_id, reason)
+        db.update_rep(target_user_id, chat_id, "manual_rem", 10)
+
+        time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
+        await message.reply(
+            f"🔇 Пользователь <b>{target_user_id}</b> замьючен до {time_str}\n"
+            f"Причина: {reason}",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await error_report(message, bot, "mute", str(e))
+
+
+@mods_router.message(Command("ban"))
+async def cmd_ban(message: Message, bot: Bot):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        parts = message.text.split(maxsplit=3)
+
+        if not db.has_permission(user_id, chat_id, 2):
+            await message.reply("❌ Недостаточно прав")
+            return
+
+        target_user_id, error_msg = await get_user_id(message)
+        if not target_user_id:
+            await message.reply(f"❌ {error_msg}")
+            return
+
+        if message.reply_to_message:
+            time_arg = parts[1] if len(parts) > 1 else None
+            reason = parts[2] if len(parts) > 2 else "Без причины"
+            await message.reply_to_message.delete()
+        else:
+            time_arg = parts[2] if len(parts) > 2 else None
+            reason = parts[3] if len(parts) > 3 else "Без причины"
+
+        duration = parse_time(time_arg) if time_arg else None
+        until_date = datetime.now() + duration if duration else None
+
+        await bot.ban_chat_member(chat_id, target_user_id, until_date=until_date)
+
+        db.add_user(target_user_id, chat_id)
+        db.update_user_bans(target_user_id, chat_id, reason)
+        db.update_rep(target_user_id, chat_id, "manual_rem", 15)
+
+        time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
+        await message.reply(
+            f"⛔ Пользователь <b>{target_user_id}</b> забанен до {time_str}\n"
+            f"Причина: {reason}",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await error_report(message, bot, "ban", str(e))
+
+
+@mods_router.message(Command("unmute"))
+async def cmd_unmute(message: Message, bot: Bot):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+
+        if not db.has_permission(user_id, chat_id, 2):
+            await message.reply("❌ Недостаточно прав")
+            return
+
+        target_user_id, error_msg = await get_user_id(message)
+        if not target_user_id:
+            await message.reply(f"❌ {error_msg}")
+            return
+
+        await bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=target_user_id,
+            permissions=ChatPermissions(
+                can_send_messages=True,
+            ),
+        )
+        await message.reply(
+            f"🔄 Пользователь <b>{target_user_id}</b> размьючен",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await error_report(message, bot, "unmute", str(e))
+
+
+@mods_router.message(Command("unban"))
+async def cmd_unban(message: Message, bot: Bot):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+
+        if not db.has_permission(user_id, chat_id, 2):
+            await message.reply("❌ Недостаточно прав")
+            return
+
+        target_user_id, error_msg = await get_user_id(message)
+        if not target_user_id:
+            await message.reply(f"❌ {error_msg}")
+            return
+
+        await bot.unban_chat_member(chat_id, target_user_id)
+        await message.reply(
+            f"✅ Пользователь <b>{target_user_id}</b> разбанен",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await error_report(message, bot, "unban", str(e))
