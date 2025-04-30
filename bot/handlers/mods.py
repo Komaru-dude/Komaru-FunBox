@@ -1,7 +1,6 @@
 import time
 import traceback
 import re
-import logging
 from datetime import datetime, timedelta
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -210,7 +209,6 @@ async def cmd_warn(message: Message, bot: Bot):
         user_data = db.get_user_data(target_id, chat_id)
         current_warns = user_data[2]
         warn_limit = user_data[9]
-        logging.info(user_data)
 
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
