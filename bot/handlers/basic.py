@@ -272,26 +272,7 @@ async def cmd_shutter(message: Message, bot: Bot):
         words = text.split()
         result = []
 
-        emojis = [
-            "😳",
-            "😣",
-            "🥵",
-            "😰",
-            "😥",
-            "😓",
-            "😖",
-            "😵",
-            "💦",
-            "🌊",
-            "💫",
-            "✨",
-            "🌸",
-            "🫠",
-            "🤤",
-            "🙀",
-            "🎀",
-            "💔",
-        ]
+        emojis = ["😅", "🤔", "🙄", "😬", "😶", "🤷"]
 
         for word in words:
             if random.random() < 0.8:
@@ -341,8 +322,8 @@ async def cmd_shutter(message: Message, bot: Bot):
             "✧(＾◡＾)✿",
         ]
 
-        if random.random() < 0.15:
-            prefixes = ["А-а... ", "Э-э... ", "М-м... ", "✨ ", "💫 "]
+        if random.random() < 0.2:
+            prefixes = ["А-а... ", "Э-э... ", "М-м... ", "Ну..."]
             final_text = random.choice(prefixes) + final_text
 
         final_text += f" {random.choice(suffixes)}"
