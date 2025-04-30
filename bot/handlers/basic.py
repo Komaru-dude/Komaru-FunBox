@@ -125,13 +125,13 @@ async def cmd_status(message: Message, bot: Bot):
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
 
         status_message = (
-            f"🤖 <i>Komaru FunBox</i>\n"
+            f"🍕 <blockquote><b>Komaru FunBox</b>\n"
             f"🧬 Версия: <code>{version}</code>\n"
             f"{update_status}\n"
             f"⏳ Пинг: {int(ping)} мс\n"
             f"🚀 Аптайм: {uptime_str}\n"
             f"📊 CPU (5 мин): {avg_cpu_load:.1f}%\n"
-            f"📊 RAM (5 мин): {avg_memory_load:.1f}%"
+            f"📊 RAM (5 мин): {avg_memory_load:.1f}%</blockquote>"
         )
 
         await sent_message.edit_text(status_message, parse_mode=ParseMode.HTML)
