@@ -4,7 +4,9 @@ import time
 import psutil
 import aiohttp
 import json
+import subprocess
 import traceback
+from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -39,55 +41,66 @@ async def cmd_status(message: Message, bot: Bot):
     try:
         global start_time
 
-        # Пинг
         ping_start_time = time.monotonic()
         sent_message = await message.reply("⏳")
         end_time = time.monotonic()
         ping = (end_time - ping_start_time) * 1000
 
-        # Аптайм
         current_time = time.time()
         uptime_seconds = int(current_time - start_time)
 
-        # Загрузка системы
         cpu_percent = psutil.cpu_percent(interval=1)
         memory_percent = psutil.virtual_memory().percent
         cpu_loads.append((current_time, cpu_percent))
         memory_loads.append((current_time, memory_percent))
         five_minutes_ago = current_time - 300
         cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
-        memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
-        avg_cpu_load = sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
-        avg_memory_load = sum(load for _, load in memory_loads) / len(memory_loads) if memory_loads else 0
+        memory_loads[:] = [
+            (t, load) for t, load in memory_loads if t >= five_minutes_ago
+        ]
+        avg_cpu_load = (
+            sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
+        )
+        avg_memory_load = (
+            sum(load for _, load in memory_loads) / len(memory_loads)
+            if memory_loads
+            else 0
+        )
 
-        # Форматирование аптайма
         days, rem = divmod(uptime_seconds, 86400)
         hours, rem = divmod(rem, 3600)
         minutes, seconds = divmod(rem, 60)
         uptime_str = f"{days}д {hours}ч {minutes}м {seconds}с"
 
         try:
-            with open("version.json") as f:
+            version_path = Path(__file__).resolve().parent.parent / "version.json"
+            with version_path.open() as f:
                 version_data = json.load(f)
-                branch = version_data.get("branch", "unknown")
-                commit = version_data.get("commit", "unknown")
-                repo_url = version_data.get("repository", "")
+                version = version_data.get("version", "unknown")
+
+            branch = (
+                subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+                .decode()
+                .strip()
+            )
+            commit = (
+                subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+            )
+            repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
         except Exception:
-            branch = commit = "unknown"
+            version = branch = commit = "unknown"
             repo_url = ""
 
-        current_version = f"{branch}@{commit}"
-
         update_status = "⚠️ Не удалось проверить обновления"
-        if all([branch != "unknown", commit != "unknown", repo_url]):
+        if all([branch != "unknown", version != "unknown", repo_url]):
             try:
                 if "github.com" not in repo_url:
                     raise ValueError("Поддерживаются только GitHub репозитории")
-                
+
                 repo_path = urlparse(repo_url).path.strip("/")
                 if not repo_path:
                     raise ValueError("Неверный формат URL")
-                
+
                 owner, repo = repo_path.split("/")[:2]
                 repo = repo.replace(".git", "")
 
@@ -95,13 +108,15 @@ async def cmd_status(message: Message, bot: Bot):
                 async with aiohttp.ClientSession() as session:
                     async with session.get(
                         f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
-                        headers=headers
+                        headers=headers,
                     ) as resp:
                         if resp.status == 200:
                             data = await resp.json()
                             latest_commit = data["commit"]["sha"][:7]
                             if latest_commit != commit:
-                                update_status = f"🔔 Доступно обновление: {branch}@{latest_commit}"
+                                update_status = (
+                                    f"🔔 Доступно обновление: {branch}@{latest_commit}"
+                                )
                             else:
                                 update_status = "✅ Версия актуальна"
                         else:
@@ -109,11 +124,10 @@ async def cmd_status(message: Message, bot: Bot):
             except Exception as e:
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
 
-        # Формирование ответа
         status_message = (
             f"🤖 <i>Komaru FunBox</i>\n"
-            f"🧬 Версия: <code>{current_version}</code>\n"
-            f"🔄 {update_status}\n\n"
+            f"🧬 Версия: <code>{version}</code>\n"
+            f"🔄 {update_status}\n"
             f"⏳ Пинг: {int(ping)} мс\n"
             f"🚀 Аптайм: {uptime_str}\n"
             f"📊 CPU (5 мин): {avg_cpu_load:.1f}%\n"
