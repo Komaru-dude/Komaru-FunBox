@@ -116,6 +116,7 @@ async def cmd_status(message: Message, bot: Bot):
                             data = await resp.json()
                             latest_commit = data["commit"]["sha"][:7]
                             if latest_commit != commit:
+                                logging.info(latest_commit + " " + commit)
                                 update_status = (
                                     f"Доступно обновление: {branch}@{latest_commit}"
                                 )
