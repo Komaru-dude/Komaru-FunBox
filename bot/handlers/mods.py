@@ -10,7 +10,6 @@ from bot.utils.aio_tools import (
     fetch_user_data,
     error_report,
     get_user_id,
-    fetch_user_data,
 )
 
 mods_router = Router()
@@ -228,3 +227,11 @@ async def cmd_info(message: Message, bot: Bot):
 
     except Exception:
         await error_report(message, bot, "info", traceback.format_exc())
+
+
+@mods_router.message(Command("mute"))
+async def cmd_mute(message: Message, bot: Bot):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    split_text = message.text.split(maxsplit=3)
+    
