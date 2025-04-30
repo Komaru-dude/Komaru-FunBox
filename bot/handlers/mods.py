@@ -1,4 +1,3 @@
-import subprocess
 import time
 import traceback
 from aiogram import Router, Bot
@@ -16,21 +15,6 @@ from bot.utils.aio_tools import (
 
 mods_router = Router()
 API_URL = "http://127.0.0.1:8001"
-
-
-@mods_router.message(Command("restart"))
-async def cmd_restart(message: Message, bot: Bot):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    if not db.has_permission(user_id, chat_id, 4):
-        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
-        return
-    await message.answer("Перезапускаюсь... 🔄")
-
-    try:
-        subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
-    except Exception:
-        await error_report(message, bot, "restart", traceback.format_exc())
 
 
 @mods_router.message(Command("enable"))
