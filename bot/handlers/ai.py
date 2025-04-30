@@ -106,6 +106,8 @@ async def cmd_gemini(
                 await base_msg.reply(chunk)
     except openai.InternalServerError:
         await base_msg.edit_text("⚠️ Внутренняя ошибка API")
+    except openai.RateLimitError:
+        await base_msg.edit_text("❌ Привышен лимит запросов к API. Попробуйте позже")
     except Exception:
         await error_report(message, bot, "gemini", traceback.format_exc())
 
