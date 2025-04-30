@@ -6,7 +6,6 @@ import aiohttp
 import json
 import subprocess
 import traceback
-import logging
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
@@ -75,7 +74,6 @@ async def cmd_status(message: Message, bot: Bot):
 
         try:
             version_path = Path(__file__).resolve().parent.parent / "version.json"
-            logging.info(version_path)
             with version_path.open() as f:
                 version_data = json.load(f)
                 version = version_data.get("version", "unknown")
@@ -86,7 +84,9 @@ async def cmd_status(message: Message, bot: Bot):
                 .strip()
             )
             commit = (
-                subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+                subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+                .decode()
+                .strip()
             )
             repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
         except Exception:
@@ -116,7 +116,6 @@ async def cmd_status(message: Message, bot: Bot):
                             data = await resp.json()
                             latest_commit = data["commit"]["sha"][:7]
                             if latest_commit != commit:
-                                logging.info(latest_commit + " " + commit)
                                 update_status = (
                                     f"Доступно обновление: {branch}@{latest_commit}"
                                 )
