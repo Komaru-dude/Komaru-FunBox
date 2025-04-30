@@ -11,6 +11,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
+from bot import db
 from bot.utils.aio_tools import error_report
 
 base_router = Router()
@@ -144,3 +145,71 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
             await message.reply("❌ Отменено")
     except Exception:
         await error_report(message, bot, "cancel", traceback.format_exc())
+
+
+@base_router.message(Command("restart"))
+async def cmd_restart(message: Message, bot: Bot):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    if not db.has_permission(user_id, chat_id, 4):
+        await message.reply("❌ Эта команда только для персонала.")
+        return
+    await message.answer("Перезапускаюсь... 🔄")
+
+    try:
+        subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
+    except Exception:
+        await error_report(message, bot, "restart", traceback.format_exc())
+
+
+@base_router.message(Command("update"))
+async def cmd_restart(message: Message, bot: Bot):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    if not db.has_permission(user_id, chat_id, 4):
+        await message.reply("❌ Эта команда только для персонала.")
+        return
+
+    try:
+        branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+            .decode()
+            .strip()
+        )
+        commit = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            .decode()
+            .strip()
+        )
+        repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
+    except Exception:
+        branch = commit = "unknown"
+        repo_url = ""
+
+    repo_path = urlparse(repo_url).path.strip("/")
+    if not repo_path:
+        raise ValueError("Неверный формат URL")
+
+    owner, repo = repo_path.split("/")[:2]
+    repo = repo.replace(".git", "")
+
+    headers = {"User-Agent": "KomaruBot/1.0"}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
+            headers=headers,
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                latest_commit = data["commit"]["sha"][:7]
+                if not latest_commit != commit:
+                    return await message.reply("☃️ Версия актуальна")
+            else:
+                return await message.reply(f"⚠️ Ошибка API: {resp.status}")
+
+    await message.reply("🔄 Обновляюсь...")
+
+    try:
+        subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
+    except Exception:
+        await error_report(message, bot, "restart", traceback.format_exc())
