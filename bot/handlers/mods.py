@@ -219,7 +219,7 @@ async def cmd_warn(message: Message, bot: Bot):
             parse_mode=ParseMode.HTML,
         )
 
-        if current_warns + 1 >= warn_limit:
+        if current_warns >= warn_limit:
             until_date = int(time.time()) + 2 * 3600
             await message.answer(
                 f"🔇 Пользователь <b>{target_user_link}</b> был замьючен!\n"
