@@ -125,7 +125,7 @@ async def cmd_status(message: Message, bot: Bot):
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
 
         status_message = (
-            f"🍕 <blockquote><b>Komaru FunBox</b>\n"
+            f"<blockquote><b>🍕 Komaru FunBox</b>\n"
             f"🧬 Версия: <code>{version}</code>\n"
             f"{update_status}\n"
             f"⏳ Пинг: {int(ping)} мс\n"
