@@ -2,7 +2,10 @@ import random
 import os
 import time
 import psutil
+import aiohttp
+import json
 import traceback
+from urllib.parse import urlparse
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
@@ -36,50 +39,89 @@ async def cmd_status(message: Message, bot: Bot):
     try:
         global start_time
 
+        # Пинг
         ping_start_time = time.monotonic()
         sent_message = await message.reply("⏳")
         end_time = time.monotonic()
-        ping = (end_time - ping_start_time) * 1000  # В миллисекундах
+        ping = (end_time - ping_start_time) * 1000
+
+        # Аптайм
         current_time = time.time()
         uptime_seconds = int(current_time - start_time)
 
-        # Получаем текущую загрузку процессора и памяти
+        # Загрузка системы
         cpu_percent = psutil.cpu_percent(interval=1)
         memory_percent = psutil.virtual_memory().percent
-
-        # Добавляем данные в списки с отметкой времени
         cpu_loads.append((current_time, cpu_percent))
         memory_loads.append((current_time, memory_percent))
-
-        # Убираем данные старше 5 минут
         five_minutes_ago = current_time - 300
         cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
-        memory_loads[:] = [
-            (t, load) for t, load in memory_loads if t >= five_minutes_ago
-        ]
+        memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
+        avg_cpu_load = sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
+        avg_memory_load = sum(load for _, load in memory_loads) / len(memory_loads) if memory_loads else 0
 
-        # Вычисляем среднее значение за последние 5 минут
-        avg_cpu_load = (
-            sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
-        )
-        avg_memory_load = (
-            sum(load for _, load in memory_loads) / len(memory_loads)
-            if memory_loads
-            else 0
-        )
-
-        days = uptime_seconds // 86400
-        hours = (uptime_seconds % 86400) // 3600
-        minutes = (uptime_seconds % 3600) // 60
-        seconds = uptime_seconds % 60
-
+        # Форматирование аптайма
+        days, rem = divmod(uptime_seconds, 86400)
+        hours, rem = divmod(rem, 3600)
+        minutes, seconds = divmod(rem, 60)
         uptime_str = f"{days}д {hours}ч {minutes}м {seconds}с"
-        await sent_message.edit_text(
+
+        try:
+            with open("version.json") as f:
+                version_data = json.load(f)
+                branch = version_data.get("branch", "unknown")
+                commit = version_data.get("commit", "unknown")
+                repo_url = version_data.get("repository", "")
+        except Exception:
+            branch = commit = "unknown"
+            repo_url = ""
+
+        current_version = f"{branch}@{commit}"
+
+        update_status = "⚠️ Не удалось проверить обновления"
+        if all([branch != "unknown", commit != "unknown", repo_url]):
+            try:
+                if "github.com" not in repo_url:
+                    raise ValueError("Поддерживаются только GitHub репозитории")
+                
+                repo_path = urlparse(repo_url).path.strip("/")
+                if not repo_path:
+                    raise ValueError("Неверный формат URL")
+                
+                owner, repo = repo_path.split("/")[:2]
+                repo = repo.replace(".git", "")
+
+                headers = {"User-Agent": "KomaruBot/1.0"}
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
+                        headers=headers
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            latest_commit = data["commit"]["sha"][:7]
+                            if latest_commit != commit:
+                                update_status = f"🔔 Доступно обновление: {branch}@{latest_commit}"
+                            else:
+                                update_status = "✅ Версия актуальна"
+                        else:
+                            update_status = f"⚠️ Ошибка API: {resp.status}"
+            except Exception as e:
+                update_status = f"⚠️ Ошибка проверки: {str(e)}"
+
+        # Формирование ответа
+        status_message = (
+            f"🤖 <i>Komaru FunBox</i>\n"
+            f"🧬 Версия: <code>{current_version}</code>\n"
+            f"🔄 {update_status}\n\n"
             f"⏳ Пинг: {int(ping)} мс\n"
-            f"🚀 Бот работает: {uptime_str}\n"
-            f"📊 Средняя загруженность ЦПУ (5м): {avg_cpu_load:.2f}%\n"
-            f"📊 Средняя загруженность ОЗУ (5м): {avg_memory_load:.2f}%"
+            f"🚀 Аптайм: {uptime_str}\n"
+            f"📊 CPU (5 мин): {avg_cpu_load:.1f}%\n"
+            f"📊 RAM (5 мин): {avg_memory_load:.1f}%"
         )
+
+        await sent_message.edit_text(status_message, parse_mode=ParseMode.HTML)
+
     except Exception:
         await error_report(message, bot, "status", traceback.format_exc())
 
