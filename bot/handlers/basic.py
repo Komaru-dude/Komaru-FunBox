@@ -275,7 +275,7 @@ async def cmd_shutter(message: Message, bot: Bot):
         emojis = ["😅", "🤔", "🙄", "😬", "😶", "🤷"]
 
         for word in words:
-            if random.random() < 0.8:
+            if random.random() < 0.4:
                 stuttered = generate_stutter(word)
 
                 if random.random() < 0.4:
