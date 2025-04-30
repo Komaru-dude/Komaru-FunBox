@@ -215,7 +215,7 @@ async def cmd_warn(message: Message, bot: Bot):
         await message.reply(
             f"✏️ Пользователю <b>{target_user_link}</b> вынесено предупреждение!\n"
             f"Модератор: {mod_link}\nПричина: {reason}\n"
-            f"Кол-во варнов: {current_warns + 1}/{warn_limit}",
+            f"Кол-во варнов: {current_warns}/{warn_limit}",
             parse_mode=ParseMode.HTML,
         )
 
