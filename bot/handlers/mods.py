@@ -1,5 +1,6 @@
 import time
 import traceback
+import re
 from datetime import datetime, timedelta
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -17,20 +18,14 @@ mods_router = Router()
 API_URL = "http://127.0.0.1:8001"
 
 
-def parse_time(time_str: str) -> timedelta | None:
-    units = {"d": 86400, "h": 3600, "m": 60, "s": 1}
-    seconds = 0
-    number = ""
-    for char in time_str:
-        if char.isdigit():
-            number += char
-        elif char in units:
-            if number:
-                seconds += int(number) * units[char]
-                number = ""
-        else:
-            return None
-    return timedelta(seconds=seconds) if seconds else None
+def parse_time(time_str: str) -> timedelta:
+    units = {"d": "days", "h": "hours", "m": "minutes", "s": "seconds"}
+    match = re.match(r"^(\d+)([dhms])$", time_str.lower())
+    if not match:
+        return None
+
+    value, unit = match.groups()
+    return timedelta(**{units[unit]: int(value)})
 
 
 @mods_router.message(Command("enable"))
@@ -251,24 +246,45 @@ async def cmd_mute(message: Message, bot: Bot):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
-        parts = message.text.split(maxsplit=3)
+        text = message.text or ""
 
         if not db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ У вас нет прав для этой команды")
             return
 
-        target_user_id, error_msg = await get_user_id(message)
-        if not target_user_id:
-            await message.reply(f"❌ {error_msg}")
-            return
+        args = text.split()[1:]
+        time_arg = None
+        reason = "Без причины"
+        target_user_id = None
+
+        time_pattern = r"(\d+[dhmDs])"
+        for i, arg in enumerate(args):
+            if re.fullmatch(time_pattern, arg):
+                time_arg = arg
+                args.pop(i)
+                break
 
         if message.reply_to_message:
-            time_arg = parts[1] if len(parts) > 1 else None
-            reason = parts[2] if len(parts) > 2 else "Без причины"
+            target_user_id = message.reply_to_message.from_user.id
             await message.reply_to_message.delete()
         else:
-            time_arg = parts[2] if len(parts) > 2 else None
-            reason = parts[3] if len(parts) > 3 else "Без причины"
+            for arg in args:
+                if arg.startswith("@"):
+                    user_data = await fetch_user_data(username=arg.lstrip("@"))
+                    target_user_id = user_data.get("user_id")
+                    args.remove(arg)
+                    break
+                elif arg.isdigit():
+                    target_user_id = int(arg)
+                    args.remove(arg)
+                    break
+
+        if not target_user_id:
+            await message.reply("❌ Не указан пользователь")
+            return
+
+        if args:
+            reason = " ".join(args)
 
         duration = parse_time(time_arg) if time_arg else None
         until_date = datetime.now() + duration if duration else None
@@ -299,24 +315,45 @@ async def cmd_ban(message: Message, bot: Bot):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
-        parts = message.text.split(maxsplit=3)
+        text = message.text or ""
 
         if not db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ Недостаточно прав")
             return
 
-        target_user_id, error_msg = await get_user_id(message)
-        if not target_user_id:
-            await message.reply(f"❌ {error_msg}")
-            return
+        args = text.split()[1:]
+        time_arg = None
+        reason = "Без причины"
+        target_user_id = None
+
+        time_pattern = r"(\d+[dhmDs])"
+        for i, arg in enumerate(args):
+            if re.fullmatch(time_pattern, arg):
+                time_arg = arg
+                args.pop(i)
+                break
 
         if message.reply_to_message:
-            time_arg = parts[1] if len(parts) > 1 else None
-            reason = parts[2] if len(parts) > 2 else "Без причины"
+            target_user_id = message.reply_to_message.from_user.id
             await message.reply_to_message.delete()
         else:
-            time_arg = parts[2] if len(parts) > 2 else None
-            reason = parts[3] if len(parts) > 3 else "Без причины"
+            for arg in args:
+                if arg.startswith("@"):
+                    user_data = await fetch_user_data(username=arg.lstrip("@"))
+                    target_user_id = user_data.get("user_id")
+                    args.remove(arg)
+                    break
+                elif arg.isdigit():
+                    target_user_id = int(arg)
+                    args.remove(arg)
+                    break
+
+        if not target_user_id:
+            await message.reply("❌ Не указан пользователь")
+            return
+
+        if args:
+            reason = " ".join(args)
 
         duration = parse_time(time_arg) if time_arg else None
         until_date = datetime.now() + duration if duration else None
