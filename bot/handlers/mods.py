@@ -91,8 +91,25 @@ async def cmd_disable_func(message: Message, bot: Bot):
 @mods_router.message(Command("history"))
 async def cmd_history(message: Message, bot: Bot):
     try:
-        user_id = message.from_user.id
-        history = db.get_history(user_id, message.chat.id)
+        split_text = message.text.split()
+        chat_id = message.chat.id
+
+        if message.reply_to_message:
+            target_id = message.reply_to_message.from_user.id
+        elif split_text[1].startswith("@"):
+            username = split_text[1].lstrip("@")
+            data = await fetch_user_data(username=username, chat_id=chat_id)
+            if "error" in data:
+                await error_report(message, bot, "history", data["error"])
+                return
+            target_id = data["user_id"]
+        elif split_text[1].isdigit():
+            target_id = split_text[1]
+        else:
+            await error_report(
+                message, bot, "history", "Не выявленная ошибка синтаксиса."
+            )
+        history = db.get_history(target_id, message.chat.id)
 
         if not history:
             await message.reply("У вас пока нет наказаний.")
@@ -108,6 +125,7 @@ async def cmd_history(message: Message, bot: Bot):
 
         warns_count = len(history)
         response = (
+            f"История {target_id}\n"
             f"Всего наказаний: {warns_count}\n" f"История наказаний:\n{history_text}"
         )
         await message.reply(response)
