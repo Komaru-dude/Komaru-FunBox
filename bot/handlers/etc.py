@@ -143,7 +143,11 @@ async def send_weather(message: Message):
         ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
         return ansi_escape.sub("", line)
 
-    location = message.text.split()[1] if len(message.text.split()) > 1 else "Oymyakon"
+    parts = message.text.split()
+    location = parts[1] if len(parts) > 1 else "Oymyakon"
+    if len(parts) <= 1:
+        await message.reply("⚠️ Вы не указали город, будет использоваться Oymyakon")
+
     lang = (
         "ru"
         if location and location[0].lower() in "ёйцукенгшщзхъфывапролджэячсмитьбю"
