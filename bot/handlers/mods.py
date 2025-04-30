@@ -143,7 +143,6 @@ async def cmd_history(message: Message, bot: Bot):
 async def cmd_warn(message: Message, bot: Bot):
     command = "warn"
     try:
-        split_text = message.text.split(maxsplit=3)
         chat_id = message.chat.id
         if not db.has_permission(message.from_user.id, chat_id, 1):
             await message.reply(
@@ -155,70 +154,90 @@ async def cmd_warn(message: Message, bot: Bot):
             await message.reply("❌ Функция отключена.")
             return
 
-        if not message.reply_to_message and len(split_text) < 2:
+        if not message.reply_to_message and not message.text.split()[1:]:
             await message.reply(
                 "❌ Некорректный синтаксис: /warn реплай/@username/ID причина"
             )
             return
 
+        target_id = None
+        target_first_name = ""
+        reason = "Не указана"
+
         if message.reply_to_message:
             target_id = message.reply_to_message.from_user.id
             target_first_name = message.reply_to_message.from_user.first_name
-            reason = split_text[1] if len(split_text) >= 2 else "Не указана"
-        elif split_text[1].startswith("@"):
-            username = split_text[1].lstrip("@")
-            data = await fetch_user_data(username=username, chat_id=chat_id)
-            if "error" in data:
-                await error_report(message, bot, command, data["error"])
-                return
-            target_id = data["user_id"]
-            target_first_name = data["first_name"]
-            reason = split_text[2] if len(split_text) >= 3 else "Не указана"
-        elif split_text[1].isdigit():
-            target_id = split_text[1]
-            data = await fetch_user_data(user_id=target_id, chat_id=chat_id)
-            target_first_name = data["first_name"]
-            reason = split_text[2] if len(split_text) >= 3 else "Не указана"
+            reason_parts = message.text.split(maxsplit=1)
+            if len(reason_parts) > 1:
+                reason = reason_parts[1]
         else:
-            await error_report(
-                message, bot, command, "Не выявленная ошибка синтаксиса."
-            )
+            args = message.text.split(maxsplit=2)
+            if len(args) < 2:
+                await message.reply("❌ Укажите пользователя и причину")
+                return
+
+            target_part = args[1]
+            if len(args) > 2:
+                reason = args[2]
+
+            if target_part.startswith("@"):
+                username = target_part.lstrip("@")
+                data = await fetch_user_data(username=username, chat_id=chat_id)
+                if "error" in data:
+                    await error_report(message, bot, command, data["error"])
+                    return
+                target_id = data["user_id"]
+                target_first_name = data["first_name"]
+            elif target_part.isdigit():
+                target_id = int(target_part)
+                data = await fetch_user_data(user_id=target_id, chat_id=chat_id)
+                if "error" in data:
+                    await error_report(message, bot, command, data["error"])
+                    return
+                target_first_name = data["first_name"]
+            else:
+                await error_report(
+                    message, bot, command, "Неверный формат пользователя"
+                )
+                return
 
         if target_id == message.from_user.id:
             await message.reply("❌ Зачем предупреждать самого себя?")
             return
 
+        db.update_user_warns(target_id, chat_id, reason)
         user_data = db.get_user_data(target_id, chat_id)
+        current_warns = user_data[2]
+        warn_limit = user_data[9]
+
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
-
         await message.reply(
-            f"✏️ Пользователю {target_user_link} вынесено предупреждение!\nМодератор: {mod_link}\nПричина: {reason}\nКол-во варнов: {user_data[2]}/{user_data[9]}",
+            f"✏️ Пользователю <b>{target_user_link}</b> вынесено предупреждение!\n"
+            f"Модератор: {mod_link}\nПричина: {reason}\n"
+            f"Кол-во варнов: {current_warns}/{warn_limit}",
             parse_mode=ParseMode.HTML,
         )
-        if user_data[2] >= user_data[9]:
-            until_date = int(time.time()) + 2 * 3600
 
+        if current_warns >= warn_limit:
+            until_date = int(time.time()) + 2 * 3600
             await message.answer(
-                f"🔇 Пользователь {target_user_link} был замьючен!\nМодератор: Авто-мод\nПричина: Превышение лимита предупреждений",
+                f"🔇 Пользователь <b>{target_user_link}</b> был замьючен!\n"
+                f"Модератор: Авто-мод\nПричина: Превышение лимита предупреждений",
                 parse_mode=ParseMode.HTML,
             )
             db.update_user_warn_limit(target_id, chat_id, 3)
-            db.update_user_warns(target_id, chat_id, reason)
             await bot.restrict_chat_member(
                 chat_id,
                 target_id,
                 permissions=ChatPermissions(can_send_messages=False),
                 until_date=until_date,
             )
-        else:
-            db.update_user_warns(target_id, chat_id, reason)
 
     except TelegramBadRequest as e:
         await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
     except Exception:
         await error_report(message, bot, command, traceback.format_exc())
-        return
 
 
 @mods_router.message(Command("info"))
