@@ -116,11 +116,9 @@ async def cmd_status(message: Message, bot: Bot):
                             data = await resp.json()
                             latest_commit = data["commit"]["sha"][:7]
                             if latest_commit != commit:
-                                update_status = (
-                                    f"Доступно обновление: {branch}@{latest_commit}"
-                                )
+                                update_status = f"⚡️ <b>Доступно обновление</b>: {branch}@{latest_commit}"
                             else:
-                                update_status = "✅ Версия актуальна"
+                                update_status = "😌 <b>Версия актуальна</b>"
                         else:
                             update_status = f"⚠️ Ошибка API: {resp.status}"
             except Exception as e:
@@ -129,7 +127,7 @@ async def cmd_status(message: Message, bot: Bot):
         status_message = (
             f"🤖 <i>Komaru FunBox</i>\n"
             f"🧬 Версия: <code>{version}</code>\n"
-            f"🔄 {update_status}\n"
+            f"{update_status}\n"
             f"⏳ Пинг: {int(ping)} мс\n"
             f"🚀 Аптайм: {uptime_str}\n"
             f"📊 CPU (5 мин): {avg_cpu_load:.1f}%\n"
