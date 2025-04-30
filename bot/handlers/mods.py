@@ -7,7 +7,12 @@ from aiogram.types import Message, ChatPermissions
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from bot import db
-from bot.utils.aio_tools import fetch_user_data, error_report
+from bot.utils.aio_tools import (
+    fetch_user_data,
+    error_report,
+    get_user_id,
+    fetch_user_data,
+)
 
 mods_router = Router()
 API_URL = "http://127.0.0.1:8001"
@@ -196,3 +201,46 @@ async def cmd_warn(message: Message, bot: Bot):
     except Exception:
         await error_report(message, bot, command, traceback.format_exc())
         return
+
+
+@mods_router.message(Command("info"))
+async def cmd_info(message: Message, bot: Bot):
+    try:
+        chat_id = message.chat.id
+        split_text = message.text.split()
+        error = None
+        if len(split_text) < 2:
+            user_id = message.from_user.id
+        else:
+            user_id, error = await get_user_id(message)
+
+        if error:
+            return await message.reply(f"❌ {error}")
+
+        user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
+        if "error" in user_info:
+            return await message.reply(f"❌ {user_info['error']}")
+
+        user_data = db.get_user_data(user_info["user_id"], chat_id)
+        if not user_data:
+            return await message.reply("❌ Пользователь не найден в базе данных")
+
+        profile_link = f"tg://user?id={user_info['user_id']}"
+        clickable_name = f'<a href="{profile_link}">{user_info["first_name"]}</a>'
+
+        info_text = (
+            f"👤 Информация о {clickable_name}\n"
+            f"🆔 ID: {user_info['user_id']}\n"
+            f"📊 Статистика:\n"
+            f"⚠ Предупреждения: {user_data[2]}/{user_data[9]}\n"
+            f"🔇 Мьюты: {user_data[4]}\n"
+            f"🔨 Баны: {user_data[3]}\n"
+            f"💎 Репутация: {user_data[5]}\n"
+            f"📨 Сообщений: {user_data[7]}\n"
+            f"🏅 Ранг: {user_data[6]}\n"
+        )
+
+        await message.reply(info_text, parse_mode=ParseMode.HTML)
+
+    except Exception:
+        await error_report(message, bot, "info", traceback.format_exc())
