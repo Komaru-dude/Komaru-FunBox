@@ -118,7 +118,7 @@ async def cmd_history(message: Message, bot: Bot):
         history = db.get_history(target_id, chat_id)
 
         if not history:
-            await message.reply("У вас пока нет наказаний.")
+            await message.reply(f"У {target_id} пока нет наказаний.")
             return
 
         history_text = ""
