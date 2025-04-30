@@ -260,7 +260,7 @@ async def cmd_shutter(message: Message, bot: Bot):
 
             return "".join(parts)
 
-        if message.reply_to_message:
+        if message.reply_to_message and message.reply_to_message.text:
             text = message.reply_to_message.text
         else:
             parts = message.text.split(maxsplit=1)
