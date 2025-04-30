@@ -117,7 +117,7 @@ async def cmd_status(message: Message, bot: Bot):
                             latest_commit = data["commit"]["sha"][:7]
                             if latest_commit != commit:
                                 update_status = (
-                                    f"🔔 Доступно обновление: {branch}@{latest_commit}"
+                                    f"Доступно обновление: {branch}@{latest_commit}"
                                 )
                             else:
                                 update_status = "✅ Версия актуальна"
