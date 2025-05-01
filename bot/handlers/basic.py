@@ -24,9 +24,12 @@ start_time = time.time()
 @base_router.message(Command("start"))
 async def cmd_start(message: Message):
     await message.reply(
-        "Привет!\n"
-        "Это развлекательный и модерационный бот.\n"
-        "Если хочешь узнать более подробную информацию о командах: /help"
+        f"👋 Привет, {message.from_user.first_name}!\n"
+        "🤖 Это развлекательный и модерационный бот.\n"
+        "❔ Если хочешь узнать более подробную информацию о командах, напиши /help.\n\n"
+        "👤 Владелец бота: @komaru_dude\n"
+        "🧑‍💻 Исходный код бота: https://github.com/Komaru-dude/Komaru-FunBox\n\n"
+        "🎩 Приятного использования!"
     )
 
 
