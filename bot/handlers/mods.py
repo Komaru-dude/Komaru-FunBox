@@ -117,7 +117,7 @@ async def cmd_history(message: Message, bot: Bot):
         history = db.get_history(target_id, chat_id)
 
         if not history:
-            await message.reply(f"У {target_id} пока нет наказаний.")
+            await message.reply(f"😋 У {target_id} пока нет наказаний.")
             return
 
         history_text = ""
@@ -130,8 +130,8 @@ async def cmd_history(message: Message, bot: Bot):
 
         warns_count = len(history)
         response = (
-            f"История {target_id}\n"
-            f"Всего наказаний: {warns_count}\nИстория наказаний:\n{history_text}"
+            f"👤 История {target_id}\n"
+            f"🔢 Всего наказаний: {warns_count}\n📝 История наказаний:\n{history_text}"
         )
         await message.reply(response)
 
@@ -214,8 +214,8 @@ async def cmd_warn(message: Message, bot: Bot):
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
         await message.reply(
             f"✏️ Пользователю <b>{target_user_link}</b> вынесено предупреждение!\n"
-            f"Модератор: {mod_link}\nПричина: {reason}\n"
-            f"Кол-во варнов: {current_warns}/{warn_limit}",
+            f"👤 Модератор: {mod_link}\nПричина: {reason}\n"
+            f"🔢 Кол-во варнов: {current_warns}/{warn_limit}",
             parse_mode=ParseMode.HTML,
         )
 
@@ -223,7 +223,7 @@ async def cmd_warn(message: Message, bot: Bot):
             until_date = int(time.time()) + 2 * 3600
             await message.answer(
                 f"🔇 Пользователь <b>{target_user_link}</b> был замьючен!\n"
-                f"Модератор: Авто-мод\nПричина: Превышение лимита предупреждений",
+                f"👤 Модератор: Авто-мод\n📝 Причина: Превышение лимита предупреждений",
                 parse_mode=ParseMode.HTML,
             )
             db.update_user_warn_limit(target_id, chat_id, 3)
@@ -345,7 +345,7 @@ async def cmd_mute(message: Message, bot: Bot):
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
         await message.reply(
             f"🔇 Пользователь <b>{target_user_id}</b> замьючен до {time_str}\n"
-            f"Причина: {reason}",
+            f"📝 Причина: {reason}",
             parse_mode=ParseMode.HTML,
         )
     except Exception as e:
@@ -409,7 +409,7 @@ async def cmd_ban(message: Message, bot: Bot):
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
         await message.reply(
             f"⛔ Пользователь <b>{target_user_id}</b> забанен до {time_str}\n"
-            f"Причина: {reason}",
+            f"📝 Причина: {reason}",
             parse_mode=ParseMode.HTML,
         )
     except Exception as e:
@@ -439,7 +439,7 @@ async def cmd_unmute(message: Message, bot: Bot):
             ),
         )
         await message.reply(
-            f"🔄 Пользователь <b>{target_user_id}</b> размьючен",
+            f"✅ Пользователь <b>{target_user_id}</b> размьючен",
             parse_mode=ParseMode.HTML,
         )
     except Exception as e:
