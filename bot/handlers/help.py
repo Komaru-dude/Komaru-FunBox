@@ -99,6 +99,7 @@ async def cmd_help(message: Message, bot: Bot):
             "unban": "Разбанивает пользователя, позволяет ему снова войти в чат.\nПример: <code>/unban @username/ID</code>",
             "enable": "Включает функцию, требует права модератора.\nПример: <code>/enable who</code>",
             "disable": "Выключает функцию, требует права модератора.\nПример: <code>/disable who</code>",
+            "modules": "<b>Модули</b>\n\nЭто система для управления функциями бота, в основном используется для текстовых триггеров, например 'who'\n\nДля управления используется <code>/enable *имя*</code> и <code>/disable *имя*</code>",
         }
 
         mod_short_descriptions = {
@@ -161,7 +162,9 @@ async def cmd_help(message: Message, bot: Bot):
             await message.reply(
                 f"Доступные команды:\n{command_list}\n\n"
                 f"Доступные модули:\n{modules_list}\n\n"
-                "Для подробного описания используйте: /help <команда или модуль>"
+                "Для подробного описания используйте: <code>/help *команда или модуль*</code>\n"
+                "Для описания системы модулей используйте: <code>/help modules</code>",
+                parse_mode=ParseMode.HTML,
             )
     except Exception:
         await error_report(message, bot, "help", traceback.format_exc())
