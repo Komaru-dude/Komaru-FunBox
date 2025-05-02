@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
-from bot.handlers.ai import cmd_gemini, ArgueChatState
+from bot.handlers.ai import cmd_ai, ArgueChatState
 from bot.handlers.video import cmd_video
 from bot.utils.global_storage import argue_active_chats
 from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
@@ -124,7 +124,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                 },
                 {"role": "user", "content": message.reply_to_message.text},
             ]
-            await cmd_gemini(message, bot, model="gpt-4o-mini", messages=messages)
+            await cmd_ai(message, bot, model="gpt-4o-mini", messages=messages)
             return
         elif message.text.startswith(("http://", "https://")) and db.is_feature_enabled(
             chat_id, "autovideo"

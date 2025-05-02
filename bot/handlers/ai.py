@@ -32,10 +32,8 @@ class ArgueChatState(StatesGroup):
     active = State()
 
 
-@ai_router.message(Command("gemini"))
-async def cmd_gemini(
-    message: Message, bot: Bot, model: str = None, messages: list = None
-):
+@ai_router.message(Command("ai"))
+async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list = None):
     try:
         base_msg = await message.reply("🔄 Обработка...")
         split_text = message.text.split(maxsplit=1)
@@ -59,16 +57,13 @@ async def cmd_gemini(
             api_key=os.getenv("ONLYSQ_API_KEY"),
             base_url="https://api.onlysq.ru/ai/openai",
         )
-        model = model or "gemini-2.0-flash"
+        model = model or "gpt-4o"
         messages = messages or [
             {
                 "role": "system",
-                "content": f"Не используй markdown/html форматирование",
+                "content": f"Не используй markdown/html форматирование, будь краток",
             },
-            {
-                "role": "user",
-                "content": request
-            }
+            {"role": "user", "content": request},
         ]
 
         response = await client.chat.completions.create(model=model, messages=messages)
@@ -89,7 +84,7 @@ async def cmd_gemini(
             model = (
                 response.get("model") if isinstance(response, dict) else response.model
             )
-            if model in ("deepseek-r1", "o3-mini", "o1-preview"):
+            if model == "deepseek-r1":
                 answer = re.sub(
                     r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
                 ).strip()
@@ -113,10 +108,10 @@ async def cmd_gemini(
     except openai.RateLimitError:
         await base_msg.edit_text("❌ Привышен лимит запросов к API. Попробуйте позже")
     except Exception:
-        await error_report(message, bot, "gemini", traceback.format_exc())
+        await error_report(message, bot, "ai", traceback.format_exc())
 
 
-@ai_router.message(Command("aggemini"))
+@ai_router.message(Command("agai"))
 async def cmd_aggemini(message: Message, bot: Bot):
     try:
         split_text = message.text.split(maxsplit=1)
@@ -139,9 +134,9 @@ async def cmd_aggemini(message: Message, bot: Bot):
             }
         ]
 
-        await cmd_gemini(message, bot, messages=messages)
+        await cmd_ai(message, bot, messages=messages)
     except Exception:
-        await error_report(message, bot, "aggemini", traceback.format_exc())
+        await error_report(message, bot, "agai", traceback.format_exc())
 
 
 @ai_router.message(Command("deepseek"))
@@ -167,7 +162,7 @@ async def cmd_deepseek(message: Message, bot: Bot):
             }
         ]
 
-        await cmd_gemini(message, bot, model="deepseek-r1", messages=messages)
+        await cmd_ai(message, bot, model="deepseek-r1", messages=messages)
     except Exception:
         await error_report(message, bot, "deepseek", traceback.format_exc())
 
@@ -195,7 +190,7 @@ async def cmd_agdeepseek(message: Message, bot: Bot):
             }
         ]
 
-        await cmd_gemini(message, bot, model="deepseek-r1", messages=messages)
+        await cmd_ai(message, bot, model="deepseek-r1", messages=messages)
     except Exception:
         await error_report(message, bot, "agdeepseek", traceback.format_exc())
 
@@ -218,7 +213,7 @@ async def cmd_search(message: Message, bot: Bot):
 
         messages = [{"role": "user", "content": request}]
 
-        await cmd_gemini(message, bot, model="searchgpt", messages=messages)
+        await cmd_ai(message, bot, model="searchgpt", messages=messages)
     except Exception:
         await error_report(message, bot, "search", traceback.format_exc())
 
