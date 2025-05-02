@@ -62,8 +62,12 @@ async def cmd_gemini(
         model = model or "gemini-2.0-flash"
         messages = messages or [
             {
+                "role": "system",
+                "content": f"Не используй markdown/html форматирование",
+            },
+            {
                 "role": "user",
-                "content": f"Не используй markdown/html форматирование, запрос пользователя: {request}",
+                "content": request
             }
         ]
 
