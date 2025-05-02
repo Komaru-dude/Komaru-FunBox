@@ -348,6 +348,8 @@ async def cmd_mute(message: Message, bot: Bot):
             f"📝 Причина: {reason}",
             parse_mode=ParseMode.HTML,
         )
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
     except Exception as e:
         await error_report(message, bot, "mute", str(e))
 
@@ -412,6 +414,8 @@ async def cmd_ban(message: Message, bot: Bot):
             f"📝 Причина: {reason}",
             parse_mode=ParseMode.HTML,
         )
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
     except Exception as e:
         await error_report(message, bot, "ban", str(e))
 
@@ -442,6 +446,8 @@ async def cmd_unmute(message: Message, bot: Bot):
             f"✅ Пользователь <b>{target_user_id}</b> размьючен",
             parse_mode=ParseMode.HTML,
         )
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
     except Exception as e:
         await error_report(message, bot, "unmute", str(e))
 
@@ -466,5 +472,7 @@ async def cmd_unban(message: Message, bot: Bot):
             f"✅ Пользователь <b>{target_user_id}</b> разбанен",
             parse_mode=ParseMode.HTML,
         )
+    except TelegramBadRequest as e:
+        await message.reply(f"⚠️ Возникла ошибка телеграмма: {e}")
     except Exception as e:
         await error_report(message, bot, "unban", str(e))
