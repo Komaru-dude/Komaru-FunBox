@@ -8,15 +8,15 @@ from pathlib import Path
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
-from bot.utils.aio_tools import fetch_json
-from bot.utils.global_storage import known_models
+# from bot.utils.aio_tools import fetch_json
+# from bot.utils.global_storage import known_models
 
 from .handlers.basic import base_router
 from .handlers.etc import etc_router
 from .handlers.time import time_router
 from .handlers.help import help_router
 from .handlers.rp import rp_router
-from .handlers.ai import ai_router
+# from .handlers.ai import ai_router
 from .handlers.mods import mods_router
 from .handlers.rights import rights_router
 from .handlers.tag import tag_router
@@ -32,21 +32,21 @@ bot = Bot(token)
 dp = Dispatcher()
 
 
-async def fetch_models():
-    try:
-        data = await fetch_json("https://api.onlysq.ru/ai/models")
-        models = data.get("models", {})
-        known_models.clear()
-        known_models.update(
-            {
-                k: v
-                for k, v in models.items()
-                if v.get("modality") == "text" and v.get("status") == "work"
-            }
-        )
-        logging.info(f"Загружено {len(known_models)} моделей")
-    except Exception as e:
-        logging.error(f"Не удалось загрузить модели: {e}")
+# async def fetch_models():
+#     try:
+#         data = await fetch_json("https://api.onlysq.ru/ai/models")
+#         models = data.get("models", {})
+#         known_models.clear()
+#         known_models.update(
+#             {
+#                 k: v
+#                 for k, v in models.items()
+#                 if v.get("modality") == "text" and v.get("status") == "work"
+#             }
+#         )
+#         logging.info(f"Загружено {len(known_models)} моделей")
+#     except Exception as e:
+#         logging.error(f"Не удалось загрузить модели: {e}")
 
 
 def clear_cache():
@@ -72,7 +72,7 @@ def clear_cache():
 
 async def main():
     clear_cache()
-    await fetch_models()
+    # await fetch_models()
 
     dp.include_routers(
         base_router,
@@ -80,7 +80,7 @@ async def main():
         time_router,
         help_router,
         rp_router,
-        ai_router,
+        # ai_router,
         mods_router,
         rights_router,
         tag_router,
