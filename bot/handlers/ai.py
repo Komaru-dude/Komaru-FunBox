@@ -9,8 +9,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, BufferedInputFile
 from aiogram.enums import ParseMode
+from bot.__main__ import known_models
 from bot.utils.aio_tools import make_post_request, error_report
-from bot.utils.global_storage import argue_active_chats, argue_active_chats_lock, known_models
+from bot.utils.global_storage import argue_active_chats, argue_active_chats_lock
 from bot import db
 
 ai_router = Router()
