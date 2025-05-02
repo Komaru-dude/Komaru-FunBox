@@ -9,7 +9,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
-from bot.utils.aio_tools import fetch_json
 
 from .handlers.basic import base_router
 from .handlers.etc import etc_router
@@ -30,22 +29,6 @@ logging.basicConfig(level=logging.INFO)
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
-known_models = set()
-
-
-async def fetch_models():
-    global known_models
-    try:
-        data = await fetch_json("https://api.onlysq.ru/ai/models")
-        models = data.get("models", {})
-        known_models = {
-            k
-            for k, v in models.items()
-            if v.get("modality") == "text" and v.get("status") == "work"
-        }
-        logging.info(f"Загружено {len(known_models)} моделей")
-    except Exception as e:
-        logging.error(f"Не удалось достать модели: {e}")
 
 
 def clear_cache():
@@ -71,7 +54,6 @@ def clear_cache():
 
 async def main():
     clear_cache()
-    fetch_models()
 
     dp.include_routers(
         base_router,
