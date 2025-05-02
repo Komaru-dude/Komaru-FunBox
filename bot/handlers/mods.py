@@ -236,7 +236,9 @@ async def cmd_warn(message: Message, bot: Bot):
 
     except TelegramBadRequest as e:
         if "not enough rights to restrict/unrestrict chat member" in str(e):
-            await message.reply("⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав.")
+            await message.reply(
+                "⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав."
+            )
         else:
             await message.reply(f"⚠️ Ошибка Telegram: {e}")
     except Exception:
@@ -353,7 +355,9 @@ async def cmd_mute(message: Message, bot: Bot):
         )
     except TelegramBadRequest as e:
         if "not enough rights to restrict/unrestrict chat member" in str(e):
-            await message.reply("⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав.")
+            await message.reply(
+                "⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав."
+            )
         else:
             await message.reply(f"⚠️ Ошибка Telegram: {e}")
     except Exception as e:
@@ -422,7 +426,9 @@ async def cmd_ban(message: Message, bot: Bot):
         )
     except TelegramBadRequest as e:
         if "not enough rights to restrict/unrestrict chat member" in str(e):
-            await message.reply("⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав.")
+            await message.reply(
+                "⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав."
+            )
         else:
             await message.reply(f"⚠️ Ошибка Telegram: {e}")
     except Exception as e:
@@ -457,7 +463,9 @@ async def cmd_unmute(message: Message, bot: Bot):
         )
     except TelegramBadRequest as e:
         if "not enough rights to restrict/unrestrict chat member" in str(e):
-            await message.reply("⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав.")
+            await message.reply(
+                "⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав."
+            )
         else:
             await message.reply(f"⚠️ Ошибка Telegram: {e}")
     except Exception as e:
@@ -486,7 +494,9 @@ async def cmd_unban(message: Message, bot: Bot):
         )
     except TelegramBadRequest as e:
         if "not enough rights to restrict/unrestrict chat member" in str(e):
-            await message.reply("⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав.")
+            await message.reply(
+                "⚠️ Не удалось изменить права пользователя — возможно, он администратор или у меня недостаточно прав."
+            )
         else:
             await message.reply(f"⚠️ Ошибка Telegram: {e}")
     except Exception as e:
