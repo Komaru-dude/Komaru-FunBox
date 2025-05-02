@@ -9,6 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, BufferedInputFile
 from aiogram.enums import ParseMode
+from bot.__main__ import known_models
 from bot.utils.aio_tools import make_post_request, error_report
 from bot.utils.global_storage import argue_active_chats, argue_active_chats_lock
 from bot import db
@@ -36,73 +37,80 @@ class ArgueChatState(StatesGroup):
 async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list = None):
     try:
         base_msg = await message.reply("🔄 Обработка...")
-        split_text = message.text.split(maxsplit=1)
+        split_text = message.text.split(maxsplit=2)
 
         if db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            await base_msg.edit_text("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        if len(split_text) < 2 and not message.reply_to_message:
-            await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
-            return
+        model_candidate = None
+        request = None
 
-        if len(split_text) >= 2 and message.reply_to_message:
-            request = f'"{message.reply_to_message.text}"\n{split_text[1]}'
+        if len(split_text) >= 2:
+            possible_model = split_text[1].strip().lower()
+            if possible_model in known_models and len(split_text) >= 3:
+                model_candidate = possible_model
+                request = split_text[2]
+            elif possible_model in known_models and message.reply_to_message:
+                model_candidate = possible_model
+                request = message.reply_to_message.text
+            elif message.reply_to_message:
+                request = f'"{message.reply_to_message.text}"\n{split_text[1]}'
+            else:
+                request = split_text[1]
         elif message.reply_to_message:
             request = message.reply_to_message.text
         else:
-            request = split_text[1]
+            await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
+            return
+
+        model = model_candidate or model or "gpt-4o-mini"
+
+        messages = messages or [
+            {
+                "role": "system",
+                "content": "Не используй markdown/html форматирование, будь краток",
+            },
+            {"role": "user", "content": request},
+        ]
 
         client = openai.AsyncOpenAI(
             api_key=os.getenv("ONLYSQ_API_KEY"),
             base_url="https://api.onlysq.ru/ai/openai",
         )
-        model = model or "gpt-4o"
-        messages = messages or [
-            {
-                "role": "system",
-                "content": f"Не используй markdown/html форматирование, будь краток",
-            },
-            {"role": "user", "content": request},
-        ]
 
         response = await client.chat.completions.create(model=model, messages=messages)
 
         choices = (
             response.get("choices") if isinstance(response, dict) else response.choices
         )
-
         if not choices:
             answer = "⚠️ Ошибка: пустой ответ от API"
         else:
-            answer_content = (
+            content = (
                 choices[0]["message"]["content"]
                 if isinstance(response, dict)
                 else choices[0].message.content
             )
-
-            model = (
+            actual_model = (
                 response.get("model") if isinstance(response, dict) else response.model
             )
-            if model == "deepseek-r1":
+            if actual_model == "deepseek-r1":
                 answer = re.sub(
-                    r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
+                    r"<think>.*?</think>", "", content, flags=re.DOTALL
                 ).strip()
             else:
-                answer = answer_content
+                answer = content
 
         raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
-        chunks = (
-            [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
-            if len(raw_answer) > 4096
-            else [raw_answer]
-        )
+        chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
 
         for idx, chunk in enumerate(chunks):
             if idx == 0:
                 await base_msg.edit_text(chunk)
             else:
                 await base_msg.reply(chunk)
+
     except openai.InternalServerError:
         await base_msg.edit_text("⚠️ Внутренняя ошибка API")
     except openai.RateLimitError:
