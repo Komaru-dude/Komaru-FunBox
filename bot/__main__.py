@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 from bot.utils.aio_tools import fetch_json
-# from bot.utils.global_storage import known_models
+from bot.utils.global_storage import known_models
 
 from .handlers.basic import base_router
 from .handlers.etc import etc_router
