@@ -15,3 +15,12 @@
 ## Настройка
 
 `sudo bash -c "$(curl -sSL https://github.com/Komaru-dude/Komaru-FunBox/raw/test/setup.sh)"`
+
+## Благодарности
+
+* [Aiogram](https://aiogram.dev/) — за асинхронный фреймворк, без которого этот бот бы не появился.
+* [OnlySq](https://docs.onlysq.ru/) — за удобное и мощное API 2.0, на котором основана большая часть логики бота.
+* @Ellenj0, @Plasbag — за идеи и вдохновение.*
+* @Plasbag, @one00xx, @nillerxs — за моральную поддержку и мотивацию.*
+
+\* — Telegram-юзернеймы
