@@ -38,11 +38,9 @@ async def fetch_models():
         models = data.get("models", {})
         known_models.clear()
         known_models.update(
-            {
-                k: v
-                for k, v in models.items()
-                if v.get("modality") == "text" and v.get("status") == "work"
-            }
+            k
+            for k, v in models.items()
+            if v.get("modality") == "text" and v.get("status") == "work"
         )
         logging.info(f"Загружено {len(known_models)} моделей")
     except Exception as e:
