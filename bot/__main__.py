@@ -70,7 +70,7 @@ def clear_cache():
 
 async def main():
     clear_cache()
-    await fetch_models()
+    # await fetch_models()
 
     dp.include_routers(
         base_router,
