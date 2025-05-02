@@ -57,7 +57,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             api_key=os.getenv("ONLYSQ_API_KEY"),
             base_url="https://api.onlysq.ru/ai/openai",
         )
-        model = model or "gpt-4o"
+        model = model or "gpt-4o-mini"
         messages = messages or [
             {
                 "role": "system",
