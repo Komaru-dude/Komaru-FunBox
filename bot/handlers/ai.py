@@ -106,7 +106,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
     except openai.InternalServerError:
         await base_msg.edit_text("⚠️ Внутренняя ошибка API")
     except openai.RateLimitError:
-        await base_msg.edit_text("❌ Привышен лимит запросов к API. Попробуйте позже")
+        await base_msg.edit_text("❌ Превышен лимит запросов к API. Попробуйте позже")
     except Exception:
         await error_report(message, bot, "ai", traceback.format_exc())
 
