@@ -3,6 +3,7 @@ import aiohttp
 import re
 import traceback
 import openai
+from collections import defaultdict
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -39,15 +40,15 @@ class ArgueChatState(StatesGroup):
 @ai_router.message(Command("available_models"))
 async def show_working_models(message: Message):
     working_models = [
-        model for model in onlysq_models["models"].values() if model["status"] == "work"
+        {"id": model_id, **model_data}
+        for model_id, model_data in onlysq_models["models"].items()
+        if model_data["status"] == "work"
     ]
 
     categories = {}
     for model in working_models:
         modality = model["modality"]
-        if modality not in categories:
-            categories[modality] = []
-        categories[modality].append(model)
+        categories.setdefault(modality, []).append(model)
 
     message_text = ""
     category_names = {
@@ -65,9 +66,11 @@ async def show_working_models(message: Message):
             type_icon = "🔑" if model["type"] == "keys" else "🌐"
             stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
 
+            display_name = model["id"]
+
             model_line = (
                 f"{paid_icon} {type_icon} "
-                f"<code>{model['name']}</code>{stream_icon}\n"
+                f"<code>{display_name}</code>{stream_icon}\n"
             )
             category_body.append(model_line)
 
