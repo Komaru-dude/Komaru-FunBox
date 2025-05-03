@@ -53,7 +53,9 @@ async def cmd_rp_setup(message: Message, bot: Bot):
             return
 
         if not db.has_permission(user_id, chat_id, 2):
-            await message.reply("❌ У вас недостаточно прав для выполнению этой команды")
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнению этой команды"
+            )
             return
 
         if db.is_user_mediabanned(message.from_user.id):

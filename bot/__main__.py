@@ -55,6 +55,7 @@ async def load_models():
             onlysq_models.update(models)
             logging.info(f"Загружено {len(models.get('models', []))} моделей")
         else:
+            logging.info("Модели существуют в кэше, загружаю...")
             with open(models_path, "r") as json_file:
                 saved_models = json.load(json_file)
 
@@ -62,9 +63,7 @@ async def load_models():
                     raise ValueError("Некорректный формат файла моделей")
 
                 onlysq_models.update(saved_models)
-                logging.info(
-                    f"Загружено {len(saved_models.get('models', []))} моделей из кэша"
-                )
+                logging.info(f"Загружено {len(saved_models.get('models', []))} моделей")
 
     except (json.JSONDecodeError, IOError, ValueError) as e:
         logging.error(f"Ошибка загрузки моделей: {e}")
