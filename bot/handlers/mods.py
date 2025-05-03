@@ -272,7 +272,7 @@ async def cmd_info(message: Message, bot: Bot):
 
         info_text = (
             f"👤 Информация о {clickable_name}\n"
-            f"🆔 ID: {user_info['user_id']}\n"
+            f"🆔 ID: {user_info['user_id']}\n\n"
             f"📊 Статистика:\n"
             f"⚠ Предупреждения: {user_data[2]}/{user_data[9]}\n"
             f"🔇 Мьюты: {user_data[4]}\n"
