@@ -63,13 +63,12 @@ async def show_working_models(message: Message):
 
         for model in models:
             paid_icon = "🔐" if model["paid"] else "🆓"
-            type_icon = "🔑" if model["type"] == "keys" else "🌐"
             stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
 
             display_name = model["id"]
 
             model_line = (
-                f"{paid_icon} {type_icon} "
+                f"{paid_icon} "
                 f"<code>{display_name}</code>{stream_icon}\n"
             )
             category_body.append(model_line)
