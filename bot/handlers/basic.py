@@ -1,3 +1,4 @@
+import os
 import time
 import psutil
 import aiohttp
@@ -15,6 +16,7 @@ from bot import db
 from bot.utils.aio_tools import error_report
 
 base_router = Router()
+models_path = db.DATA_DIR / "models.json"
 # Списки хранения данных для /status
 cpu_loads = []
 memory_loads = []
@@ -213,6 +215,8 @@ async def cmd_restart(message: Message, bot: Bot):
                 return await message.reply(f"⚠️ Ошибка API: {resp.status}")
 
     await message.reply("🔄 Обновляюсь...")
+
+    os.remove(models_path)
 
     try:
         subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
