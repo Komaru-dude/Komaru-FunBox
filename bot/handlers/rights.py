@@ -25,6 +25,11 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
+    
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
+
         owner_id = await aio_tools.get_chat_owner_id(bot, chat_id)
 
         if not (db.has_permission(user_id, chat_id, 2) or owner_id == user_id):

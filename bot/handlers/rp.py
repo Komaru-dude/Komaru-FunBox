@@ -124,8 +124,8 @@ async def cmd_rp_list(message: Message, bot: Bot):
         chat_id = message.chat.id
         commands = get_chat_commands(chat_id)
 
-        if message.chat.type == "private" or message.chat.type == "channel":
-            await message.reply("Эта команда доступна только в группах/супергруппах")
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
         if not commands:
@@ -147,30 +147,33 @@ class AddRpCommandStates(StatesGroup):
 
 
 @rp_router.message(Command("rp_add"))
-async def cmd_rp_add(message: Message, state: FSMContext):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
+async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
 
-    if message.chat.type == "private" or message.chat.type == "channel":
-        await message.reply("Эта команда доступна только в группах/супергруппах")
-        return
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
-    if not db.has_permission(user_id, chat_id, 2):
-        await message.reply("У вас недостаточно прав для выполнению этой команды")
-        return
+        if not db.has_permission(user_id, chat_id, 2):
+            await message.reply("У вас недостаточно прав для выполнению этой команды")
+            return
 
-    if db.is_user_mediabanned(message.from_user.id):
-        await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-        return
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
 
-    await message.answer(
-        "🛠 Давайте создадим новую RP-команду!\n\n"
-        "Шаг 1/3: Введите название команды (без /)\n"
-        "Например: <code>обнять</code>\n\n"
-        "❌ Для отмены введите /cancel",
-        parse_mode=ParseMode.HTML,
-    )
-    await state.set_state(AddRpCommandStates.waiting_for_command_name)
+        await message.answer(
+            "🛠 Давайте создадим новую RP-команду!\n\n"
+            "Шаг 1/3: Введите название команды (без /)\n"
+            "Например: <code>обнять</code>\n\n"
+            "❌ Для отмены введите /cancel",
+            parse_mode=ParseMode.HTML,
+        )
+        await state.set_state(AddRpCommandStates.waiting_for_command_name)
+    except Exception:
+        await error_report(message, bot, "rp_add", traceback.format_exc())
 
 
 @rp_router.message(AddRpCommandStates.waiting_for_command_name)
@@ -267,8 +270,8 @@ async def cmd_rp_remove(message: Message, bot: Bot):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if message.chat.type == "private" or message.chat.type == "channel":
-            await message.reply("Эта команда доступна только в группах/супергруппах")
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
         if not db.has_permission(user_id, chat_id, 2):
