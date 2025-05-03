@@ -124,7 +124,7 @@ async def cmd_status(message: Message, bot: Bot):
 
         status_message = (
             f"<blockquote><b>🍕 Komaru FunBox</b>\n"
-            f"🧬 Версия: <code>{version}</code>\n"
+            f"🧬 Версия: <code>{version}@{commit}</code>\n"
             f"🌿 Ветка: <b>{branch}</b>\n"
             f"{update_status}\n"
             f"⏳ Пинг: {int(ping)} мс\n"
