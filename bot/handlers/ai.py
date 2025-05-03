@@ -10,7 +10,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, BufferedInputFile
 from aiogram.enums import ParseMode
 from bot.utils.aio_tools import make_post_request, error_report
-from bot.utils.global_storage import argue_active_chats, argue_active_chats_lock
+from bot.utils.global_storage import (
+    argue_active_chats,
+    argue_active_chats_lock,
+    onlysq_models,
+)
 from bot import db
 
 ai_router = Router()
@@ -36,54 +40,64 @@ class ArgueChatState(StatesGroup):
 async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list = None):
     try:
         base_msg = await message.reply("🔄 Обработка...")
-        split_text = message.text.split(maxsplit=1)
+        split_text = message.text.split(maxsplit=1) if message.text else [""]
 
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        if len(split_text) < 2 and not message.reply_to_message:
-            await base_msg.edit_text("❌ Пожалуйста, укажите сообщение для нейросети.")
-            return
+        args_text = split_text[1] if len(split_text) > 1 else ""
+        model_name = None
+        request = ""
 
-        if len(split_text) >= 2 and message.reply_to_message:
-            request = f'"{message.reply_to_message.text}"\n{split_text[1]}'
-        elif message.reply_to_message:
-            request = message.reply_to_message.text
-        else:
-            request = split_text[1]
+        if "-m" in args_text:
+            model_match = re.search(r"-m\s+(\S+)", args_text)
+            if not model_match:
+                await base_msg.edit_text("❌ Укажите название модели после -m")
+                return
+            model_name = model_match.group(1).lower()
+            args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
+
+        if model_name:
+            model_info = onlysq_models["models"].get(model_name)
+            if not model_info:
+                await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
+                return
+            if model_info["status"] != "work":
+                await base_msg.edit_text(f"❌ Модель {model_name} на данный момент не работает.")
+                return
+            model = model_name
+
+        if message.reply_to_message:
+            request += f'"{message.reply_to_message.text}"\n'
+        if args_text:
+            request += args_text
+
+        if not request.strip():
+            await base_msg.edit_text("❌ Пустой запрос")
+            return
 
         client = openai.AsyncOpenAI(
             api_key=os.getenv("ONLYSQ_API_KEY"),
             base_url="https://api.onlysq.ru/ai/openai",
         )
+
         model = model or "gpt-4o-mini"
         messages = messages or [
             {
                 "role": "system",
-                "content": f"Не используй markdown/html форматирование, будь краток",
+                "content": "Не используй markdown/html форматирование, будь краток",
             },
             {"role": "user", "content": request},
         ]
 
         response = await client.chat.completions.create(model=model, messages=messages)
 
-        choices = (
-            response.get("choices") if isinstance(response, dict) else response.choices
-        )
-
+        choices = response.choices
         if not choices:
             answer = "⚠️ Ошибка: пустой ответ от API"
         else:
-            answer_content = (
-                choices[0]["message"]["content"]
-                if isinstance(response, dict)
-                else choices[0].message.content
-            )
-
-            model = (
-                response.get("model") if isinstance(response, dict) else response.model
-            )
+            answer_content = choices[0].message.content
             if model == "deepseek-r1":
                 answer = re.sub(
                     r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
@@ -91,23 +105,30 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             else:
                 answer = answer_content
 
-        raw_answer = f"💭 Запрос: {request}\n\n🧠 Ответ нейросети: {answer}"
-        chunks = (
-            [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
-            if len(raw_answer) > 4096
-            else [raw_answer]
+        model_display_name = (
+            onlysq_models["models"][model]["name"]
+            if model in onlysq_models["models"]
+            else model
         )
+        raw_answer = (
+            f"💭 Запрос: {request}\n"
+            f"🧠 Модель: {model_display_name}\n\n"
+            f"📝 Ответ: {answer}"
+        )
+
+        chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
 
         for idx, chunk in enumerate(chunks):
             if idx == 0:
                 await base_msg.edit_text(chunk)
             else:
-                await base_msg.reply(chunk)
+                await message.reply(chunk)
+
     except openai.InternalServerError:
         await base_msg.edit_text("⚠️ Внутренняя ошибка API")
     except openai.RateLimitError:
         await base_msg.edit_text("❌ Превышен лимит запросов к API. Попробуйте позже")
-    except Exception:
+    except Exception as e:
         await error_report(message, bot, "ai", traceback.format_exc())
 
 
