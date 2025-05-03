@@ -338,7 +338,7 @@ async def cmd_translate(message: Message, bot: Bot):
         await error_report(message, bot, "translate", traceback.format_exc())
 
 
-@ai_router.message(Command("vocr"))
+@ai_router.message(Command("ocr"))
 async def cmd_vocr(message: Message, bot: Bot):
     try:
         base_msg = await message.reply("🔄 Обработка...")
