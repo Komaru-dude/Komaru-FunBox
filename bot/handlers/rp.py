@@ -48,12 +48,12 @@ async def cmd_rp_setup(message: Message, bot: Bot):
         msg_id = message.message_id
         chat_id = message.chat.id
 
-        if message.chat.type == "private" or message.chat.type == "channel":
-            await message.reply("Эта команда доступна только в группах/супергруппах")
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
         if not db.has_permission(user_id, chat_id, 2):
-            await message.reply("У вас недостаточно прав для выполнению этой команды")
+            await message.reply("❌ У вас недостаточно прав для выполнению этой команды")
             return
 
         if db.is_user_mediabanned(message.from_user.id):
