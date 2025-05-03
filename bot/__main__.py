@@ -35,42 +35,44 @@ token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
 
-def load_models():
+
+async def load_models():
     try:
         models_path = DATA_DIR / "models.json"
-    
+
         onlysq_models.clear()
-        
+
         if not models_path.exists():
             logging.info("Модели отсутствуют, загружаю...")
-            models = fetch_json("https://api.onlysq.ru/ai/models")
-            
+            models = await fetch_json("https://api.onlysq.ru/ai/models")
+
             if not isinstance(models, dict) or "models" not in models:
                 raise ValueError("Некорректный формат моделей")
-            
-            with open(models_path, 'w') as json_file:
+
+            with open(models_path, "w") as json_file:
                 json.dump(models, json_file, indent=2)
-            
+
             onlysq_models.update(models)
             logging.info(f"Загружено {len(models.get('models', []))} моделей")
         else:
-            with open(models_path, 'r') as json_file:
+            with open(models_path, "r") as json_file:
                 saved_models = json.load(json_file)
-    
+
                 if not isinstance(saved_models, dict):
                     raise ValueError("Некорректный формат файла моделей")
-                
+
                 onlysq_models.update(saved_models)
-                logging.info(f"Загружено {len(saved_models.get('models', []))} моделей из кэша")
-                
+                logging.info(
+                    f"Загружено {len(saved_models.get('models', []))} моделей из кэша"
+                )
+
     except (json.JSONDecodeError, IOError, ValueError) as e:
         logging.error(f"Ошибка загрузки моделей: {e}")
-        onlysq_models.update({
-            "models": [{"name": "default", "version": "1.0"}]
-        })
+        onlysq_models.update({"models": [{"name": "default", "version": "1.0"}]})
     except Exception as e:
         logging.critical(f"Критическая ошибка: {e}")
         raise
+
 
 def clear_cache():
     """Очищает папку cache относительно расположения бота."""
@@ -95,7 +97,7 @@ def clear_cache():
 
 async def main():
     clear_cache()
-    load_models()
+    await load_models()
 
     dp.include_routers(
         base_router,
