@@ -205,8 +205,8 @@ async def process_command_name(message: Message, state: FSMContext):
 async def process_description(message: Message, state: FSMContext):
     description = message.text.strip()
 
-    if len(description) > 20:
-        await message.reply("❌ Слишком длинное описание (макс. 20 символов)")
+    if len(description) > 50:
+        await message.reply("❌ Слишком длинное описание (макс. 50 символов)")
         return
 
     if not description:
