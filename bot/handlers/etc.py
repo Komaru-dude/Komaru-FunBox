@@ -8,11 +8,11 @@ from urllib.parse import quote_plus
 from aiohttp import ClientSession
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message, URLInputFile, FSInputFile
+from aiogram.types import Message, URLInputFile
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from bot import db
-from bot.utils.aio_tools import error_report, fetch_json
+from bot.utils.aio_tools import error_report
 
 etc_router = Router()
 API_URL = "http://127.0.0.1:8001"
@@ -310,83 +310,6 @@ async def cmd_random(message: Message, bot: Bot):
         await message.reply(response)
     except Exception:
         await error_report(message, bot, "random", traceback.format_exc())
-
-
-@etc_router.message(Command("privetbradok"))
-async def cmd_privebradok(message: Message, bot: Bot):
-    try:
-        target_id = None
-        first_name = None
-
-        if message.reply_to_message:
-            target_id = message.reply_to_message.from_user.id
-            first_name = message.reply_to_message.from_user.first_name
-        else:
-            text = message.text
-            split_text = text.split(maxsplit=1)
-
-            if len(split_text) > 1 and split_text[1].startswith("@"):
-                username = split_text[1][1:]
-                try:
-                    data = await fetch_json(f"{API_URL}/user/{username}")
-
-                    if "user_id" in data:
-                        target_id = data["user_id"]
-                        name_data = await fetch_json(
-                            f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                        )
-                        first_name = name_data.get("first_name", "Неизвестный")
-                    else:
-                        await message.reply(
-                            f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
-                        )
-                        return
-
-                except Exception as e:
-                    await message.reply(f"Произошла ошибка {e} при обработке запроса.")
-                    return
-            elif len(split_text) > 1 and split_text[1].isdigit():
-                target_id = split_text[1]
-                try:
-                    data = await fetch_json(
-                        f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                    )
-                    first_name = data.get("first_name", "Неизвестный")
-                except Exception as e:
-                    await message.reply(f"Произошла ошибка {e} при обработке запроса.")
-                    return
-            else:
-                await message.reply(
-                    "Укажите пользователя через реплай, @username или айди."
-                )
-                return
-
-        user2_link = f'<a href="tg://user?id={target_id}">{first_name}</a>'
-
-        stick = random.choice([True, False])
-
-        if message.reply_to_message and not stick:
-            await message.reply_to_message.reply(
-                f"Привет {user2_link}!", parse_mode=ParseMode.HTML
-            )
-        elif not stick:
-            await message.reply(f"Привет {user2_link}!", parse_mode=ParseMode.HTML)
-        else:
-            stickers = [
-                f
-                for f in os.listdir(media_folder)
-                if os.path.splitext(f)[1].lower() in sticker_extensions
-            ]
-            if not stickers:
-                raise FileNotFoundError("Нет стикеров в ../media")
-            random_stick = random.choice(stickers)
-            sticker = FSInputFile(os.path.join(media_folder, random_stick))
-            if message.reply_to_message:
-                await message.reply_to_message.reply_sticker(sticker)
-            else:
-                await message.reply_sticker(sticker)
-    except Exception:
-        await error_report(message, bot, "privetbradok", traceback.format_exc())
 
 
 @etc_router.message(Command("weather"))
