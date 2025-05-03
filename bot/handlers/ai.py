@@ -36,6 +36,50 @@ class ArgueChatState(StatesGroup):
     active = State()
 
 
+@ai_router.message(Command("available_models"))
+async def show_working_models(message: Message):
+    working_models = [
+        model for model in onlysq_models["models"].values() if model["status"] == "work"
+    ]
+
+    categories = {}
+    for model in working_models:
+        modality = model["modality"]
+        if modality not in categories:
+            categories[modality] = []
+        categories[modality].append(model)
+
+    message_text = ""
+    category_names = {
+        "text": "📚 Текстовые модели",
+        "image": "🎨 Генерация изображений",
+        "sound": "🔊 Обработка звука",
+    }
+
+    for modality, models in categories.items():
+        category_header = f"<b>{category_names.get(modality, '⚙️ Другие модели')}</b>\n"
+        category_body = []
+
+        for model in models:
+            paid_icon = "🔐" if model["paid"] else "🆓"
+            type_icon = "🔑" if model["type"] == "keys" else "🌐"
+            stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
+
+            model_line = (
+                f"{paid_icon} {type_icon} "
+                f"<code>{model['name']}</code>{stream_icon}\n"
+            )
+            category_body.append(model_line)
+
+        message_text += category_header + "".join(category_body) + "\n"
+
+    await message.reply(
+        f"🚀 <b>Доступные рабочие модели:</b>\n\n{message_text}",
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True,
+    )
+
+
 @ai_router.message(Command("ai"))
 async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list = None):
     try:
@@ -64,7 +108,9 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
                 await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
                 return
             if model_info["status"] != "work":
-                await base_msg.edit_text(f"❌ Модель {model_name} на данный момент не работает.")
+                await base_msg.edit_text(
+                    f"❌ Модель {model_name} на данный момент не работает."
+                )
                 return
             if model_info["modality"] != "text":
                 await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
