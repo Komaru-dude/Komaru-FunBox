@@ -73,7 +73,7 @@ async def cmd_rp_setup(message: Message, bot: Bot):
         )
 
         await message.reply(
-            "Вы уверены? Это приведёт к сбросу уже существующих команд (/rp_list)",
+            "❔ Вы уверены? Это приведёт к сбросу уже существующих команд (/rp_list)",
             reply_markup=builder.as_markup(),
         )
     except Exception:
@@ -131,13 +131,13 @@ async def cmd_rp_list(message: Message, bot: Bot):
             return
 
         if not commands:
-            await message.reply("В этом чате нет доступных RP-команд.")
+            await message.reply("❌ В этом чате нет доступных RP-команд.")
             return
 
         command_list = "\n".join(
             f"{cmd['command']} - {cmd['description']}" for cmd in commands.values()
         )
-        await message.reply(f"Доступные RP-команды:\n{command_list}")
+        await message.reply(f"💡 Доступные RP-команды:\n{command_list}")
     except Exception:
         await error_report(message, bot, "rp_list", traceback.format_exc())
 
@@ -159,7 +159,9 @@ async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext):
             return
 
         if not db.has_permission(user_id, chat_id, 2):
-            await message.reply("У вас недостаточно прав для выполнению этой команды")
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнению этой команды"
+            )
             return
 
         if db.is_user_mediabanned(message.from_user.id):
@@ -277,7 +279,9 @@ async def cmd_rp_remove(message: Message, bot: Bot):
             return
 
         if not db.has_permission(user_id, chat_id, 2):
-            await message.reply("У вас недостаточно прав для выполнению этой команды")
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнению этой команды"
+            )
             return
 
         if db.is_user_mediabanned(message.from_user.id):
@@ -286,7 +290,9 @@ async def cmd_rp_remove(message: Message, bot: Bot):
 
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
-            await message.reply("Использование: /rp_remove <команда>")
+            await message.reply(
+                "❌ Некорректный синтаксис!\nИспользование: /rp_remove <команда>"
+            )
             return
 
         command_name = parts[1].strip()
@@ -294,12 +300,12 @@ async def cmd_rp_remove(message: Message, bot: Bot):
         cur_commands = get_chat_commands(chat_id)
 
         if command_name not in cur_commands:
-            await message.reply("Такой команды не существует.")
+            await message.reply("❌ Такой команды не существует.")
             return
 
         del cur_commands[command_name]
         save_custom_commands(chat_id, list(cur_commands.values()))
-        await message.reply(f"Команда {command_name} успешно удалена!")
+        await message.reply(f"✅ Команда {command_name} успешно удалена!")
     except Exception:
         await error_report(message, bot, "rp_remove", traceback.format_exc())
 
@@ -315,7 +321,9 @@ async def cmd_rp_wipe(message: Message, bot: Bot):
             return
 
         if not db.has_permission(user_id, chat_id, 2):
-            await message.reply("У вас недостаточно прав для выполнению этой команды")
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнению этой команды"
+            )
             return
 
         if db.is_user_mediabanned(message.from_user.id):
@@ -326,6 +334,6 @@ async def cmd_rp_wipe(message: Message, bot: Bot):
 
         cur_commands.clear()
         save_custom_commands(chat_id, list(cur_commands.values()))
-        await message.reply("Команды сброшены!")
+        await message.reply("✅ Команды сброшены!")
     except Exception:
         await error_report(message, bot, "rp_wipe", traceback.format_exc())
