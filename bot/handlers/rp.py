@@ -328,4 +328,4 @@ async def cmd_rp_wipe(message: Message, bot: Bot):
         save_custom_commands(chat_id, list(cur_commands.values()))
         await message.reply("Команды сброшены!")
     except Exception:
-        await error_report(message, bot, "rp_wipr", traceback.format_exc())
+        await error_report(message, bot, "rp_wipe", traceback.format_exc())
