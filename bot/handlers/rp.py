@@ -302,3 +302,30 @@ async def cmd_rp_remove(message: Message, bot: Bot):
         await message.reply(f"Команда {command_name} успешно удалена!")
     except Exception:
         await error_report(message, bot, "rp_remove", traceback.format_exc())
+
+
+@rp_router.message(Command("rp_wipe"))
+async def cmd_rp_wipe(message: Message, bot: Bot):
+    try:
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
+
+        if not db.has_permission(user_id, chat_id, 2):
+            await message.reply("У вас недостаточно прав для выполнению этой команды")
+            return
+
+        if db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+
+        cur_commands = get_chat_commands(chat_id)
+
+        cur_commands.clear()
+        save_custom_commands(chat_id, list(cur_commands.values()))
+        await message.reply("Команды сброшены!")
+    except Exception:
+        await error_report(message, bot, "rp_wipr", traceback.format_exc())
