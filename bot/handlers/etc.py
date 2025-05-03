@@ -276,42 +276,6 @@ async def cmd_shutter(message: Message, bot: Bot):
         await error_report(message, bot, "shutter", traceback.format_exc())
 
 
-@etc_router.message(Command("say"))
-async def cmd_say(message: Message, bot: Bot):
-    try:
-        split_text = message.text.split(maxsplit=1)
-        if len(split_text) > 1:
-            await message.answer(split_text[1])
-            try:
-                await message.delete()
-            except:
-                await message.answer(
-                    "📛 У меня отсутствуют права на удаление сообщений"
-                )
-        else:
-            await message.reply("❌ А что говорить то?")
-    except Exception:
-        await error_report(message, bot, "say", traceback.format_exc())
-
-
-@etc_router.message(Command("random"))
-async def cmd_random(message: Message, bot: Bot):
-    try:
-        responses = [
-            "Да, без сомнений!",
-            "Нет, это не сбудется.",
-            "Возможно, ты прав.",
-            "Скорее всего, да.",
-            "Попробуй снова позже.",
-            "Определенно нет.",
-            "Я бы сказал да.",
-        ]
-        response = random.choice(responses)
-        await message.reply(response)
-    except Exception:
-        await error_report(message, bot, "random", traceback.format_exc())
-
-
 @etc_router.message(Command("weather"))
 async def send_weather(message: Message):
     def escape_ansi(line):
