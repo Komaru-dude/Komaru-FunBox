@@ -66,6 +66,9 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             if model_info["status"] != "work":
                 await base_msg.edit_text(f"❌ Модель {model_name} на данный момент не работает.")
                 return
+            if model_info["modality"] != "text":
+                await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
+                return
             model = model_name
 
         if message.reply_to_message:
