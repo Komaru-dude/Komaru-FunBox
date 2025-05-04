@@ -177,6 +177,8 @@ async def cmd_restart(message: Message, bot: Bot):
         await message.reply("❌ Эта команда только для персонала.")
         return
 
+    update_msg = await message.reply("🔄 Обновляюсь...")
+
     try:
         branch = (
             subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
@@ -210,13 +212,14 @@ async def cmd_restart(message: Message, bot: Bot):
                 data = await resp.json()
                 latest_commit = data["commit"]["sha"][:7]
                 if not latest_commit != commit:
-                    return await message.reply("☃️ Версия актуальна")
+                    return await update_msg.edit_text("☃️ Версия актуальна")
             else:
-                return await message.reply(f"⚠️ Ошибка API: {resp.status}")
+                return await update_msg.edit_text(f"⚠️ Ошибка API: {resp.status}")
 
-    await message.reply("🔄 Обновляюсь...")
-
-    os.remove(models_path)
+    try:
+        os.remove(models_path)
+    except FileNotFoundError:
+        await update_msg.edit_text("⚠️ Не удалось удалить кэш загруженных моделей")
 
     try:
         subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
