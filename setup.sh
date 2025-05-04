@@ -26,7 +26,7 @@ echo "🚀 Starting Komaru FunBox installation..."
 
 echo "🔄 Updating packages and installing dependencies..."
 apt-get update
-apt-get install -y python3-venv git build-essential autoconf automake libtool pkg-config yt-dlp ffmpeg
+apt-get install -y python3-venv git build-essential autoconf automake libtool pkg-config yt-dlp ffmpeg postgresql
 snap install gifski
 
 if ! id -u ${USER_NAME} >/dev/null 2>&1; then
