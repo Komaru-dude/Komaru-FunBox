@@ -44,7 +44,11 @@ async def load_models():
 
         if not models_path.exists():
             logging.info("Модели отсутствуют, загружаю...")
-            models = await fetch_json("https://api.onlysq.ru/ai/models")
+            try:
+                models = await fetch_json("https://api.onlysq.ru/ai/models")
+            except Exception as e:
+                logging.warning(f"Не удалось загрузить модели, ошибка: {e}")
+                return
 
             if not isinstance(models, dict) or "models" not in models:
                 raise ValueError("Некорректный формат моделей")
