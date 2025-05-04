@@ -94,7 +94,11 @@ async def cmd_history(message: Message, bot: Bot):
         split_text = message.text.strip().split()
         chat_id = message.chat.id
 
-        if not (db.is_feature_enabled(chat_id, "warn") or db.is_feature_enabled(chat_id, "mute") or db.is_feature_enabled(chat_id, "ban")):
+        if not (
+            db.is_feature_enabled(chat_id, "warn")
+            or db.is_feature_enabled(chat_id, "mute")
+            or db.is_feature_enabled(chat_id, "ban")
+        ):
             await message.reply("❌ Функция отключена.")
             return
 
@@ -152,7 +156,7 @@ async def cmd_warn(message: Message, bot: Bot):
         if not db.is_feature_enabled(chat_id, "warn"):
             await message.reply("❌ Функция отключена.")
             return
-        
+
         if not db.has_permission(message.from_user.id, chat_id, 1):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнения этой команды."
@@ -307,7 +311,7 @@ async def cmd_mute(message: Message, bot: Bot):
         if not db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ У вас нет прав для этой команды")
             return
-        
+
         args = text.split()[1:]
         time_arg = None
         reason = "Без причины"
