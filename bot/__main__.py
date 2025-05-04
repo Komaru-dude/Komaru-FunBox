@@ -37,43 +37,53 @@ dp = Dispatcher()
 
 
 async def load_models():
+    models_path = DATA_DIR / "models.json"
+    default_models = {"models": {}}
+
     try:
-        models_path = DATA_DIR / "models.json"
-
-        onlysq_models.clear()
-
         if not models_path.exists():
-            logging.info("Модели отсутствуют, загружаю...")
+            logging.info("Модели отсутствуют, загружаю с API...")
             try:
                 models = await fetch_json("https://api.onlysq.ru/ai/models")
-            except Exception as e:
-                logging.warning(f"Не удалось загрузить модели, ошибка: {e}")
+
+                if not isinstance(models, dict) or not isinstance(
+                    models.get("models"), dict
+                ):
+                    raise ValueError("API вернул некорректный формат моделей")
+
+                with open(models_path, "w") as f:
+                    json.dump(models, f, indent=2)
+
+                onlysq_models.clear()
+                onlysq_models.update(models)
+                logging.info(f"Успешно загружено {len(models['models'])} моделей")
                 return
 
-            if not isinstance(models, dict) or "models" not in models:
-                raise ValueError("Некорректный формат моделей")
+            except Exception as e:
+                logging.error(f"Ошибка загрузки с API: {e}")
+                onlysq_models.update(default_models)
+                return
 
-            with open(models_path, "w") as json_file:
-                json.dump(models, json_file, indent=2)
+        with open(models_path, "r") as f:
+            cached_models = json.load(f)
 
-            onlysq_models.update(models)
-            logging.info(f"Загружено {len(models.get('models', []))} моделей")
-        else:
-            logging.info("Модели существуют в кэше, загружаю...")
-            with open(models_path, "r") as json_file:
-                saved_models = json.load(json_file)
+            if not isinstance(cached_models, dict) or not isinstance(
+                cached_models.get("models"), dict
+            ):
+                raise ValueError("Поврежденный кэш моделей")
 
-                if not isinstance(saved_models, dict):
-                    raise ValueError("Некорректный формат файла моделей")
-
-                onlysq_models.update(saved_models)
-                logging.info(f"Загружено {len(saved_models.get('models', []))} моделей")
+            onlysq_models.clear()
+            onlysq_models.update(cached_models)
+            logging.info(f"Загружено {len(cached_models['models'])} моделей из кэша")
 
     except (json.JSONDecodeError, IOError, ValueError) as e:
-        logging.error(f"Ошибка загрузки моделей: {e}")
-        onlysq_models.update({"models": [{"name": "default", "version": "1.0"}]})
+        logging.error(f"Критическая ошибка загрузки: {e}")
+        onlysq_models.update(default_models)
+        models_path.unlink(missing_ok=True)
+
     except Exception as e:
-        logging.critical(f"Критическая ошибка: {e}")
+        logging.critical(f"Непредвиденная ошибка: {e}")
+        onlysq_models.update(default_models)
         raise
 
 
