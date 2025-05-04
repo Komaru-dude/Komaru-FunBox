@@ -44,7 +44,7 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
 
         await state.set_state(SetRankStates.waiting_for_username)
         await message.reply(
-            "✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (реплай, юзернейм, айди)."
+            "✅ Отлично! Начнём!\n\n✍️ Введите имя пользователя (юзернейм или айди)."
         )
     except Exception:
         await aio_tools.error_report(message, bot, "set_rank", traceback.format_exc())
