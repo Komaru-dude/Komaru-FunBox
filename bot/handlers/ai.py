@@ -130,7 +130,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             base_url="https://api.onlysq.ru/ai/openai",
         )
 
-        model = model or "gpt-4o-mini"
+        model = model or "gemini-2.5-flash-preview-04-17"
         messages = messages or [
             {
                 "role": "system",
@@ -203,7 +203,7 @@ async def cmd_aggemini(message: Message, bot: Bot):
             }
         ]
 
-        await cmd_ai(message, bot, model="gemini-2.0-flash", messages=messages)
+        await cmd_ai(message, bot, model="gemini-2.5-flash-preview-04-17", messages=messages)
     except Exception:
         await error_report(message, bot, "agai", traceback.format_exc())
 
