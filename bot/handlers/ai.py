@@ -12,8 +12,8 @@ from aiogram.types import Message, BufferedInputFile
 from aiogram.enums import ParseMode
 from bot.utils.aio_tools import make_post_request, error_report
 from bot.utils.global_storage import (
-    argue_active_chats,
-    argue_active_chats_lock,
+    active_chats,
+    active_chats_lock,
     onlysq_models,
 )
 from bot import db
@@ -33,7 +33,7 @@ SUPPORTED_LANGUAGES = {
 }
 
 
-class ArgueChatState(StatesGroup):
+class ChatState(StatesGroup):
     active = State()
 
 
@@ -404,44 +404,57 @@ async def cmd_vocr(message: Message, bot: Bot):
         await error_report(message, bot, "vocr", traceback.format_exc())
 
 
-@ai_router.message(Command("arguechat"))
-async def cmd_arguechat(message: Message, bot: Bot, state: FSMContext):
+@ai_router.message(Command("chat"))
+async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
     try:
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        async with argue_active_chats_lock:
-            if message.chat.id in argue_active_chats:
+        async with active_chats_lock:
+            if message.chat.id in active_chats:
                 await message.reply(
-                    "📛 Чат уже запущен, введите <code>/argue_stop</code> или попросите ввести модераторов.",
+                    "📛 Чат уже запущен, введите <code>/chat_stop</code> или попросите ввести модераторов.",
                     parse_mode=ParseMode.HTML,
                 )
                 return
 
-        await state.update_data(
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
-                    ),
-                }
-            ]
+        args = message.text.split()[1:]
+        argue_mode = "-argue" in args
+
+        system_content = (
+            (
+                "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
+            )
+            if argue_mode
+            else ("Не используй markdown/html форматирование, будь краток")
         )
-        await state.set_state(ArgueChatState.active)
-        async with argue_active_chats_lock:
-            argue_active_chats.append(message.chat.id)
+
+        await state.update_data(
+            messages=[{"role": "system", "content": system_content}]
+        )
+        await state.set_state(ChatState.active)
+
+        async with active_chats_lock:
+            active_chats.append(message.chat.id)
+
+        # Формируем ответ в зависимости от режима
+        reply_text = (
+            "🔥 Давайте начнем жаркий спор! Озвучьте вашу позицию или тему для обсуждения.\n"
+            if argue_mode
+            else "👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n"
+        )
+
         await message.reply(
-            "🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\nДля остановки используйте <code>/argue_stop</code>",
+            f"{reply_text}Для остановки используйте <code>/chat_stop</code>",
             parse_mode=ParseMode.HTML,
         )
     except Exception:
-        await error_report(message, bot, "arguechat", traceback.format_exc())
+        await error_report(message, bot, "chat", traceback.format_exc())
 
 
-@ai_router.message(Command("argue_stop"))
-async def cmd_arguestop(message: Message, bot: Bot, state: FSMContext):
+@ai_router.message(Command("chat_stop"))
+async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -460,12 +473,12 @@ async def cmd_arguestop(message: Message, bot: Bot, state: FSMContext):
         if not current_state is None:
             await state.clear()
 
-        async with argue_active_chats_lock:
-            if not chat_id in argue_active_chats:
+        async with active_chats_lock:
+            if not chat_id in active_chats:
                 await message.reply("📛 Чата не существует")
                 return
             else:
-                argue_active_chats.remove(chat_id)
+                active_chats.remove(chat_id)
                 await message.reply("✅ Успешно остановлено")
     except Exception:
-        await error_report(message, bot, "argue_stop", traceback.format_exc())
+        await error_report(message, bot, "chat_stop", traceback.format_exc())
