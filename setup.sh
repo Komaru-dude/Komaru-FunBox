@@ -52,6 +52,28 @@ else
     rm -f test  # на всякий случай удаляем, если был
 fi
 
+echo "🌪 Initialize PostgreSQL db"
+
+DB_NAME="funbox_db"
+DB_USER="komaru"
+DB_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
+
+# Сохраняем пароль в файл
+echo "Generated password for $DB_USER: $DB_PASSWORD"  > /home/${USER_NAME}/db_credentials.txt
+chown ${USER_NAME}:${GROUP_NAME} /home/${USER_NAME}/db_credentials.txt
+
+# Проверка и создание пользователя
+if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1; then
+  sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
+fi
+
+# Проверка и создание базы
+if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
+  sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
+fi
+
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+
 echo "🐍 Creating Python virtual environment..."
 sudo -u ${USER_NAME} python3 -m venv "${INSTALL_DIR}/venv"
 
@@ -59,15 +81,28 @@ echo "📦 Installing Python dependencies..."
 sudo -u ${USER_NAME} "${INSTALL_DIR}/venv/bin/pip" install -r "${INSTALL_DIR}/requirements.txt"
 
 ENV_FILE="${INSTALL_DIR}/.env"
-if [ ! -f "${ENV_FILE}" ]; then
-    echo "🛠 Setting up .env file..."
-    sudo -u ${USER_NAME} mv ${INSTALL_DIR}/env_example ${ENV_FILE}
-    echo "⚠️ IMPORTANT: You will need to configure the .env file. Please review and set it up properly."
-    echo "Press any key to continue..."
-    read -n 1 -s
-    sudo -u ${USER_NAME} nano ${ENV_FILE}
-    echo "⚠️⚠️⚠️ NOTE: If you haven't set up .env correctly, you'll have to do it yourself. ⚠️⚠️⚠️"
-fi
+echo "🛠 Generating .env file..."
+
+cat > "${ENV_FILE}" <<EOF
+# Database
+DB_NAME=${DB_NAME}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+DB_HOST=localhost
+DB_PORT=5432
+
+# Bot settings (you should review and edit as needed)
+BOT_TOKEN=
+OWNER_ID=
+EOF
+
+chown ${USER_NAME}:${GROUP_NAME} "${ENV_FILE}"
+chmod 600 "${ENV_FILE}"
+
+echo "✅ .env file created at ${ENV_FILE}."
+echo "⚠️ Please edit it to add missing values like BOT_TOKEN and OWNER_ID."
+read -p "Press any key to open nano... " -n 1 -s
+sudo -u ${USER_NAME} nano ${ENV_FILE}
 
 echo "⚙ Creating systemd service..."
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
@@ -99,6 +134,7 @@ chown -R ${USER_NAME}:${GROUP_NAME} ${INSTALL_DIR}
 chmod 700 ${INSTALL_DIR}
 chmod +x ${INSTALL_DIR}/force-pull.sh
 echo "komaru ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart komaru-funbox.service" | visudo -f /etc/sudoers.d/komaru-funbox
+chmod 600 db_credentials.txt
 
 echo "🔄 Reloading systemd and enabling service..."
 systemctl daemon-reload
