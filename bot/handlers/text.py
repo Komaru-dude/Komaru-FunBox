@@ -66,6 +66,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             base_msg = await message.reply("🔄 Обработка...")
             user_data = await state.get_data()
             messages = user_data.get("messages", [])
+            model = user_data.get("model", "gemini-2.0-flash")
             user_message = text_msg.strip()
 
             messages.append({"role": "user", "content": user_message})
@@ -76,7 +77,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             )
 
             response = await client.chat.completions.create(
-                model="gemini-2.0-flash", messages=messages
+                model=model, messages=messages
             )
 
             ai_response = response.choices[0].message.content

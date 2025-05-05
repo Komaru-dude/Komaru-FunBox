@@ -203,7 +203,9 @@ async def cmd_aggemini(message: Message, bot: Bot):
             }
         ]
 
-        await cmd_ai(message, bot, model="gemini-2.5-flash-preview-04-17", messages=messages)
+        await cmd_ai(
+            message, bot, model="gemini-2.5-flash-preview-04-17", messages=messages
+        )
     except Exception:
         await error_report(message, bot, "agai", traceback.format_exc())
 
@@ -407,6 +409,8 @@ async def cmd_vocr(message: Message, bot: Bot):
 @ai_router.message(Command("chat"))
 async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
     try:
+        model = None
+
         if db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
@@ -422,6 +426,29 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         args = message.text.split()[1:]
         argue_mode = "-argue" in args
 
+        if "-m" in args_text:
+            model_match = re.search(r"-m\s+(\S+)", args_text)
+            if not model_match:
+                await message.reply("❌ Укажите название модели после -m")
+                return
+            model_name = model_match.group(1).lower()
+            args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
+
+        if model_name:
+            model_info = onlysq_models["models"].get(model_name)
+            if not model_info:
+                await message.reply(f"❌ Модель {model_name} не найдена")
+                return
+            if model_info["status"] != "work":
+                await message.reply(
+                    f"❌ Модель {model_name} на данный момент не работает."
+                )
+                return
+            if model_info["modality"] != "text":
+                await message.reply(f"❌ Модель {model_name} не текстовая.")
+                return
+            model = model_name
+
         system_content = (
             (
                 "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
@@ -431,7 +458,8 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         )
 
         await state.update_data(
-            messages=[{"role": "system", "content": system_content}]
+            model=model or "gemini-2.0-flash",
+            messages=[{"role": "system", "content": system_content}],
         )
         await state.set_state(ChatState.active)
 
