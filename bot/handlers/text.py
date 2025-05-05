@@ -76,7 +76,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             )
 
             response = await client.chat.completions.create(
-                model="gpt-4o-mini", messages=messages
+                model="gemini-2.0-flash", messages=messages
             )
 
             ai_response = response.choices[0].message.content
