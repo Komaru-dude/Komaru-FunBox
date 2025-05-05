@@ -11,9 +11,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from bot import db
-from bot.handlers.ai import cmd_ai, ArgueChatState
+from bot.handlers.ai import cmd_ai, ChatState
 from bot.handlers.video import cmd_video
-from bot.utils.global_storage import argue_active_chats
+from bot.utils.global_storage import active_chats
 from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
 
 text_router = Router()
@@ -59,8 +59,8 @@ async def text(message: Message, bot: Bot, state: FSMContext):
         text_msg = message.text
 
         current_state = await state.get_state()
-        if current_state == ArgueChatState.active.state:
-            if message.chat.id not in argue_active_chats:
+        if current_state == ChatState.active.state:
+            if message.chat.id not in active_chats:
                 await state.clear()
                 return
             base_msg = await message.reply("🔄 Обработка...")
