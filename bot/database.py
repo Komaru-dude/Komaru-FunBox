@@ -1,4 +1,4 @@
-import asyncio, asyncpg, os, time, random
+import asyncio, asyncpg, os, time, random, json
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
@@ -31,31 +31,50 @@ class Database:
         self.is_connected = False
 
     async def ensure_connection(self):
-        async with self._lock:
-            if not self.is_connected or self.pool is None:
-                await self.connect()
+        if not self.is_connected or self.pool is None or self.pool.is_closing():
+            await self.connect()
+            if self.pool is None or self.pool.is_closing():
+                 raise ConnectionError("Failed to establish database connection after ensure_connection.")
+
 
     async def connect(self):
-        try:
-            logging.info("Подключаемся к базе данных...")
-            self.pool = await asyncpg.create_pool(
-                host=os.getenv("DB_HOST"),
-                port=os.getenv("DB_PORT"),
-                user=os.getenv("DB_USER"),
-                password=os.getenv("DB_PASSWORD"),
-                database=os.getenv("DB_NAME"),
-                min_size=5,
-                max_size=20
-            )
-            await self.create_tables()
-            await self.sync_all()
-            self.is_connected = True
-            logging.info("Успешное подключение к БД.")
-        except Exception as e:
-            logging.critical(f"Не удалось подключиться к БД: {e}")
-            raise
+        async with self._lock:
+            if self.is_connected and self.pool and not self.pool.is_closing():
+                logging.info("Уже подключены к БД.")
+                return
+
+            try:
+                logging.info("Подключаемся к базе данных...")
+                if self.pool and not self.pool.is_closing():
+                    await self.pool.close()
+                    logging.info("Существующий пул был закрыт перед переподключением.")
+                
+                self.pool = await asyncpg.create_pool(
+                    host=os.getenv("DB_HOST"),
+                    port=os.getenv("DB_PORT"),
+                    user=os.getenv("DB_USER"),
+                    password=os.getenv("DB_PASSWORD"),
+                    database=os.getenv("DB_NAME"),
+                    min_size=5,
+                    max_size=20
+                )
+                self.is_connected = True
+                logging.info("Пул соединений с БД успешно создан.")
+
+                await self.create_tables()
+                await self.sync_all()
+                logging.info("Успешное подключение и синхронизация с БД.")
+
+            except Exception as e:
+                logging.critical(f"Не удалось подключиться к БД или выполнить начальную настройку: {e}")
+                self.is_connected = False
+                if self.pool:
+                    await self.pool.close()
+                self.pool = None
+                raise
 
     async def create_tables(self):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 # Таблица юзеров
@@ -98,15 +117,16 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 # Синхронизируем фичи
-                chat_ids = await conn.fetch("SELECT DISTINCT chat_id FROM features")
-                for chat_id in [r['chat_id'] for r in chat_ids]:
+                chat_ids_records = await conn.fetch("SELECT DISTINCT chat_id FROM features")
+                chat_ids = [r['chat_id'] for r in chat_ids_records]
+                for chat_id_val in chat_ids:
                     # Добавляем отсутствующие фичи
                     for feature, enabled in DEFAULT_FEATURES:
                         await conn.execute("""
                             INSERT INTO features (chat_id, feature_name, is_enabled)
                             VALUES ($1, $2, $3)
                             ON CONFLICT (chat_id, feature_name) DO NOTHING
-                        """, chat_id, feature, bool(enabled))
+                        """, chat_id_val, feature, bool(enabled))
                     
                     # Удаляем старые фичи
                     feature_names = [f[0] for f in DEFAULT_FEATURES]
@@ -114,7 +134,7 @@ class Database:
                         DELETE FROM features 
                         WHERE chat_id = $1 
                         AND feature_name NOT IN (SELECT unnest($2::text[]))
-                    """, chat_id, feature_names)
+                    """, chat_id_val, feature_names)
 
     async def has_permission(self, user_id: int, chat_id: int, required_level: int) -> bool:
         if user_id == self.owner_id:
@@ -185,7 +205,12 @@ class Database:
             
             if not record:
                 await self.add_user(user_id, chat_id)
-                return await self.get_user_data(user_id, chat_id)
+                record = await conn.fetchrow("""
+                    SELECT * FROM users 
+                    WHERE user_id = $1 AND chat_id = $2
+                """, user_id, chat_id)
+                if not record:
+                    return {}
             
             return dict(record)
 
@@ -265,10 +290,15 @@ class Database:
     async def update_user_history(self, user_id: int, chat_id: int, punishment_type: str, reason: str):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            history = await conn.fetchval("""
+            if not await self.user_exists(user_id, chat_id):
+                await self.add_user(user_id, chat_id)
+
+            history_json = await conn.fetchval("""
                 SELECT history FROM users 
                 WHERE user_id = $1 AND chat_id = $2
-            """, user_id, chat_id) or []
+            """, user_id, chat_id)
+            
+            history = json.loads(history_json) if history_json else []
 
             punishment = {
                 "type": punishment_type,
@@ -276,23 +306,27 @@ class Database:
                 "timestamp": int(time.time())
             }
             
-            await conn.execute("""
+            history.append(punishment)
+            
+            await conn.execute(f"""
                 UPDATE users 
                 SET 
-                    history = $1,
-                    {0} = {0} + 1 
+                    history = $1::JSONB,
+                    {punishment_type}s = {punishment_type}s + 1 
                 WHERE user_id = $2 AND chat_id = $3
-            """.format(f"{punishment_type}s"), 
-            history + [punishment], user_id, chat_id)
+            """, json.dumps(history), user_id, chat_id)
 
     async def get_user_history(self, user_id: int, chat_id: int) -> list:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            history = await conn.fetchval("""
+            history_json = await conn.fetchval("""
                 SELECT history FROM users 
                 WHERE user_id = $1 AND chat_id = $2
             """, user_id, chat_id)
-            return history or []
+            if history_json:
+                return json.loads(history_json)
+            return []
+
 
     async def update_reputation(self, user_id: int, chat_id: int, mode: str, value: int = None):
         await self.ensure_connection()
