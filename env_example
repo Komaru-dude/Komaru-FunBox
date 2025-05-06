@@ -19,3 +19,10 @@ ONLYSQ_API_KEY=openai
 
 # Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
 JIGSAW_API_KEY=your_api_key
+
+# Бд
+DB_NAME=DB_NAME
+DB_USER=DB_USER
+DB_PASSWORD=DB_PASSWORD
+DB_HOST=localhost
+DB_PORT=5432

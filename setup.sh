@@ -84,16 +84,31 @@ ENV_FILE="${INSTALL_DIR}/.env"
 echo "🛠 Generating .env file..."
 
 cat > "${ENV_FILE}" <<EOF
-# Database
+# Токен API бота (можно взять тут: https://t.me/BotFather)
+BOT_API_TOKEN=your_bot_api_token
+
+# ID владельца (можно взять тут: https://t.me/getmyid_bot)
+OWNER_ID=your_owner_id
+
+# Ваши API_ID и API_HASH (можно взять тут: https://my.telegram.org/apps)
+API_ID=your_api_id
+API_HASH=your_api_hash
+
+# Ваш url для апи нейросетей
+API_URL=http://api.onlysq.ru/ai/v2
+
+# Апи ключ для onlysq (на момент написания не требуется)
+ONLYSQ_API_KEY=openai
+
+# Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
+JIGSAW_API_KEY=your_api_key
+
+# Бд
 DB_NAME=${DB_NAME}
 DB_USER=${DB_USER}
 DB_PASSWORD=${DB_PASSWORD}
 DB_HOST=localhost
 DB_PORT=5432
-
-# Bot settings (you should review and edit as needed)
-BOT_TOKEN=
-OWNER_ID=
 EOF
 
 chown ${USER_NAME}:${GROUP_NAME} "${ENV_FILE}"
