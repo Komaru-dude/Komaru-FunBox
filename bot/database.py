@@ -1,4 +1,5 @@
-import asyncpg, os, time, random
+import asyncio, asyncpg, os, time, random
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -26,17 +27,31 @@ class Database:
     def __init__(self):
         self.pool = None
         self.owner_id = int(os.getenv("OWNER_ID", 0))
+        self._lock = asyncio.Lock()
+        self.is_connected = False
+
+    async def ensure_connection(self):
+        async with self._lock:
+            if not self.is_connected or self.pool is None:
+                await self.connect()
 
     async def connect(self):
-        self.pool = await asyncpg.create_pool(
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME"),
-        )
-        await self.create_tables()
-        await self.sync_all()
+        try:
+            self.pool = await asyncpg.create_pool(
+                host=os.getenv("DB_HOST"),
+                port=os.getenv("DB_PORT"),
+                user=os.getenv("DB_USER"),
+                password=os.getenv("DB_PASSWORD"),
+                database=os.getenv("DB_NAME"),
+                min_size=5,
+                max_size=20
+            )
+            await self.create_tables()
+            await self.sync_all()
+            self.is_connected = True
+        except Exception as e:
+            logging.error(f"Database connection failed: {e}")
+            raise
 
     async def create_tables(self):
         async with self.pool.acquire() as conn:
@@ -77,6 +92,7 @@ class Database:
                 """)
 
     async def sync_all(self):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 # Синхронизируем фичи
@@ -102,6 +118,7 @@ class Database:
         if user_id == self.owner_id:
             return True
 
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             rank = await conn.fetchval("""
                 SELECT rank FROM users 
@@ -111,6 +128,7 @@ class Database:
         return RANK_TO_LEVEL.get(rank, -1) >= required_level
 
     async def set_rank(self, user_id: int, chat_id: int, rank: str):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("""
                 INSERT INTO users (user_id, chat_id, rank)
@@ -120,6 +138,7 @@ class Database:
             """, user_id, chat_id, rank)
 
     async def user_exists(self, user_id: int, chat_id: int) -> bool:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval("""
                 SELECT EXISTS(
@@ -129,6 +148,7 @@ class Database:
             """, user_id, chat_id)
 
     async def add_user(self, user_id: int, chat_id: int):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("""
                 INSERT INTO users (user_id, chat_id)
@@ -137,6 +157,7 @@ class Database:
             """, user_id, chat_id)
 
     async def get_user_rank(self, user_id: int, chat_id: int) -> str:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval("""
                 SELECT rank FROM users 
@@ -144,6 +165,7 @@ class Database:
             """, user_id, chat_id)
 
     async def update_message_count(self, user_id: int, chat_id: int):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("""
                 UPDATE users 
@@ -152,6 +174,7 @@ class Database:
             """, user_id, chat_id)
 
     async def get_user_data(self, user_id: int, chat_id: int) -> dict:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             record = await conn.fetchrow("""
                 SELECT * FROM users 
@@ -165,6 +188,7 @@ class Database:
             return dict(record)
 
     async def set_user_param(self, user_id: int, chat_id: int, param: str, value):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(f"""
                 UPDATE users 
@@ -173,6 +197,7 @@ class Database:
             """, value, user_id, chat_id)
 
     async def init_chat_features(self, chat_id: int):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             for feature, enabled in DEFAULT_FEATURES:
                 await conn.execute("""
@@ -182,6 +207,7 @@ class Database:
                 """, chat_id, feature, bool(enabled))
 
     async def is_feature_exists(self, chat_id: int, feature_name: str) -> bool:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval("""
                 SELECT EXISTS(
@@ -191,6 +217,7 @@ class Database:
             """, chat_id, feature_name)
 
     async def is_feature_enabled(self, chat_id: int, feature_name: str) -> bool:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval("""
                 SELECT is_enabled FROM features 
@@ -198,6 +225,7 @@ class Database:
             """, chat_id, feature_name)
 
     async def toggle_feature(self, chat_id: int, feature_name: str, enable: bool):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("""
                 UPDATE features 
@@ -206,6 +234,7 @@ class Database:
             """, enable, chat_id, feature_name)
 
     async def mediaban_user(self, user_id: int):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("""
                 INSERT INTO banned_users (user_id)
@@ -214,6 +243,7 @@ class Database:
             """, user_id)
 
     async def mediaunban_user(self, user_id: int):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("""
                 DELETE FROM banned_users 
@@ -221,6 +251,7 @@ class Database:
             """, user_id)
 
     async def is_user_mediabanned(self, user_id: int) -> bool:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval("""
                 SELECT EXISTS(
@@ -230,6 +261,7 @@ class Database:
             """, user_id)
 
     async def update_user_history(self, user_id: int, chat_id: int, punishment_type: str, reason: str):
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             history = await conn.fetchval("""
                 SELECT history FROM users 
@@ -252,6 +284,7 @@ class Database:
             history + [punishment], user_id, chat_id)
 
     async def get_user_history(self, user_id: int, chat_id: int) -> list:
+        await self.ensure_connection()
         async with self.pool.acquire() as conn:
             history = await conn.fetchval("""
                 SELECT history FROM users 
@@ -260,6 +293,7 @@ class Database:
             return history or []
 
     async def update_reputation(self, user_id: int, chat_id: int, mode: str, value: int = None):
+        await self.ensure_connection()
         if mode not in ["auto_add", "manual_add", "manual_rem"]:
             raise ValueError("Invalid mode")
 
