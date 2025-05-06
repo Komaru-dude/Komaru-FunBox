@@ -84,8 +84,8 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
 
             messages.append({"role": "assistant", "content": ai_response})
-            if len(messages) > 6:
-                messages = [messages[0]] + messages[-5:]
+            if len(messages) > 8:
+                messages = [messages[0]] + messages[-7:]
 
             await state.update_data(messages=messages)
 
