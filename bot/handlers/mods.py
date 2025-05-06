@@ -7,7 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from bot import db
+from bot import database
 from bot.utils.aio_tools import (
     fetch_user_data,
     error_report,
@@ -15,6 +15,7 @@ from bot.utils.aio_tools import (
 )
 
 mods_router = Router()
+db = database.Database()
 API_URL = "http://127.0.0.1:8001"
 
 
@@ -39,20 +40,20 @@ async def cmd_enable_func(message: Message, bot: Bot):
         return
     func = parts[1]
 
-    if not db.is_feature_exists(chat_id, func):
+    if not await db.is_feature_exists(chat_id, func):
         await message.reply("❌ Функции не существует.")
         return
 
-    if not db.has_permission(user_id, chat_id, 2):
+    if not await db.has_permission(user_id, chat_id, 2):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
 
-    if db.is_feature_enabled(chat_id, func):
+    if await db.is_feature_enabled(chat_id, func):
         await message.reply("❌ Функция уже включена.")
         return
 
     try:
-        db.enable_feature(chat_id, func)
+        await db.toggle_feature(chat_id, func, enable=True)
         await message.reply("✅ Функция включена.")
     except Exception as e:
         await error_report(message, bot, "enable", traceback.format_exc())
@@ -69,20 +70,20 @@ async def cmd_disable_func(message: Message, bot: Bot):
         return
     func = parts[1]
 
-    if not db.is_feature_exists(chat_id, func):
+    if not await db.is_feature_exists(chat_id, func):
         await message.reply("❌ Функции не существует.")
         return
 
-    if not db.has_permission(user_id, chat_id, 2):
+    if not await db.has_permission(user_id, chat_id, 2):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
 
-    if not db.is_feature_enabled(chat_id, func):
+    if not await db.is_feature_enabled(chat_id, func):
         await message.reply("❌ Функция уже выключена.")
         return
 
     try:
-        db.disable_feature(chat_id, func)
+        await db.toggle_feature(chat_id, func)
         await message.reply("✅ Функция выключена.")
     except Exception:
         await error_report(message, bot, "disable", traceback.format_exc())
@@ -95,9 +96,9 @@ async def cmd_history(message: Message, bot: Bot):
         chat_id = message.chat.id
 
         if not (
-            db.is_feature_enabled(chat_id, "warn")
-            or db.is_feature_enabled(chat_id, "mute")
-            or db.is_feature_enabled(chat_id, "ban")
+            await db.is_feature_enabled(chat_id, "warn")
+            or await db.is_feature_enabled(chat_id, "mute")
+            or await db.is_feature_enabled(chat_id, "ban")
         ):
             await message.reply("❌ Функция отключена.")
             return
@@ -122,7 +123,7 @@ async def cmd_history(message: Message, bot: Bot):
         else:
             target_id = message.from_user.id
 
-        history = db.get_history(target_id, chat_id)
+        history = await db.get_user_history(target_id, chat_id)
 
         if not history:
             await message.reply(f"😋 У {target_id} пока нет наказаний.")
@@ -153,11 +154,11 @@ async def cmd_warn(message: Message, bot: Bot):
     try:
         chat_id = message.chat.id
 
-        if not db.is_feature_enabled(chat_id, "warn"):
+        if not await db.is_feature_enabled(chat_id, "warn"):
             await message.reply("❌ Функция отключена.")
             return
 
-        if not db.has_permission(message.from_user.id, chat_id, 1):
+        if not await db.has_permission(message.from_user.id, chat_id, 1):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнения этой команды."
             )
@@ -214,8 +215,8 @@ async def cmd_warn(message: Message, bot: Bot):
             await message.reply("❌ Зачем предупреждать самого себя?")
             return
 
-        db.update_user_warns(target_id, chat_id, reason)
-        user_data = db.get_user_data(target_id, chat_id)
+        await db.update_user_warns(target_id, chat_id, reason)
+        user_data = await db.get_user_data(target_id, chat_id)
         current_warns = user_data[2]
         warn_limit = user_data[9]
 
@@ -235,7 +236,7 @@ async def cmd_warn(message: Message, bot: Bot):
                 f"👤 Модератор: Авто-мод\n📝 Причина: Превышение лимита предупреждений",
                 parse_mode=ParseMode.HTML,
             )
-            db.update_user_warn_limit(target_id, chat_id, 3)
+            await db.update_user_warn_limit(target_id, chat_id, 3)
             await bot.restrict_chat_member(
                 chat_id,
                 target_id,
@@ -272,7 +273,7 @@ async def cmd_info(message: Message, bot: Bot):
         if "error" in user_info:
             return await message.reply(f"❌ {user_info['error']}")
 
-        user_data = db.get_user_data(user_info["user_id"], chat_id)
+        user_data = await db.get_user_data(user_info["user_id"], chat_id)
         if not user_data:
             return await message.reply("❌ Пользователь не найден в базе данных")
 
@@ -304,11 +305,11 @@ async def cmd_mute(message: Message, bot: Bot):
         chat_id = message.chat.id
         text = message.text or ""
 
-        if not db.is_feature_enabled(chat_id, "mute"):
+        if not await db.is_feature_enabled(chat_id, "mute"):
             await message.reply("❌ Функция отключена.")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ У вас нет прав для этой команды")
             return
 
@@ -356,9 +357,9 @@ async def cmd_mute(message: Message, bot: Bot):
             until_date=until_date,
         )
 
-        db.add_user(target_user_id, chat_id)
-        db.update_user_mutes(target_user_id, chat_id, reason)
-        db.update_rep(target_user_id, chat_id, "manual_rem", 10)
+        await db.add_user(target_user_id, chat_id)
+        await db.update_user_mutes(target_user_id, chat_id, reason)
+        await db.update_reputation(target_user_id, chat_id, "manual_rem", 10)
 
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
         await message.reply(
@@ -384,11 +385,11 @@ async def cmd_ban(message: Message, bot: Bot):
         chat_id = message.chat.id
         text = message.text or ""
 
-        if not db.is_feature_enabled(chat_id, "ban"):
+        if not await db.is_feature_enabled(chat_id, "ban"):
             await message.reply("❌ Функция отключена.")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ Недостаточно прав")
             return
 
@@ -431,9 +432,9 @@ async def cmd_ban(message: Message, bot: Bot):
 
         await bot.ban_chat_member(chat_id, target_user_id, until_date=until_date)
 
-        db.add_user(target_user_id, chat_id)
-        db.update_user_bans(target_user_id, chat_id, reason)
-        db.update_rep(target_user_id, chat_id, "manual_rem", 15)
+        await db.add_user(target_user_id, chat_id)
+        await db.update_user_bans(target_user_id, chat_id, reason)
+        await db.update_reputation(target_user_id, chat_id, "manual_rem", 15)
 
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
         await message.reply(
@@ -458,11 +459,11 @@ async def cmd_unmute(message: Message, bot: Bot):
         user_id = message.from_user.id
         chat_id = message.chat.id
 
-        if not db.is_feature_enabled(chat_id, "mute"):
+        if not await db.is_feature_enabled(chat_id, "mute"):
             await message.reply("❌ Функция отключена.")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ Недостаточно прав")
             return
 
@@ -510,11 +511,11 @@ async def cmd_unban(message: Message, bot: Bot):
         user_id = message.from_user.id
         chat_id = message.chat.id
 
-        if not db.is_feature_enabled(chat_id, "ban"):
+        if not await db.is_feature_enabled(chat_id, "ban"):
             await message.reply("❌ Функция отключена.")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply("❌ Недостаточно прав")
             return
 

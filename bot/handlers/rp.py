@@ -7,11 +7,12 @@ from aiogram.enums import ParseMode
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from bot import db
+from bot import database
 from bot.utils.aio_tools import error_report
 from pathlib import Path
 
 rp_router = Router()
+db = database.Database()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
@@ -52,13 +53,13 @@ async def cmd_rp_setup(message: Message, bot: Bot):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнению этой команды"
             )
             return
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -158,13 +159,13 @@ async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнению этой команды"
             )
             return
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -278,13 +279,13 @@ async def cmd_rp_remove(message: Message, bot: Bot):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнению этой команды"
             )
             return
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -320,13 +321,13 @@ async def cmd_rp_wipe(message: Message, bot: Bot):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not db.has_permission(user_id, chat_id, 2):
+        if not await db.has_permission(user_id, chat_id, 2):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнению этой команды"
             )
             return
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 

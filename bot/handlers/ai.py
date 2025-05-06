@@ -16,11 +16,12 @@ from bot.utils.global_storage import (
     active_chats_lock,
     onlysq_models,
 )
-from bot import db
+from bot import database
 
 ai_router = Router()
 url = os.getenv("API_URL")
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
+db = database.Database()
 
 SUPPORTED_LANGUAGES = {
     "zh": "Китайский",
@@ -85,7 +86,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
         base_msg = await message.reply("🔄 Обработка...")
         split_text = message.text.split(maxsplit=1) if message.text else [""]
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -220,7 +221,7 @@ async def cmd_image(message: Message, bot: Bot):
             )
             return
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -260,7 +261,7 @@ async def cmd_translate(message: Message, bot: Bot):
         base_msg = await message.reply("🔄 Обработка...")
         user_input = message.text.split(maxsplit=2)
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -411,7 +412,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
     try:
         model_name = None
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -485,11 +486,11 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext):
         chat_id = message.chat.id
         current_state = await state.get_state()
 
-        if db.is_user_mediabanned(user_id):
+        if await db.is_user_mediabanned(user_id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        if not db.has_permission(user_id, chat_id, 1) and current_state is None:
+        if not await db.has_permission(user_id, chat_id, 1) and current_state is None:
             await message.reply(
                 "❌ У вас недостаточно прав для выполнения этой команды и вы не являетесь инициатором разговора."
             )

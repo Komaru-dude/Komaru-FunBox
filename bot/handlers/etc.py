@@ -11,11 +11,12 @@ from aiogram.filters import Command
 from aiogram.types import Message, URLInputFile
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from bot import db
+from bot import database
 from bot.utils.aio_tools import error_report
 
 etc_router = Router()
 API_URL = "http://127.0.0.1:8001"
+db = database.Database()
 current_dir = os.path.dirname(os.path.abspath(__file__))
 media_folder = os.path.join(current_dir, "..", "media")
 sticker_extensions = {".webp", ".tgs", ".webm"}
@@ -34,7 +35,7 @@ dog_http_codes = load_http_codes("dog_http_codes.json")
 @etc_router.message(Command("coffee"))
 async def cmd_tea(message: Message, bot: Bot):
     try:
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -61,7 +62,7 @@ async def cmd_http_cat(message: Message, bot: Bot):
         split_text = message.text.split()
         code = None
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -92,7 +93,7 @@ async def cmd_http_dog(message: Message, bot: Bot):
         split_text = message.text.split()
         code = None
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -120,7 +121,7 @@ async def cmd_http_dog(message: Message, bot: Bot):
 @etc_router.message(Command("cat"))
 async def cmd_cat(message: Message, bot: Bot):
     try:
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -134,7 +135,7 @@ async def cmd_cat(message: Message, bot: Bot):
 @etc_router.message(Command("cat_gif"))
 async def cmd_cat_gif(message: Message, bot: Bot):
     try:
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
         await message.reply_video(URLInputFile("https://cataas.com/cat/gif"))

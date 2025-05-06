@@ -7,11 +7,12 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot import db
-from bot.db import RANK_TO_LEVEL
+from bot import database
+from bot.database import RANK_TO_LEVEL
 from bot.utils import aio_tools
 
 rights_router = Router()
+db = database.Database()
 API_URL = "http://127.0.0.1:8001"
 
 
@@ -32,13 +33,13 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
 
         owner_id = await aio_tools.get_chat_owner_id(bot, chat_id)
 
-        if not (db.has_permission(user_id, chat_id, 2) or owner_id == user_id):
+        if not (await db.has_permission(user_id, chat_id, 2) or owner_id == user_id):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнения этой команды."
             )
             return
 
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -107,8 +108,8 @@ async def process_username(message: Message, state: FSMContext):
         await message.reply(f"Не удалось найти пользователя, ошибка {error_msg}")
         return await state.clear()
 
-    if not db.user_exists(user_id, chat_id):
-        db.add_user(user_id, chat_id)
+    if not await db.user_exists(user_id, chat_id):
+        await db.add_user(user_id, chat_id)
 
     async with aiohttp.ClientSession() as session:
         try:
@@ -149,7 +150,7 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
     owner_bot_id = int(os.getenv("OWNER_ID"))
     is_global_owner = user_id == owner_bot_id
 
-    user_rank = db.get_user_rank(user_id, callback.message.chat.id)
+    user_rank = await db.get_user_rank(user_id, callback.message.chat.id)
     user_level = RANK_TO_LEVEL.get(user_rank, 0)
     required_level = RANK_TO_LEVEL.get(selected_rank, 999)
 
@@ -160,7 +161,7 @@ async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot
         return
 
     try:
-        db.set_rank(target_user_id, callback.message.chat.id, selected_rank)
+        await db.set_rank(target_user_id, callback.message.chat.id, selected_rank)
         await callback.message.edit_text(
             f"✅ Ранг пользователя {first_name} успешно изменён на: {selected_rank}"
         )
@@ -179,7 +180,7 @@ async def cmd_ban_user(message: Message, bot: Bot):
     target_id = None
     first_name = None
 
-    if not db.has_permission(user_id, chat_id, 4):
+    if not await db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
 
@@ -228,12 +229,12 @@ async def cmd_ban_user(message: Message, bot: Bot):
             )
             return
 
-    if db.is_user_mediabanned(target_id):
+    if await db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже заблокирован")
         return
 
     try:
-        db.mediaban_user(target_id)
+        await db.mediaban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был заблокирован")
     except Exception as e:
         await aio_tools.error_report(message, bot, "ban_media", traceback.format_exc())
@@ -246,7 +247,7 @@ async def cmd_unban_user(message: Message, bot: Bot):
     target_id = None
     first_name = None
 
-    if not db.has_permission(user_id, chat_id, 4):
+    if not await db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
 
@@ -295,12 +296,12 @@ async def cmd_unban_user(message: Message, bot: Bot):
             )
             return
 
-    if not db.is_user_mediabanned(target_id):
+    if not await db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже разблокирован")
         return
 
     try:
-        db.mediaunban_user(target_id)
+        await db.mediaunban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception as e:
         await aio_tools.error_report(

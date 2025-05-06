@@ -10,13 +10,14 @@ from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.enums import ParseMode
-from bot import db
+from bot import database
 from bot.handlers.ai import cmd_ai, ChatState
 from bot.handlers.video import cmd_video
 from bot.utils.global_storage import active_chats
 from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
 
 text_router = Router()
+db = database.Database()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
@@ -101,10 +102,10 @@ async def text(message: Message, bot: Bot, state: FSMContext):
 
         if message.chat.type == "channel":
             return
-        if not db.user_exists(user1.id, chat_id):
-            db.add_user(user1.id, chat_id)
-        if not db.is_init(chat_id):
-            db.init_chat_features(chat_id)
+        if not await db.user_exists(user1.id, chat_id):
+            await db.add_user(user1.id, chat_id)
+        if not await db.is_init(chat_id):
+            await db.init_chat_features(chat_id)
         if not text_msg:
             return
 
@@ -116,7 +117,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             text_msg.lower() == "это что?"
             and message.reply_to_message
             and message.reply_to_message.text
-            and db.is_feature_enabled(chat_id, "who")
+            and await db.is_feature_enabled(chat_id, "who")
         ):
             messages = [
                 {
@@ -127,7 +128,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             ]
             await cmd_ai(message, bot, model="gpt-4o-mini", messages=messages)
             return
-        elif message.text.startswith(("http://", "https://")) and db.is_feature_enabled(
+        elif message.text.startswith(("http://", "https://")) and await db.is_feature_enabled(
             chat_id, "autovideo"
         ):
             parsed_url = urlparse(message.text)

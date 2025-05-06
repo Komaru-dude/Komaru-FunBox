@@ -3,10 +3,11 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
-from bot import db
+from bot import database
 from bot.utils.aio_tools import fetch_json, error_report
 
 tag_router = Router()
+db = database.Database()
 
 
 @tag_router.message(Command("tag"))
@@ -15,7 +16,7 @@ async def cmd_tag(message: Message, bot: Bot):
         chat_id = message.chat.id
         split_text = message.text.split(maxsplit=2)
 
-        if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(
+        if not await db.is_feature_enabled(chat_id, "tag") and not await db.has_permission(
             message.from_user.id, chat_id, 1
         ):
             await message.reply(
@@ -61,7 +62,7 @@ async def cmd_tagall(message: Message, bot: Bot):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not db.is_feature_enabled(chat_id, "tag") and not db.has_permission(
+        if not await db.is_feature_enabled(chat_id, "tag") and not await db.has_permission(
             user_id, chat_id, 1
         ):
             await message.reply(

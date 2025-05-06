@@ -6,9 +6,10 @@ from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from bot.utils.image_tools import replace_green_screen
 from bot.utils.aio_tools import error_report
-from bot import db
+from bot import database
 
 image_router = Router()
+db = database.Database()
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 
 
@@ -27,7 +28,7 @@ async def cmd_jpeg(message: Message, bot: Bot):
     command = "jpeg"
     input_path = output_path = processing_msg = image = None
     try:
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 

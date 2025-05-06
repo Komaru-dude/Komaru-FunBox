@@ -6,10 +6,11 @@ from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
-from bot import db
+from bot import database
 from bot.utils.aio_tools import error_report
 
 video_router = Router()
+db = database.Database()
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 
 
@@ -46,7 +47,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
     processing_msg = None
 
     try:
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -89,7 +90,7 @@ async def cmd_gif(message: Message, bot: Bot):
     processing_msg = None
 
     try:
-        if db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 

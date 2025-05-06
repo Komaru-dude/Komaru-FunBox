@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
-from bot.db import DATA_DIR
+from bot.database import BASE_DIR, Database
 from bot.utils.global_storage import onlysq_models
 from bot.utils.aio_tools import fetch_json
 
@@ -34,6 +34,8 @@ logging.basicConfig(level=logging.INFO)
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
+db = Database()
+DATA_DIR = BASE_DIR / "data"
 
 
 async def load_models():
@@ -111,6 +113,7 @@ def clear_cache():
 async def main():
     clear_cache()
     await load_models()
+    await db.connect()
 
     dp.include_routers(
         base_router,

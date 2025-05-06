@@ -12,11 +12,12 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
-from bot import db
+from bot import database
 from bot.utils.aio_tools import error_report
 
 base_router = Router()
-models_path = db.DATA_DIR / "models.json"
+models_path = database.BASE_DIR / "data" / "models.json"
+db = database.Database()
 # Списки хранения данных для /status
 cpu_loads = []
 memory_loads = []
@@ -158,7 +159,7 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
 async def cmd_restart(message: Message, bot: Bot):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    if not db.has_permission(user_id, chat_id, 4):
+    if not await db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ Эта команда только для персонала.")
         return
     await message.answer("Перезапускаюсь... 🔄")
@@ -173,7 +174,7 @@ async def cmd_restart(message: Message, bot: Bot):
 async def cmd_restart(message: Message, bot: Bot):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    if not db.has_permission(user_id, chat_id, 4):
+    if not await db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ Эта команда только для персонала.")
         return
 
