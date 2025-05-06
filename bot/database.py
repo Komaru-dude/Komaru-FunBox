@@ -37,6 +37,7 @@ class Database:
 
     async def connect(self):
         try:
+            logging.info("Подключаемся к базе данных...")
             self.pool = await asyncpg.create_pool(
                 host=os.getenv("DB_HOST"),
                 port=os.getenv("DB_PORT"),
@@ -49,8 +50,9 @@ class Database:
             await self.create_tables()
             await self.sync_all()
             self.is_connected = True
+            logging.info("Успешное подключение к БД.")
         except Exception as e:
-            logging.error(f"Database connection failed: {e}")
+            logging.critical(f"Не удалось подключиться к БД: {e}")
             raise
 
     async def create_tables(self):
