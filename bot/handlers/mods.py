@@ -217,8 +217,8 @@ async def cmd_warn(message: Message, bot: Bot):
 
         await db.update_user_warns(target_id, chat_id, reason)
         user_data = await db.get_user_data(target_id, chat_id)
-        current_warns = user_data[2]
-        warn_limit = user_data[9]
+        current_warns = user_data['warns']
+        warn_limit = user_data['warn_limit']
 
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
@@ -284,12 +284,12 @@ async def cmd_info(message: Message, bot: Bot):
             f"👤 Информация о {clickable_name}\n"
             f"🆔 ID: {user_info['user_id']}\n\n"
             f"📊 Статистика:\n"
-            f"⚠ Предупреждения: {user_data[2]}/{user_data[9]}\n"
-            f"🔇 Мьюты: {user_data[4]}\n"
-            f"🔨 Баны: {user_data[3]}\n"
-            f"💎 Репутация: {user_data[5]}\n"
-            f"📨 Сообщений: {user_data[7]}\n"
-            f"🏅 Ранг: {user_data[6]}\n"
+            f"⚠ Предупреждения: {user_data['warns']}/{user_data['warn_limit']}\n"
+            f"🔇 Мьюты: {user_data['mutes']}\n"
+            f"🔨 Баны: {user_data['bans']}\n"
+            f"💎 Репутация: {user_data['reputation']}\n"
+            f"📨 Сообщений: {user_data['message_count']}\n"
+            f"🏅 Ранг: {user_data['rank']}\n"
         )
 
         await message.reply(info_text, parse_mode=ParseMode.HTML)

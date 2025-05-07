@@ -353,6 +353,9 @@ class Database:
     async def update_user_warns(self, user_id: int, chat_id: int, reason: str):
         await self.update_user_history(user_id, chat_id, "warn", reason)
 
+    async def update_user_mutes(self, user_id: int, chat_id: int, reason: str):
+        await self.update_user_history(user_id, chat_id, "mute", reason)
+
     async def update_user_bans(self, user_id: int, chat_id: int, reason: str):
         await self.update_user_history(user_id, chat_id, "ban", reason)
 
