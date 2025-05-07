@@ -217,8 +217,8 @@ async def cmd_warn(message: Message, bot: Bot):
 
         await db.update_user_warns(target_id, chat_id, reason)
         user_data = await db.get_user_data(target_id, chat_id)
-        current_warns = user_data['warns']
-        warn_limit = user_data['warn_limit']
+        current_warns = user_data["warns"]
+        warn_limit = user_data["warn_limit"]
 
         target_user_link = f'<a href="tg://user?id={target_id}">{target_first_name}</a>'
         mod_link = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'

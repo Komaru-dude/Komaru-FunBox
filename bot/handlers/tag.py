@@ -16,9 +16,9 @@ async def cmd_tag(message: Message, bot: Bot):
         chat_id = message.chat.id
         split_text = message.text.split(maxsplit=2)
 
-        if not await db.is_feature_enabled(chat_id, "tag") and not await db.has_permission(
-            message.from_user.id, chat_id, 1
-        ):
+        if not await db.is_feature_enabled(
+            chat_id, "tag"
+        ) and not await db.has_permission(message.from_user.id, chat_id, 1):
             await message.reply(
                 "❌ Функция не включена в чате, а вы не имеете прав модератора."
             )
@@ -62,9 +62,9 @@ async def cmd_tagall(message: Message, bot: Bot):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not await db.is_feature_enabled(chat_id, "tag") and not await db.has_permission(
-            user_id, chat_id, 1
-        ):
+        if not await db.is_feature_enabled(
+            chat_id, "tag"
+        ) and not await db.has_permission(user_id, chat_id, 1):
             await message.reply(
                 "❌ Функция не включена в чате, а вы не имеете прав модератора."
             )

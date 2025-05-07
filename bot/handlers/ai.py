@@ -151,7 +151,10 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
                 answer = re.sub(
                     r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
                 ).strip()
-            elif model == "gemini-2.5-flash-preview-04-17" or model == "gemini-2.5-pro-exp-03-25":
+            elif (
+                model == "gemini-2.5-flash-preview-04-17"
+                or model == "gemini-2.5-pro-exp-03-25"
+            ):
                 answer = re.sub(
                     r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
                 ).strip()

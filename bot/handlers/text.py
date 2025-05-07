@@ -128,9 +128,9 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             ]
             await cmd_ai(message, bot, model="gpt-4o-mini", messages=messages)
             return
-        elif message.text.startswith(("http://", "https://")) and await db.is_feature_enabled(
-            chat_id, "autovideo"
-        ):
+        elif message.text.startswith(
+            ("http://", "https://")
+        ) and await db.is_feature_enabled(chat_id, "autovideo"):
             parsed_url = urlparse(message.text)
             domain = parsed_url.netloc.lower().replace("www.", "")
             if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
