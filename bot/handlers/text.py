@@ -104,8 +104,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             return
         if not await db.user_exists(user1.id, chat_id):
             await db.add_user(user1.id, chat_id)
-        if not await db.is_init(chat_id):
-            await db.init_chat_features(chat_id)
+        await db.init_chat_features(chat_id)
         if not text_msg:
             return
 
