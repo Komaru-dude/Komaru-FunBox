@@ -515,3 +515,40 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext):
                 await message.reply("✅ Успешно остановлено")
     except Exception:
         await error_report(message, bot, "chat_stop", traceback.format_exc())
+
+
+@ai_router.message(Command("set_def_model"))
+async def cmd_set_default_model(message: Message, bot: Bot):
+    try:
+        model_name = None
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+
+        if await db.is_user_mediabanned(user_id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
+        
+        if len(message.text.split()) < 1:
+            await db.set_user_param(user_id, chat_id, "default_model", "gemini-2.5-flash-preview-04-17")
+            await message.reply("🤷‍♂️ Не была указана модель, выбрана по умолчанию")
+            return
+    
+        if model_name:
+            model_info = onlysq_models["models"].get(model_name)
+            if not model_info:
+                await message.reply(f"❌ Модель {model_name} не найдена")
+                return
+            if model_info["status"] != "work":
+                await message.reply(
+                    f"❌ Модель {model_name} на данный момент не работает."
+                )
+                return
+            if model_info["modality"] != "text":
+                await message.reply(f"❌ Модель {model_name} не текстовая.")
+                return
+            
+        await db.set_user_param(user_id, chat_id, "default_model", model_name)
+        await message.reply(f"✅ Теперь по умолчанию в ваших ИИ запросах будет использоваться: <code>{model_name}</code>", parse_mode=ParseMode.HTML)
+
+    except Exception:
+        await error_report(message, bot, "set_def_model", traceback.format_exc()), 

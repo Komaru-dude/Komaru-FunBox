@@ -95,7 +95,7 @@ class Database:
                         message_count INTEGER DEFAULT 0,
                         history JSONB DEFAULT '[]'::JSONB,
                         warn_limit INTEGER DEFAULT 3,
-                        first_name TEXT DEFAULT '',
+                        default_model TEXT DEFAULT '',
                         PRIMARY KEY (user_id, chat_id)
                     )
                 """
