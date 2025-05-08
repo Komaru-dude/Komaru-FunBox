@@ -3,7 +3,6 @@ import aiohttp
 import re
 import traceback
 import openai
-from collections import defaultdict
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -83,10 +82,13 @@ async def show_working_models(message: Message):
 @ai_router.message(Command("ai"))
 async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list = None):
     try:
+        user_id = message.from_user.id
+        default_model = "gemini-2.5-flash-preview-04-17"
+
         base_msg = await message.reply("🔄 Обработка...")
         split_text = message.text.split(maxsplit=1) if message.text else [""]
 
-        if await db.is_user_mediabanned(message.from_user.id):
+        if await db.is_user_mediabanned(user_id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
@@ -131,7 +133,10 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             base_url="https://api.onlysq.ru/ai/openai",
         )
 
-        model = model or "gemini-2.5-flash-preview-04-17"
+        user_data = await db.get_user_data(user_id, message.chat.id)
+        user_default_model = user_data.get("default_model", None)
+
+        model = model or user_default_model or default_model
         messages = messages or [
             {
                 "role": "system",
@@ -166,6 +171,8 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             if model in onlysq_models["models"]
             else model
         )
+        if model == user_default_model: # Добавляем пояснение, если используется дефолтная модель пользователя
+            model_display_name += " (пользовательская модель по умолчанию)"
         raw_answer = (
             f"💭 Запрос: {request}\n"
             f"🧠 Модель: {model_display_name}\n\n"
