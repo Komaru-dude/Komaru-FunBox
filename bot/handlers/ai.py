@@ -446,8 +446,6 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
                 )
                 return
 
-
-
         if "-m" in args_text:
             model_match = re.search(r"-m\s+(\S+)", args_text)
             if not model_match:
@@ -475,7 +473,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         user_default_model = user_data.get("default_model", None)
 
         model = model or user_default_model or default_model
-    
+
         model_display_name = (
             onlysq_models["models"][model]["name"]
             if model in onlysq_models["models"]
