@@ -126,7 +126,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                 },
                 {"role": "user", "content": message.reply_to_message.text},
             ]
-            await cmd_ai(message, bot, model="gpt-4o-mini", messages=messages)
+            await cmd_ai(message, bot, messages=messages)
             return
         elif message.text.startswith(
             ("http://", "https://")
