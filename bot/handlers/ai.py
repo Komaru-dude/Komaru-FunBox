@@ -171,7 +171,9 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             if model in onlysq_models["models"]
             else model
         )
-        if model == user_default_model: # Добавляем пояснение, если используется дефолтная модель пользователя
+        if (
+            model == user_default_model
+        ):  # Добавляем пояснение, если используется дефолтная модель пользователя
             model_display_name += " (пользовательская модель по умолчанию)"
         raw_answer = (
             f"💭 Запрос: {request}\n"
@@ -538,24 +540,39 @@ async def cmd_set_default_model(message: Message, bot: Bot):
         if len(parts) < 2:
             model_name = "gemini-2.5-flash-preview-04-17"
             await db.set_user_param(user_id, chat_id, "default_model", model_name)
-            await message.reply(f"🤷‍♂️ Не была указана модель, выбрана по умолчанию: <code>{model_name}</code>", parse_mode=ParseMode.HTML)
+            await message.reply(
+                f"🤷‍♂️ Не была указана модель, выбрана по умолчанию: <code>{model_name}</code>",
+                parse_mode=ParseMode.HTML,
+            )
             return
 
         model_name = parts[1].strip()
 
         model_info = onlysq_models["models"].get(model_name)
         if not model_info:
-            await message.reply(f"❌ Модель <code>{model_name}</code> не найдена", parse_mode=ParseMode.HTML)
+            await message.reply(
+                f"❌ Модель <code>{model_name}</code> не найдена",
+                parse_mode=ParseMode.HTML,
+            )
             return
         if model_info["status"] != "work":
-            await message.reply(f"❌ Модель <code>{model_name}</code> на данный момент не работает.", parse_mode=ParseMode.HTML)
+            await message.reply(
+                f"❌ Модель <code>{model_name}</code> на данный момент не работает.",
+                parse_mode=ParseMode.HTML,
+            )
             return
         if model_info["modality"] != "text":
-            await message.reply(f"❌ Модель <code>{model_name}</code> не текстовая.", parse_mode=ParseMode.HTML)
+            await message.reply(
+                f"❌ Модель <code>{model_name}</code> не текстовая.",
+                parse_mode=ParseMode.HTML,
+            )
             return
 
         await db.set_user_param(user_id, chat_id, "default_model", model_name)
-        await message.reply(f"✅ Теперь по умолчанию в ваших ИИ запросах будет использоваться: <code>{model_name}</code>", parse_mode=ParseMode.HTML)
+        await message.reply(
+            f"✅ Теперь по умолчанию в ваших ИИ запросах будет использоваться: <code>{model_name}</code>",
+            parse_mode=ParseMode.HTML,
+        )
 
     except Exception:
         await error_report(message, bot, "set_def_model", traceback.format_exc())
