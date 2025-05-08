@@ -150,9 +150,9 @@ async def cmd_help(message: Message, bot: Bot):
                 )
                 await message.reply(
                     f"Неизвестная команда или модуль.\n\n"
-                    "Для полного списка используйте: <code>/help</code>"
+                    "Для полного списка используйте: <code>/help</code>\n"
                     "Для подробного описания используйте: <code>/help *команда или модуль*</code>\n"
-                    "Пример: /help image", parse_mode=ParseMode.HTML
+                    "Пример: <code>/help image</code>", parse_mode=ParseMode.HTML
                 )
         else:
             command_list = "\n".join(
