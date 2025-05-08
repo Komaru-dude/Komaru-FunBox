@@ -502,9 +502,9 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
             active_chats.append(message.chat.id)
 
         reply_text = (
-            "🔥 Давайте начнем жаркий спор! Озвучьте вашу позицию или тему для обсуждения.\n🧠 Модель: {display_model_name}"
+            f"🔥 Давайте начнем жаркий спор! Озвучьте вашу позицию или тему для обсуждения.\n🧠 Модель: {model_display_name}"
             if argue_mode
-            else "👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n🧠 Модель: {display_model_name}"
+            else f"👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n🧠 Модель: {model_display_name}"
         )
 
         await message.reply(
