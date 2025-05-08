@@ -209,13 +209,14 @@ async def cmd_restart(message: Message, bot: Bot):
             f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
             headers=headers,
         ) as resp:
+            response_body = await resp.text()
             if resp.status == 200:
                 data = await resp.json()
                 latest_commit = data["commit"]["sha"][:7]
                 if not latest_commit != commit:
                     return await update_msg.edit_text("☃️ Версия актуальна")
             else:
-                return await update_msg.edit_text(f"⚠️ Ошибка API: {resp.status}")
+                return await update_msg.edit_text(f"⚠️ Ошибка API: {resp.status}\nТело ответа: {response_body}")
 
     try:
         os.remove(models_path)
