@@ -172,7 +172,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             else model
         )
         if (
-            model == user_default_model
+            model == user_default_model and not model == default_model
         ):  # Добавляем пояснение, если используется дефолтная модель пользователя
             model_display_name += " (пользовательская модель по умолчанию)"
         raw_answer = (
