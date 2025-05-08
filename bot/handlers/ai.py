@@ -528,7 +528,7 @@ async def cmd_set_default_model(message: Message, bot: Bot):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
         
-        if len(message.text.split()) < 1:
+        if len(message.text.split()) < 2:
             await db.set_user_param(user_id, chat_id, "default_model", "gemini-2.5-flash-preview-04-17")
             await message.reply("🤷‍♂️ Не была указана модель, выбрана по умолчанию")
             return
