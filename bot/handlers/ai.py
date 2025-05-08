@@ -426,7 +426,10 @@ async def cmd_vocr(message: Message, bot: Bot):
 @ai_router.message(Command("chat"))
 async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
     try:
+        user_id = message.from_user.id
         model_name = None
+        default_model = "gemini-2.5-flash-preview-04-17"
+        split_text = message.text.split(maxsplit=1) if message.text else [""]
 
         if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
@@ -440,14 +443,14 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
                 )
                 return
 
-        args = message.text.split()[1:]
-        args_text = " ".join(args)
-        argue_mode = "-argue" in args
+        args_text = split_text[1] if len(split_text) > 1 else ""
+        argue_mode = "-argue" in split_text[1:]
+        model_name = None
 
         if "-m" in args_text:
             model_match = re.search(r"-m\s+(\S+)", args_text)
             if not model_match:
-                await message.reply("❌ Укажите название модели после -m")
+                await message.edit_text("❌ Укажите название модели после -m")
                 return
             model_name = model_match.group(1).lower()
             args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
@@ -455,16 +458,32 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         if model_name:
             model_info = onlysq_models["models"].get(model_name)
             if not model_info:
-                await message.reply(f"❌ Модель {model_name} не найдена")
+                await message.edit_text(f"❌ Модель {model_name} не найдена")
                 return
             if model_info["status"] != "work":
-                await message.reply(
+                await message.edit_text(
                     f"❌ Модель {model_name} на данный момент не работает."
                 )
                 return
             if model_info["modality"] != "text":
-                await message.reply(f"❌ Модель {model_name} не текстовая.")
+                await message.edit_text(f"❌ Модель {model_name} не текстовая.")
                 return
+            model = model_name
+
+        user_data = await db.get_user_data(user_id, message.chat.id)
+        user_default_model = user_data.get("default_model", None)
+
+        model = model or user_default_model or default_model
+    
+        model_display_name = (
+            onlysq_models["models"][model]["name"]
+            if model in onlysq_models["models"]
+            else model
+        )
+        if (
+            model == user_default_model and not model == default_model
+        ):  # Добавляем пояснение, если используется дефолтная модель пользователя
+            model_display_name += " (пользовательская модель по умолчанию)"
 
         system_content = (
             "Вы – эксперт в убедительном общении и дебатах. Вы участвуете на платформе, похожей на Reddit, где люди выражают противоречивые мнения и призывают других изменить свои взгляды. Ваша задача – сыграть роль одного из таких пользователей, предоставляя аргументы и альтернативные точки зрения, чтобы убедить автора оригинального поста изменить мнение. Вы можете использовать любую убедительную стратегию, кроме обмана и лжи о фактах и реальных событиях. Вам разрешено придумывать персонажа и делиться деталями о своём прошлом опыте. Адаптируйте стратегию под тональность собеседника. Стиль ответа – короткий, непринуждённый, прямой. Используйте первое лицо. Не перефразируйте и не благодарите. Допускается цитирование оригинала через “> цитату” отдельной строкой. Можно быть настойчивым или немного грубым при необходимости. Ваш ответ должен быть лаконичным, прямолинейным и неформальным."
@@ -473,7 +492,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         )
 
         await state.update_data(
-            model=model_name or "gemini-2.0-flash",
+            model=model or user_default_model or default_model,
             messages=[{"role": "system", "content": system_content}],
         )
         await state.set_state(ChatState.active)
@@ -482,9 +501,9 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
             active_chats.append(message.chat.id)
 
         reply_text = (
-            "🔥 Давайте начнем жаркий спор! Озвучьте вашу позицию или тему для обсуждения.\n"
+            "🔥 Давайте начнем жаркий спор! Озвучьте вашу позицию или тему для обсуждения.\n🧠 Модель: {display_model_name}"
             if argue_mode
-            else "👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n"
+            else "👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n🧠 Модель: {display_model_name}"
         )
 
         await message.reply(
