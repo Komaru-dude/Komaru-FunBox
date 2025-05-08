@@ -538,10 +538,9 @@ async def cmd_set_default_model(message: Message, bot: Bot):
 
         parts = message.text.strip().split(maxsplit=1)
         if len(parts) < 2:
-            model_name = "gemini-2.5-flash-preview-04-17"
-            await db.set_user_param(user_id, chat_id, "default_model", model_name)
+            await db.set_user_param(user_id, chat_id, "default_model", None)
             await message.reply(
-                f"🤷‍♂️ Не была указана модель, выбрана по умолчанию: <code>{model_name}</code>",
+                f"🤷‍♂️ Не была указана модель, выбрана по умолчанию",
                 parse_mode=ParseMode.HTML,
             )
             return
