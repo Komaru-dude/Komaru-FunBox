@@ -23,6 +23,20 @@ DEFAULT_FEATURES = [
     ("ban", 0),
 ]
 
+USERS_COLUMNS = {
+    "user_id": "BIGINT",
+    "chat_id": "BIGINT",
+    "warns": "INTEGER DEFAULT 0",
+    "bans": "INTEGER DEFAULT 0",
+    "mutes": "INTEGER DEFAULT 0",
+    "reputation": "INTEGER DEFAULT 0",
+    "rank": "TEXT DEFAULT 'Участник'",
+    "message_count": "INTEGER DEFAULT 0",
+    "history": "JSONB DEFAULT '[]'::JSONB",
+    "warn_limit": "INTEGER DEFAULT 3",
+    "default_model": "TEXT DEFAULT ''",
+}
+
 
 class Database:
     def __init__(self):
@@ -81,24 +95,19 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                # Таблица юзеров
+                # Формируем SQL из USERS_COLUMNS
+                columns_def = ",\n".join(
+                    [f"{col} {definition}" for col, definition in USERS_COLUMNS.items()]
+                )
+                primary_keys = "PRIMARY KEY (user_id, chat_id)"
+
                 await conn.execute(
-                    """
+                    f"""
                     CREATE TABLE IF NOT EXISTS users (
-                        user_id BIGINT,
-                        chat_id BIGINT,
-                        warns INTEGER DEFAULT 0,
-                        bans INTEGER DEFAULT 0,
-                        mutes INTEGER DEFAULT 0,
-                        reputation INTEGER DEFAULT 0,
-                        rank TEXT DEFAULT 'Участник',
-                        message_count INTEGER DEFAULT 0,
-                        history JSONB DEFAULT '[]'::JSONB,
-                        warn_limit INTEGER DEFAULT 3,
-                        default_model TEXT DEFAULT '',
-                        PRIMARY KEY (user_id, chat_id)
+                        {columns_def},
+                        {primary_keys}
                     )
-                """
+                    """
                 )
 
                 # Таблица фич
@@ -110,7 +119,7 @@ class Database:
                         is_enabled BOOLEAN DEFAULT FALSE,
                         PRIMARY KEY (chat_id, feature_name)
                     )
-                """
+                    """
                 )
 
                 # Таблица заблокированных
@@ -119,8 +128,23 @@ class Database:
                     CREATE TABLE IF NOT EXISTS banned_users (
                         user_id BIGINT PRIMARY KEY
                     )
-                """
+                    """
                 )
+
+                # Добавляем недостающие столбцы в users
+                existing_cols = await conn.fetch(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'users'
+                    """
+                )
+                existing_col_names = {r["column_name"] for r in existing_cols}
+
+                for col, definition in USERS_COLUMNS.items():
+                    if col not in existing_col_names:
+                        await conn.execute(
+                            f"""ALTER TABLE users ADD COLUMN {col} {definition}"""
+                        )
 
     async def sync_all(self):
         await self.ensure_connection()
