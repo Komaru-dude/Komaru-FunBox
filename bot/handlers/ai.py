@@ -427,9 +427,12 @@ async def cmd_vocr(message: Message, bot: Bot):
 async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
     try:
         user_id = message.from_user.id
-        model_name = None
-        default_model = "gemini-2.5-flash-preview-04-17"
         split_text = message.text.split(maxsplit=1) if message.text else [""]
+        args_text = split_text[1] if len(split_text) > 1 else ""
+        argue_mode = "-argue" in split_text[1:]
+        default_model = "gemini-2.5-flash-preview-04-17"
+        model_name = None
+        model = None
 
         if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
@@ -443,9 +446,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
                 )
                 return
 
-        args_text = split_text[1] if len(split_text) > 1 else ""
-        argue_mode = "-argue" in split_text[1:]
-        model_name = None
+
 
         if "-m" in args_text:
             model_match = re.search(r"-m\s+(\S+)", args_text)
