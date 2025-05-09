@@ -350,7 +350,7 @@ class Database:
                 feature_name,
             )
 
-    async def toggle_feature(self, chat_id: int, feature_name: str, enable: bool):
+    async def toggle_feature(self, chat_id: int, feature_name: str, enable: bool = False):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
