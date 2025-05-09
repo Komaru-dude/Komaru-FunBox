@@ -138,7 +138,7 @@ async def error_report(message: Message, bot: Bot, command, traceback):
 
     async with error_report_lock:
         cutoff = current_time - timedelta(minutes=15)
-        error_report_timestamps = [t for t in error_report_timestamps if t > cutoff]
+        error_report_timestamps[:] = [t for t in error_report_timestamps if t > cutoff]
         
         current_count = len(error_report_timestamps)
         if current_count >= 2:
