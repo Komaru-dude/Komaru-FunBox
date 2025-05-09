@@ -8,10 +8,10 @@ from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from bot import database
 from bot.utils.aio_tools import error_report
+from bot.utils.global_storage import CACHE_DIR
 
 video_router = Router()
 db = database.Database()
-CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 
 
 async def download_video(url: str) -> dict:
