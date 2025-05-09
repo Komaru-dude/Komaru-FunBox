@@ -139,12 +139,12 @@ async def error_report(message: Message, bot: Bot, command, traceback):
     async with error_report_lock:
         cutoff = current_time - timedelta(minutes=15)
         error_report_timestamps[:] = [t for t in error_report_timestamps if t > cutoff]
-        
+
         current_count = len(error_report_timestamps)
         if current_count >= 2:
             send_to_user = False
             send_owner_alert = current_count == 2
-        
+
         error_report_timestamps.append(current_time)
 
     if send_to_user:
@@ -163,7 +163,10 @@ async def error_report(message: Message, bot: Bot, command, traceback):
             f"📛 Traceback:\n{traceback}"
         )
 
-        chunks = [error_report_text[i:i+4096] for i in range(0, len(error_report_text), 4096)]
+        chunks = [
+            error_report_text[i : i + 4096]
+            for i in range(0, len(error_report_text), 4096)
+        ]
         for chunk in chunks:
             try:
                 await bot.send_message(os.getenv("OWNER_ID"), chunk)
