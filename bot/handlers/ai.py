@@ -140,7 +140,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
         messages = messages or [
             {
                 "role": "system",
-                "content": "Не используй markdown/html форматирование, будь краток",
+                "content": "Не используй markdown/html форматирование",
             },
             {"role": "user", "content": request},
         ]
