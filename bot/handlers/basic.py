@@ -1,19 +1,22 @@
 import os
 import time
 import psutil
+import asyncio
 import aiohttp
 import json
 import subprocess
 import traceback
+import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from bot import database
 from bot.utils.aio_tools import error_report
+from bot.utils.global_storage import CACHE_DIR
 
 base_router = Router()
 models_path = database.BASE_DIR / "data" / "models.json"
@@ -229,3 +232,42 @@ async def cmd_restart(message: Message, bot: Bot):
         subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
     except Exception:
         await error_report(message, bot, "restart", traceback.format_exc())
+
+
+@base_router.message(Command("logs"))
+async def cmd_send_logs(message: Message, bot: Bot):
+    try:
+        if not await db.has_permission(message.from_user.id, message.chat.id, 4):
+            await message.reply("❌ Эта команда только для персонала.")
+            return
+
+        random_log_name = f"{uuid.uuid4()}.log"
+        out_path = CACHE_DIR / random_log_name
+
+        out_path.parent.mkdir(exist_ok=True, parents=True)
+
+        process = await asyncio.create_subprocess_exec(
+            "journalctl",
+            "--no-pager",
+            "-u",
+            "komaru-funbox.service",
+            "-n",
+            "50",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            raise RuntimeError(f"Ошибка выполнения команды: {stderr.decode()}")
+
+        with open(out_path, "wb") as f:
+            f.write(stdout)
+
+        await message.reply_document(FSInputFile(out_path), caption="📝 Вот ваши логи:")
+    except Exception:
+        await error_report(message, bot, "logs", traceback.format_exc())
+    finally:
+        if out_path.exists():
+            out_path.unlink()
