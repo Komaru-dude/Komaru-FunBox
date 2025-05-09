@@ -5,7 +5,7 @@ import os
 import logging
 from aiogram import Bot
 from aiogram.types import Message
-from bot.utils.global_storage import error_report_lock
+from bot.utils.global_storage import error_report_lock, error_report_timestamps
 
 API_HOST = "http://127.0.0.1:8001"
 
