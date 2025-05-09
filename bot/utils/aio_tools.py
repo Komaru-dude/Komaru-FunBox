@@ -1,6 +1,11 @@
-import aiohttp, os, uuid, logging
+from datetime import datetime, timedelta
+import aiohttp
+import uuid
+import os
+import logging
 from aiogram import Bot
 from aiogram.types import Message
+from bot.utils.global_storage import error_report_lock
 
 API_HOST = "http://127.0.0.1:8001"
 
@@ -127,29 +132,51 @@ async def make_post_request(url, payload, headers=None):
 
 async def error_report(message: Message, bot: Bot, command, traceback):
     report_id = uuid.uuid4()
+    current_time = datetime.now()
+    send_to_user = True
+    send_owner_alert = False
 
-    reply_info = (
-        f"\n📦 Ответ на сообщение: {message.reply_to_message.text}"
-        if message.reply_to_message
-        else ""
-    )
+    async with error_report_lock:
+        cutoff = current_time - timedelta(minutes=15)
+        error_report_timestamps = [t for t in error_report_timestamps if t > cutoff]
+        
+        current_count = len(error_report_timestamps)
+        if current_count >= 2:
+            send_to_user = False
+            send_owner_alert = current_count == 2
+        
+        error_report_timestamps.append(current_time)
 
-    await message.reply(
-        f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}"
-    )
+    if send_to_user:
+        await message.reply(
+            f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}"
+        )
 
-    error_report_text = (
-        f"❌ Во время обработки команды {command} возникла ошибка!\n"
-        f"🔢 Report ID: {report_id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
-        f"📛 Traceback:\n{traceback}"
-    )
+        reply_info = (
+            f"\n📦 Ответ на сообщение: {message.reply_to_message.text}"
+            if message.reply_to_message
+            else ""
+        )
+        error_report_text = (
+            f"❌ Во время обработки команды {command} возникла ошибка!\n"
+            f"🔢 Report ID: {report_id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
+            f"📛 Traceback:\n{traceback}"
+        )
 
-    chunks = [
-        error_report_text[i : i + 4096] for i in range(0, len(error_report_text), 4096)
-    ]
+        chunks = [error_report_text[i:i+4096] for i in range(0, len(error_report_text), 4096)]
+        for chunk in chunks:
+            try:
+                await bot.send_message(os.getenv("OWNER_ID"), chunk)
+            except Exception as e:
+                logging.error(f"Ошибка при отправке отчёта владельцу: {e}")
 
-    for chunk in chunks:
+    elif send_owner_alert:
+        alert_message = (
+            f"⚠️ Слишком много ошибок! Получено 3+ отчетов за 15 минут.\n"
+            f"Последний Report ID: {report_id}\n"
+            f"Сообщение: {message.text[:300]}..."
+        )
         try:
-            await bot.send_message(os.getenv("OWNER_ID"), chunk)
+            await bot.send_message(os.getenv("OWNER_ID"), alert_message)
         except Exception as e:
-            logging.error(f"Ошибка при отправке отчёта владельцу: {e}")
+            logging.error(f"Ошибка при отправке предупреждения: {e}")
