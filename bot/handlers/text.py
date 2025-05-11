@@ -74,7 +74,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
 
             client = openai.AsyncOpenAI(
                 api_key=os.getenv("ONLYSQ_API_KEY"),
-                base_url="https://api.onlysq.ru/ai/openai",
+                base_url=os.getenv("OPENAI_SDK_API_URL"),
             )
 
             response = await client.chat.completions.create(

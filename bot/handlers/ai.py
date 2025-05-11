@@ -130,7 +130,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
 
         client = openai.AsyncOpenAI(
             api_key=os.getenv("ONLYSQ_API_KEY"),
-            base_url="https://api.onlysq.ru/ai/openai",
+            base_url=os.getenv("OPENAI_SDK_API_URL"),
         )
 
         user_data = await db.get_user_data(user_id, message.chat.id)
@@ -247,7 +247,7 @@ async def cmd_image(message: Message, bot: Bot):
             "⏳ Генерирую изображение, подожди..."
         )
 
-        url = "https://api.onlysq.ru/ai/v2"
+        url = os.getenv("API_URL")
         payload = {
             "model": "kandinsky",
             "request": {"messages": [{"role": "user", "content": prompt}]},

@@ -13,6 +13,7 @@ API_HASH=your_api_hash
 
 # Ваш url для апи нейросетей
 API_URL=http://api.onlysq.ru/ai/v2
+OPENAI_SDK_API_URL=http://api.onlysq.ru/ai/openai
 
 # Апи ключ для onlysq (на момент написания не требуется)
 ONLYSQ_API_KEY=openai

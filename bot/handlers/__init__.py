@@ -11,6 +11,7 @@ required_vars = {
     "API_URL": "URL апи для ИИ (почему бы не использовать onlysq?)",
     "JIGSAW_API_KEY": "Апи ключ для jigsaw функций",
     "ONLYSQ_API_KEY": "Апи ключ для onlysq",
+    "OPENAI_SDK_API_URL": "Апи ключ для onlysq",
 }
 
 for var, description in required_vars.items():
