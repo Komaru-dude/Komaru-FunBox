@@ -219,7 +219,7 @@ async def cmd_ai(
         await base_msg.edit_text("⚠️ Внутренняя ошибка API")
     except openai.RateLimitError:
         await base_msg.edit_text("❌ Превышен лимит запросов к API. Попробуйте позже")
-    except Exception as e:
+    except Exception:
         await error_report(message, bot, "ai", traceback.format_exc())
 
 
@@ -414,10 +414,10 @@ async def cmd_translate(
                 "role": "system",
                 "content": f"Не используй markdown/html форматирование, ты должен перевести текст на язык '{lang}', твой вывод должен содержать только переведённый текст",
             },
-            {"role": "user", "content": request},
+            {"role": "user", "content": request if cli_mode else text_to_translate},
         ]
 
-        translated_text = await cmd_ai(messages=messages, cli_mode=True)
+        translated_text = await cmd_ai(message = message, bot = bot, messages=messages, cli_mode=True)
         lang_name = SUPPORTED_LANGUAGES.get(lang, f"{lang} (неизвестный)")
 
         result = f"🌍 Перевод на {lang_name} ({lang}):\n" f"{translated_text}"
