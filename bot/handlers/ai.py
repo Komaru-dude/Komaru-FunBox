@@ -3,10 +3,6 @@ import aiohttp
 import re
 import traceback
 import openai
-import time
-import asyncio
-from urllib.parse import quote, urlencode
-from collections import deque
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -231,74 +227,14 @@ async def cmd_aggemini(message: Message, bot: Bot):
         await error_report(message, bot, "agai", traceback.format_exc())
 
 
-class ImageQueue:
-    def __init__(self):
-        self.queue = deque()
-        self.last_request_time = 0
-        self.lock = asyncio.Lock()
-        self.processing = False
-        self.delay = 6  # Задержка в секундах между запросами
-
-    async def add_request(self, message, prompt, translated_prompt, bot):
-        async with self.lock:
-            self.queue.append((message, prompt, translated_prompt, bot))
-            if not self.processing:
-                self.processing = True
-                asyncio.create_task(self.process_queue(bot=bot))
-
-    async def process_queue(self, bot):
-        while True:
-            async with self.lock:
-                if not self.queue:
-                    self.processing = False
-                    return
-                
-                now = time.time()
-                if now - self.last_request_time < self.delay:
-                    await asyncio.sleep(self.delay - (now - self.last_request_time))
-                
-                message, prompt, translated_prompt = self.queue.popleft()
-                self.last_request_time = time.time()
-
-            try:
-                await self.generate_image(message, prompt, translated_prompt)
-            except Exception as e:
-                await error_report(message, bot, "image", traceback.format_exc())
-
-    async def generate_image(self, message, prompt, translated_prompt):
-        base_url = "https://image.pollinations.ai/prompt/"
-        encoded_prompt = quote(translated_prompt)
-        
-        params = {
-            "model": "flux",
-            "width": 1024,
-            "height": 1024,
-            "nologo": "true",
-            "enhance": "true",
-            "seed": int(time.time() % 1000)
-        }
-
-        url = f"{base_url}{encoded_prompt}?{urlencode(params)}"
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    image_bytes = await response.read()
-                    await message.reply_photo(
-                        BufferedInputFile(image_bytes, filename="image.jpg"),
-                        caption=f"🖼 По запросу: {prompt}"
-                    )
-                else:
-                    await message.reply(f"❌ Ошибка генерации (код {response.status})")
-
-image_queue = ImageQueue()
-
 @ai_router.message(Command("image"))
 async def cmd_image(message: Message, bot: Bot):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            await message.answer("✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде")
+            await message.answer(
+                "✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде"
+            )
             return
 
         if await db.is_user_mediabanned(message.from_user.id):
@@ -306,34 +242,32 @@ async def cmd_image(message: Message, bot: Bot):
             return
 
         prompt = args[1]
+
         processing_message = await message.answer(
-            f"⏳ Запрос поставлен в очередь ({len(image_queue.queue)+1} перед вами)..."
+            "⏳ Генерирую изображение, подожди..."
         )
 
-        # Перевод промпта
-        try:
-            client = openai.AsyncOpenAI(
-                api_key=os.getenv("ONLYSQ_API_KEY"),
-                base_url=os.getenv("OPENAI_SDK_API_URL"),
-            )
-            translation_response = await client.chat.completions.create(
-                model="gemini-2.0-flash",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Translate to English exactly. Keep technical terms. Output only translation."
-                    },
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            translated_prompt = translation_response.choices[0].message.content.strip()
-        except Exception as e:
-            translated_prompt = prompt
+        url = os.getenv("API_URL")
+        payload = {
+            "model": "kandinsky",
+            "request": {"messages": [{"role": "user", "content": prompt}]},
+        }
 
-        await image_queue.add_request(message, prompt, translated_prompt, bot)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload) as response:
+                    image_bytes = await response.read()
+
+            await message.reply_photo(
+                BufferedInputFile(image_bytes, filename="generated.png"),
+                caption=f"🖼 Вот твоё изображение по запросу: {prompt}",
+            )
+        except Exception:
+            await error_report(message, bot, "image", traceback.format_exc())
+
         await processing_message.delete()
 
-    except Exception as e:
+    except Exception:
         await error_report(message, bot, "image", traceback.format_exc())
 
 
