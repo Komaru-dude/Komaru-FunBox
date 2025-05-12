@@ -420,7 +420,7 @@ async def cmd_vocr(message: Message, bot: Bot):
                         f"⚠️ Ошибка удаления файла: статус {resp_delete.status}"
                     )
     except Exception:
-        await error_report(message, bot, "vocr", traceback.format_exc())
+        await error_report(message, bot, "ocr", traceback.format_exc())
 
 
 @ai_router.message(Command("chat"))
