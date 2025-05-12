@@ -42,6 +42,7 @@ last_generation_time = datetime.min
 rate_limit_seconds = 5
 is_generating = False
 
+
 class ChatState(StatesGroup):
     active = State()
 
@@ -241,7 +242,9 @@ async def cmd_image(message: Message, bot: Bot):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            await message.answer("✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде")
+            await message.answer(
+                "✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде"
+            )
             return
 
         if await db.is_user_mediabanned(message.from_user.id):
@@ -256,7 +259,9 @@ async def cmd_image(message: Message, bot: Bot):
 
         queue_id = uuid.uuid4().hex
         position = len(image_generation_queue) + (1 if is_generating else 0)
-        await processing_message.edit_text(f"📡 Запрос добавлен в очередь. Ваше место: {position}")
+        await processing_message.edit_text(
+            f"📡 Запрос добавлен в очередь. Ваше место: {position}"
+        )
 
         task = {
             "id": queue_id,
@@ -292,9 +297,13 @@ async def process_image_queue():
             processing_message = task["processing_message"]
 
             # Обновим статус позиции в очереди (если ещё есть очередь)
-            position = 1 + sum(1 for t in image_generation_queue if t["id"] != task["id"])
+            position = 1 + sum(
+                1 for t in image_generation_queue if t["id"] != task["id"]
+            )
             if position > 0:
-                await processing_message.edit_text(f"📡 Запрос в очереди, ваше место: {position}")
+                await processing_message.edit_text(
+                    f"📡 Запрос в очереди, ваше место: {position}"
+                )
             else:
                 await processing_message.edit_text("🎨 Генерация началась...")
 
@@ -311,32 +320,45 @@ async def process_image_queue():
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=300) as response:
                     if response.status != 200:
-                        await message.answer(f"❌ Ошибка генерации. Код: {response.status}")
+                        await message.answer(
+                            f"❌ Ошибка генерации. Код: {response.status}"
+                        )
                         continue
 
                     image_bytes = await response.read()
-                    filename = f"/tmp/image_{message.from_user.id}_{uuid.uuid4().hex[:8]}.jpg"
+                    filename = (
+                        f"/tmp/image_{message.from_user.id}_{uuid.uuid4().hex[:8]}.jpg"
+                    )
 
                     with open(filename, "wb") as f:
                         f.write(image_bytes)
 
-            await message.reply_photo(photo=FSInputFile(filename), caption=f"🖼️ {prompt_ru}")
+            await message.reply_photo(
+                photo=FSInputFile(filename), caption=f"🖼️ {prompt_ru}"
+            )
             os.remove(filename)
 
             await processing_message.delete()
 
         except Exception:
-            await error_report(task["message"], task["bot"], "image", traceback.format_exc())
+            await error_report(
+                task["message"], task["bot"], "image", traceback.format_exc()
+            )
 
     is_generating = False
 
 
 @ai_router.message(Command("translate"))
-async def cmd_translate(message: Message = None, bot: Bot = None, cli_mode: bool = False, request: str = None):
+async def cmd_translate(
+    message: Message = None,
+    bot: Bot = None,
+    cli_mode: bool = False,
+    request: str = None,
+):
     try:
         if not cli_mode and (message is None or bot is None):
             raise TypeError("Вне cli_mode message, bot обязательны.")
-        
+
         if cli_mode:
             target_lang = "en"
             text_to_translate = request
@@ -365,7 +387,10 @@ async def cmd_translate(message: Message = None, bot: Bot = None, cli_mode: bool
                     "Пример: `/translate en Привет мир`\n\n"
                     "Доступные языки:\n"
                     + "\n".join(
-                        [f"{code} - {name}" for code, name in SUPPORTED_LANGUAGES.items()]
+                        [
+                            f"{code} - {name}"
+                            for code, name in SUPPORTED_LANGUAGES.items()
+                        ]
                     )
                 )
                 return
