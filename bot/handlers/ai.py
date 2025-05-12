@@ -430,7 +430,7 @@ async def cmd_translate(
         ]
 
         translated_text = await cmd_ai(
-            message=message, bot=bot, messages=messages, cli_mode=cli_mode
+            message=message, bot=bot, messages=messages, cli_mode=True
         )
         lang_name = SUPPORTED_LANGUAGES.get(lang, lang)
 
