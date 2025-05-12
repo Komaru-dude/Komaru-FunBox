@@ -361,94 +361,76 @@ async def cmd_translate(
     bot: Bot = None,
     cli_mode: bool = False,
     request: str = None,
+    target_lang: str = None,
 ):
     try:
         if not cli_mode and (message is None or bot is None):
-            raise TypeError("Вне cli_mode message, bot обязательны.")
+            raise TypeError("Вне cli_mode message и bot обязательны.")
+
+        default_lang = "English"
 
         if cli_mode:
-            target_lang = "en"
+            if not request:
+                raise ValueError("❌ Не указан текст для перевода")
+            lang = target_lang or default_lang
             text_to_translate = request
         else:
+            user_id = message.from_user.id
             base_msg = await message.reply("🔄 Обработка...")
-            user_input = message.text.split(maxsplit=2)
 
-            if await db.is_user_mediabanned(message.from_user.id):
+            if await db.is_user_mediabanned(user_id):
                 await message.reply("❌ Вы заблокированы, это действие вам запрещено")
                 return
 
-            target_lang = "en"
+            user_input = message.text.split(maxsplit=2)
+            lang = default_lang
             text_to_translate = ""
 
             if len(user_input) >= 2:
                 lang_candidate = user_input[1].lower()
-                if lang_candidate in SUPPORTED_LANGUAGES:
-                    target_lang = lang_candidate
-                    text_to_translate = user_input[2] if len(user_input) > 2 else ""
+                lang = lang_candidate
+                text_to_translate = user_input[2] if len(user_input) > 2 else ""
 
             if not text_to_translate and message.reply_to_message:
                 text_to_translate = message.reply_to_message.text
             elif not text_to_translate:
                 await base_msg.edit_text(
                     "❌ Укажите текст и язык перевода!\n"
-                    "Пример: `/translate en Привет мир`\n\n"
-                    "Доступные языки:\n"
-                    + "\n".join(
-                        [
-                            f"{code} - {name}"
-                            for code, name in SUPPORTED_LANGUAGES.items()
-                        ]
+                    "Пример: `/translate en Привет мир`"
                     )
-                )
                 return
+            
+        messages = messages or [
+            {
+                "role": "system",
+                "content": f"Не используй markdown/html форматирование, ты должен перевести текст на язык '{lang}', твой вывод должен содержать только переведённый текст",
+            },
+            {"role": "user", "content": request},
+        ]
 
-        custom_headers = {
-            "Content-Type": "application/json",
-            "x-api-key": jigsaw_api_key,
-        }
+        translated_text = await cmd_ai(messages = messages, cli_mode = True)
+        lang_name = SUPPORTED_LANGUAGES.get(lang, f"{lang} (неизвестный)")
 
-        payload = {"text": [text_to_translate], "target_language": target_lang}
-
-        response, error = await make_post_request(
-            url="https://api.jigsawstack.com/v1/ai/translate",
-            payload=payload,
-            headers=custom_headers,
+        result = (
+            f"🌍 Перевод на {lang_name} ({lang}):\n"
+            f"{translated_text}"
         )
 
+        if cli_mode:
+            return result
+
+        chunks = [result[i:i + 4096] for i in range(0, len(result), 4096)]
+        for i, chunk in enumerate(chunks):
+            if i == 0:
+                await base_msg.edit_text(chunk)
+            else:
+                await message.reply(chunk)
+
+    except Exception:
         if not cli_mode:
-            if error:
-                await base_msg.edit_text(error)
-                return
-
-            if not response.get("success"):
-                await base_msg.edit_text("❌ Ошибка при переводе")
-                return
-
-            translated = "\n".join(response["translated_text"])
-            lang_name = SUPPORTED_LANGUAGES.get(
-                target_lang,
-                f"⚠️ Язык {lang_candidate} не поддерживается, будет выполнятся перевод на английский",
-            )
-
-            answer = (
-                f"🌍 Перевод на {lang_name} ({target_lang}):\n"
-                f"{translated}\n\n"
-                f"🔢 Использовано токенов: {response['_usage']['total_tokens']}"
-            )
-
-            chunks = [answer[i : i + 4096] for i in range(0, len(answer), 4096)]
-            for idx, chunk in enumerate(chunks):
-                if idx == 0:
-                    await base_msg.edit_text(chunk)
-                else:
-                    await message.reply(chunk)
+            await error_report(message, bot, "translate", traceback.format_exc())
         else:
-            if not response.get("success"):
-                raise RuntimeError
-            return "\n".join(response["translated_text"])
-
-    except Exception as e:
-        await error_report(message, bot, "translate", traceback.format_exc())
+            raise
 
 
 @ai_router.message(Command("ocr"))
