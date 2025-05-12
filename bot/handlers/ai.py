@@ -250,10 +250,13 @@ async def cmd_image(message: Message, bot: Bot):
 
         prompt_ru = args[1]
 
-        queue_id = uuid.uuid4().hex
         processing_message = await message.answer("⏳ Перевожу промпт на английский...")
         translated = await cmd_translate(cli_mode=True, request=prompt_ru)
         prompt_en = translated.strip()
+
+        queue_id = uuid.uuid4().hex
+        position = len(image_generation_queue) + (1 if is_generating else 0)
+        await processing_message.edit_text(f"📡 Запрос добавлен в очередь. Ваше место: {position}")
 
         task = {
             "id": queue_id,
