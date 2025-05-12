@@ -391,13 +391,10 @@ async def cmd_translate(
                 await message.reply("❌ Вы заблокированы, это действие вам запрещено")
                 return
 
-            # Удаляем упоминание бота из текста команды
-            command_parts = message.text.split(maxsplit=1)
-            if command_parts[0].endswith("@KomaruFunBox_bot"):
-                command_parts[0] = "/translate"
-                message.text = " ".join(command_parts)
+            original_text = message.text
+            processed_text = original_text.replace("@KomaruFunBox_bot", "").strip()
+            user_input = processed_text.split(maxsplit=2)
 
-            user_input = message.text.split(maxsplit=2)
             lang = default_lang
             text_to_translate = ""
 
@@ -413,7 +410,6 @@ async def cmd_translate(
                     return
 
                 lang = lang_candidate
-                target_lang = lang_candidate
                 text_to_translate = user_input[2] if len(user_input) > 2 else ""
 
             if not text_to_translate and message.reply_to_message:
