@@ -391,13 +391,29 @@ async def cmd_translate(
                 await message.reply("❌ Вы заблокированы, это действие вам запрещено")
                 return
 
+            # Удаляем упоминание бота из текста команды
+            command_parts = message.text.split(maxsplit=1)
+            if command_parts[0].endswith("@KomaruFunBox_bot"):
+                command_parts[0] = "/translate"
+                message.text = " ".join(command_parts)
+
             user_input = message.text.split(maxsplit=2)
             lang = default_lang
             text_to_translate = ""
 
             if len(user_input) >= 2:
                 lang_candidate = user_input[1].lower()
+
+                # Проверяем поддержку языка
+                if lang_candidate not in SUPPORTED_LANGUAGES:
+                    await base_msg.edit_text(
+                        f"❌ Язык '{lang_candidate}' не поддерживается.\n"
+                        f"Доступные языки: {', '.join(SUPPORTED_LANGUAGES.keys())}"
+                    )
+                    return
+
                 lang = lang_candidate
+                target_lang = lang_candidate
                 text_to_translate = user_input[2] if len(user_input) > 2 else ""
 
             if not text_to_translate and message.reply_to_message:
@@ -412,15 +428,17 @@ async def cmd_translate(
         messages = [
             {
                 "role": "system",
-                "content": f"Не используй markdown/html форматирование, ты должен перевести текст на язык '{lang}', твой вывод должен содержать только переведённый текст",
+                "content": f"Переведи текст на {SUPPORTED_LANGUAGES[lang]} без форматирования. Выведи только перевод.",
             },
-            {"role": "user", "content": request if cli_mode else text_to_translate},
+            {"role": "user", "content": text_to_translate.strip()},
         ]
 
-        translated_text = await cmd_ai(message = message, bot = bot, messages=messages, cli_mode=True)
-        lang_name = SUPPORTED_LANGUAGES.get(lang, f"{lang} (неизвестный)")
+        translated_text = await cmd_ai(
+            message=message, bot=bot, messages=messages, cli_mode=cli_mode
+        )
+        lang_name = SUPPORTED_LANGUAGES.get(lang, lang)
 
-        result = f"🌍 Перевод на {lang_name} ({lang}):\n" f"{translated_text}"
+        result = f"🌍 Перевод на {lang_name} ({lang}):\n{translated_text}"
 
         if cli_mode:
             return result
@@ -432,7 +450,7 @@ async def cmd_translate(
             else:
                 await message.reply(chunk)
 
-    except Exception:
+    except Exception as e:
         if not cli_mode:
             await error_report(message, bot, "translate", traceback.format_exc())
         else:
