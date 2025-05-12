@@ -90,61 +90,65 @@ async def show_working_models(message: Message):
 
 
 @ai_router.message(Command("ai"))
-async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list = None):
+async def cmd_ai(message: Message = None, bot: Bot = None, model: str = None, messages: list = None, cli_mode: bool = False):
     try:
-        user_id = message.from_user.id
         default_model = "gemini-2.5-flash-preview-04-17"
 
-        base_msg = await message.reply("🔄 Обработка...")
-        split_text = message.text.split(maxsplit=1) if message.text else [""]
+        if not cli_mode and (message is None or bot is None):
+            raise TypeError("Вне cli_mode обязателен message и bot")
 
-        if await db.is_user_mediabanned(user_id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
+        if not cli_mode:
+            user_id = message.from_user.id
+            base_msg = await message.reply("🔄 Обработка...")
+            split_text = message.text.split(maxsplit=1) if message.text else [""]
 
-        args_text = split_text[1] if len(split_text) > 1 else ""
-        model_name = None
-        request = ""
-
-        if "-m" in args_text:
-            model_match = re.search(r"-m\s+(\S+)", args_text)
-            if not model_match:
-                await base_msg.edit_text("❌ Укажите название модели после -m")
+            if await db.is_user_mediabanned(user_id):
+                await message.reply("❌ Вы заблокированы, это действие вам запрещено")
                 return
-            model_name = model_match.group(1).lower()
-            args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
 
-        if model_name:
-            model_info = onlysq_models["models"].get(model_name)
-            if not model_info:
-                await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
-                return
-            if model_info["status"] != "work":
-                await base_msg.edit_text(
-                    f"❌ Модель {model_name} на данный момент не работает."
-                )
-                return
-            if model_info["modality"] != "text":
-                await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
-                return
-            model = model_name
+            args_text = split_text[1] if len(split_text) > 1 else ""
+            model_name = None
+            request = ""
 
-        if message.reply_to_message:
-            request += f'"{message.reply_to_message.text}"\n'
-        if args_text:
-            request += args_text
+            if "-m" in args_text:
+                model_match = re.search(r"-m\s+(\S+)", args_text)
+                if not model_match:
+                    await base_msg.edit_text("❌ Укажите название модели после -m")
+                    return
+                model_name = model_match.group(1).lower()
+                args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
 
-        if not request.strip():
-            await base_msg.edit_text("❌ Пустой запрос")
-            return
+            if model_name:
+                model_info = onlysq_models["models"].get(model_name)
+                if not model_info:
+                    await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
+                    return
+                if model_info["status"] != "work":
+                    await base_msg.edit_text(
+                        f"❌ Модель {model_name} на данный момент не работает."
+                    )
+                    return
+                if model_info["modality"] != "text":
+                    await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
+                    return
+                model = model_name
+
+            if message.reply_to_message:
+                request += f'"{message.reply_to_message.text}"\n'
+            if args_text:
+                request += args_text
+
+            if not request.strip():
+                await base_msg.edit_text("❌ Пустой запрос")
+                return
+
+            user_data = await db.get_user_data(user_id, message.chat.id)
+            user_default_model = user_data.get("default_model", None)
 
         client = openai.AsyncOpenAI(
             api_key=os.getenv("ONLYSQ_API_KEY"),
             base_url=os.getenv("OPENAI_SDK_API_URL"),
         )
-
-        user_data = await db.get_user_data(user_id, message.chat.id)
-        user_default_model = user_data.get("default_model", None)
 
         model = model or user_default_model or default_model
         messages = messages or [
@@ -159,7 +163,7 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
 
         choices = response.choices
         if not choices:
-            answer = "⚠️ Ошибка: пустой ответ от API"
+            raise ValueError("Нет ответа от API")
         else:
             answer_content = choices[0].message.content
             if model == "deepseek-r1":
@@ -176,28 +180,31 @@ async def cmd_ai(message: Message, bot: Bot, model: str = None, messages: list =
             else:
                 answer = answer_content
 
-        model_display_name = (
-            onlysq_models["models"][model]["name"]
-            if model in onlysq_models["models"]
-            else model
-        )
-        if (
-            model == user_default_model and not model == default_model
-        ):  # Добавляем пояснение, если используется дефолтная модель пользователя
-            model_display_name += " (пользовательская модель по умолчанию)"
-        raw_answer = (
-            f"💭 Запрос: {request}\n"
-            f"🧠 Модель: {model_display_name}\n\n"
-            f"📝 Ответ: {answer}"
-        )
+        if not cli_mode:
+            model_display_name = (
+                onlysq_models["models"][model]["name"]
+                if model in onlysq_models["models"]
+                else model
+            )
+            if (
+                model == user_default_model and not model == default_model
+            ):  # Добавляем пояснение, если используется дефолтная модель пользователя
+                model_display_name += " (пользовательская модель по умолчанию)"
+            raw_answer = (
+                f"💭 Запрос: {request}\n"
+                f"🧠 Модель: {model_display_name}\n\n"
+                f"📝 Ответ: {answer}"
+            )
 
-        chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
+            chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
 
-        for idx, chunk in enumerate(chunks):
-            if idx == 0:
-                await base_msg.edit_text(chunk)
-            else:
-                await message.reply(chunk)
+            for idx, chunk in enumerate(chunks):
+                if idx == 0:
+                    await base_msg.edit_text(chunk)
+                else:
+                    await message.reply(chunk)
+        else:
+            return answer
 
     except openai.InternalServerError:
         await base_msg.edit_text("⚠️ Внутренняя ошибка API")
