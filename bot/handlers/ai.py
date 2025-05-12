@@ -156,7 +156,10 @@ async def cmd_ai(
             base_url=os.getenv("OPENAI_SDK_API_URL"),
         )
 
-        model = model or user_default_model or default_model
+        if cli_mode:
+            model = model or default_model
+        else:
+            model = model or user_default_model or default_model
         messages = messages or [
             {
                 "role": "system",
