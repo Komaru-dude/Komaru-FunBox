@@ -376,7 +376,7 @@ async def cmd_translate(
         if not cli_mode and (message is None or bot is None):
             raise TypeError("Вне cli_mode message и bot обязательны.")
 
-        default_lang = "English"
+        default_lang = "en"
 
         if cli_mode:
             if not request:
