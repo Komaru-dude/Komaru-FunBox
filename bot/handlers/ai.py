@@ -1,13 +1,18 @@
 import os
+import asyncio
 import aiohttp
 import re
 import traceback
 import openai
+import uuid
+import urllib.parse
+from datetime import datetime
+from collections import deque
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from bot.utils.aio_tools import make_post_request, error_report
 from bot.utils.global_storage import (
@@ -32,6 +37,10 @@ SUPPORTED_LANGUAGES = {
     "ja": "Японский",
 }
 
+image_generation_queue = deque()
+last_generation_time = datetime.min
+rate_limit_seconds = 5
+is_generating = False
 
 class ChatState(StatesGroup):
     active = State()
@@ -232,48 +241,99 @@ async def cmd_image(message: Message, bot: Bot):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
-            await message.answer(
-                "✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде"
-            )
+            await message.answer("✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде")
             return
 
         if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
-        prompt = args[1]
+        prompt_ru = args[1]
 
-        processing_message = await message.answer(
-            "⏳ Генерирую изображение, подожди..."
-        )
+        queue_id = uuid.uuid4().hex
+        processing_message = await message.answer("⏳ Перевожу промпт на английский...")
+        translated = await cmd_translate(cli_mode=True, request=prompt_ru)
+        prompt_en = translated.strip()
 
-        url = os.getenv("API_URL")
-        payload = {
-            "model": "kandinsky",
-            "request": {"messages": [{"role": "user", "content": prompt}]},
+        task = {
+            "id": queue_id,
+            "message": message,
+            "bot": bot,
+            "prompt_ru": prompt_ru,
+            "prompt_en": prompt_en,
+            "processing_message": processing_message,
         }
 
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload) as response:
-                    image_bytes = await response.read()
-
-            await message.reply_photo(
-                BufferedInputFile(image_bytes, filename="generated.png"),
-                caption=f"🖼 Вот твоё изображение по запросу: {prompt}",
-            )
-        except Exception:
-            await error_report(message, bot, "image", traceback.format_exc())
-
-        await processing_message.delete()
+        image_generation_queue.append(task)
+        asyncio.create_task(process_image_queue())
 
     except Exception:
         await error_report(message, bot, "image", traceback.format_exc())
 
 
+async def process_image_queue():
+    global is_generating, last_generation_time
+
+    if is_generating:
+        return
+
+    is_generating = True
+
+    while image_generation_queue:
+        task = image_generation_queue.popleft()
+        try:
+            message = task["message"]
+            bot = task["bot"]
+            prompt_ru = task["prompt_ru"]
+            prompt_en = task["prompt_en"]
+            processing_message = task["processing_message"]
+
+            # Обновим статус позиции в очереди (если ещё есть очередь)
+            position = 1 + sum(1 for t in image_generation_queue if t["id"] != task["id"])
+            if position > 0:
+                await processing_message.edit_text(f"📡 Запрос в очереди, ваше место: {position}")
+            else:
+                await processing_message.edit_text("🎨 Генерация началась...")
+
+            now = datetime.now()
+            delta = (now - last_generation_time).total_seconds()
+            if delta < rate_limit_seconds:
+                await asyncio.sleep(rate_limit_seconds - delta)
+
+            last_generation_time = datetime.now()
+
+            prompt_encoded = urllib.parse.quote(prompt_en)
+            url = f"https://image.pollinations.ai/prompt/{prompt_encoded}?width=1024&height=1024&nologo=true&model=flux"
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=300) as response:
+                    if response.status != 200:
+                        await message.answer(f"❌ Ошибка генерации. Код: {response.status}")
+                        continue
+
+                    image_bytes = await response.read()
+                    filename = f"/tmp/image_{message.from_user.id}_{uuid.uuid4().hex[:8]}.jpg"
+
+                    with open(filename, "wb") as f:
+                        f.write(image_bytes)
+
+            await message.reply_photo(photo=FSInputFile(filename), caption=f"🖼️ {prompt_ru}")
+            os.remove(filename)
+
+            await processing_message.delete()
+
+        except Exception:
+            await error_report(task["message"], task["bot"], "image", traceback.format_exc())
+
+    is_generating = False
+
+
 @ai_router.message(Command("translate"))
-async def cmd_translate(message: Message, bot: Bot, cli_mode: bool = False, request: str = None):
+async def cmd_translate(message: Message = None, bot: Bot = None, cli_mode: bool = False, request: str = None):
     try:
+        if not cli_mode and (message is None or bot is None):
+            raise TypeError("Вне cli_mode message, bot обязательны.")
+        
         if cli_mode:
             target_lang = "en"
             text_to_translate = request
