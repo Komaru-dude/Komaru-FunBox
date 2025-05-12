@@ -90,7 +90,13 @@ async def show_working_models(message: Message):
 
 
 @ai_router.message(Command("ai"))
-async def cmd_ai(message: Message = None, bot: Bot = None, model: str = None, messages: list = None, cli_mode: bool = False):
+async def cmd_ai(
+    message: Message = None,
+    bot: Bot = None,
+    model: str = None,
+    messages: list = None,
+    cli_mode: bool = False,
+):
     try:
         default_model = "gemini-2.5-flash-preview-04-17"
 
@@ -397,10 +403,10 @@ async def cmd_translate(
                 await base_msg.edit_text(
                     "❌ Укажите текст и язык перевода!\n"
                     "Пример: `/translate en Привет мир`"
-                    )
+                )
                 return
-            
-        messages = messages or [
+
+        messages = [
             {
                 "role": "system",
                 "content": f"Не используй markdown/html форматирование, ты должен перевести текст на язык '{lang}', твой вывод должен содержать только переведённый текст",
@@ -408,18 +414,15 @@ async def cmd_translate(
             {"role": "user", "content": request},
         ]
 
-        translated_text = await cmd_ai(messages = messages, cli_mode = True)
+        translated_text = await cmd_ai(messages=messages, cli_mode=True)
         lang_name = SUPPORTED_LANGUAGES.get(lang, f"{lang} (неизвестный)")
 
-        result = (
-            f"🌍 Перевод на {lang_name} ({lang}):\n"
-            f"{translated_text}"
-        )
+        result = f"🌍 Перевод на {lang_name} ({lang}):\n" f"{translated_text}"
 
         if cli_mode:
             return result
 
-        chunks = [result[i:i + 4096] for i in range(0, len(result), 4096)]
+        chunks = [result[i : i + 4096] for i in range(0, len(result), 4096)]
         for i, chunk in enumerate(chunks):
             if i == 0:
                 await base_msg.edit_text(chunk)
