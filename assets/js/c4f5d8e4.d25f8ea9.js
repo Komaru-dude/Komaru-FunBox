@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkfunbox_wiki=self.webpackChunkfunbox_wiki||[]).push([[634],{9179:(s,t,u)=>{u.r(t),u.d(t,{default:()=>n});var e=u(6347),f=u(4848);function n(){return(0,f.jsx)(e.rd,{to:"docs/faststart"})}}}]);
