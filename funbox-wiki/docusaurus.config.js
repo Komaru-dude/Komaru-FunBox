@@ -65,9 +65,9 @@ const config = {
         items: [
           {
             type: 'docSidebar',
-            sidebarId: 'fstartSidebar',
+            sidebarId: 'docsSidebar',
             position: 'left',
-            label: 'Быстрый старт',
+            label: 'Документация',
           },
         ],
       },
