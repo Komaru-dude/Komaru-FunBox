@@ -71,34 +71,6 @@ const config = {
           },
         ],
       },
-      footer: {
-        style: 'dark',
-        links: [
-          {
-            title: 'Документация',
-            items: [
-              {
-                label: 'Быстрый старт',
-                to: '/docs/faststart',
-              },
-            ],
-          },
-          {
-            title: 'Комьюнити',
-            items: [
-              {
-                label: 'Телеграм владельца',
-                href: 'https://t.me/komaru_dude',
-              },
-              {
-                label: 'Github',
-                href: 'https://github.com/Komaru-dude/Komaru-FunBox',
-              },
-            ],
-          },
-        ],
-        copyright: `Copyright © ${new Date().getFullYear()} Komaru-FunBox. Built with Docusaurus.`,
-      },
       prism: {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
