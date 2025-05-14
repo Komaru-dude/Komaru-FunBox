@@ -25,7 +25,16 @@ const sidebars = {
         id: 'setup/setup'
       },
       items: ['setup/faststart', 'setup/selfhost'],
-    }
+    },
+    {
+      type: 'category',
+      label: '⌨️ Команды',
+      link: {
+        type: 'doc', 
+        id: 'commands/commands'
+      },
+      items: ['commands/start'],
+    },
   ],
 
   // But you can create a sidebar manually
