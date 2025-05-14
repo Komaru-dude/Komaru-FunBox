@@ -28,3 +28,27 @@
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+.update-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.image-block {
+  text-align: center;
+  max-width: 300px;
+}
+
+.image-block img {
+  width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.image-caption {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.5rem;
+}
