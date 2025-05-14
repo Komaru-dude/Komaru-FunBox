@@ -46,11 +46,6 @@ if [ -d "${INSTALL_DIR}" ]; then
     rm -rf "${INSTALL_DIR}"
 fi
 sudo -u ${USER_NAME} git clone -b $branch_name ${REPO_URL} "${INSTALL_DIR}"
-if [ "$branch_name" = "test" ]; then
-    touch test
-else
-    rm -f test  # на всякий случай удаляем, если был
-fi
 
 echo "🌪 Initialize PostgreSQL db"
 
@@ -58,16 +53,13 @@ DB_NAME="funbox_db"
 DB_USER="komaru"
 DB_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
 
-# Сохраняем пароль в файл
 echo "Generated password for $DB_USER: $DB_PASSWORD"  > /home/${USER_NAME}/db_credentials.txt
 chown ${USER_NAME}:${GROUP_NAME} /home/${USER_NAME}/db_credentials.txt
 
-# Проверка и создание пользователя
 if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1; then
   sudo -u postgres psql -c "CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';"
 fi
 
-# Проверка и создание базы
 if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
   sudo -u postgres psql -c "CREATE DATABASE $DB_NAME OWNER $DB_USER;"
 fi
@@ -81,43 +73,27 @@ echo "📦 Installing Python dependencies..."
 sudo -u ${USER_NAME} "${INSTALL_DIR}/venv/bin/pip" install -r "${INSTALL_DIR}/requirements.txt"
 
 ENV_FILE="${INSTALL_DIR}/.env"
-echo "🛠 Generating .env file..."
+ENV_EXAMPLE="${INSTALL_DIR}/env_example"
 
-cat > "${ENV_FILE}" <<EOF
-# Токен API бота (можно взять тут: https://t.me/BotFather)
-BOT_API_TOKEN=your_bot_api_token
+echo "🛠 Generating .env file from template..."
 
-# ID владельца (можно взять тут: https://t.me/getmyid_bot)
-OWNER_ID=your_owner_id
+if [ ! -f "$ENV_EXAMPLE" ]; then
+    echo "❌ Error: env_example file not found!"
+    exit 1
+fi
 
-# Ваши API_ID и API_HASH (можно взять тут: https://my.telegram.org/apps)
-API_ID=your_api_id
-API_HASH=your_api_hash
-
-# Ваш url для апи нейросетей
-API_URL=http://api.onlysq.ru/ai/v2
-
-# Апи ключ для onlysq (на момент написания не требуется)
-ONLYSQ_API_KEY=openai
-
-# Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
-JIGSAW_API_KEY=your_api_key
-
-# Бд
-DB_NAME=${DB_NAME}
-DB_USER=${DB_USER}
-DB_PASSWORD=${DB_PASSWORD}
-DB_HOST=localhost
-DB_PORT=5432
-EOF
+sudo -u ${USER_NAME} cp "$ENV_EXAMPLE" "$ENV_FILE"
+sudo -u ${USER_NAME} sed -i "s/your_db_name/$DB_NAME/g" "$ENV_FILE"
+sudo -u ${USER_NAME} sed -i "s/your_db_user/$DB_USER/g" "$ENV_FILE"
+sudo -u ${USER_NAME} sed -i "s/your_db_password/$DB_PASSWORD/g" "$ENV_FILE"
+sudo -u ${USER_NAME} sed -i "s/your_db_host/localhost/g" "$ENV_FILE"
+sudo -u ${USER_NAME} sed -i "s/your_db_port/5432/g" "$ENV_FILE"
 
 chown ${USER_NAME}:${GROUP_NAME} "${ENV_FILE}"
 chmod 600 "${ENV_FILE}"
 
-echo "✅ .env file created at ${ENV_FILE}."
-echo "⚠️ Please edit it to add missing values like BOT_TOKEN and OWNER_ID."
-read -p "Press any key to open nano... " -n 1 -s
-sudo -u ${USER_NAME} nano ${ENV_FILE}
+echo "✅ .env file created from template. Editing remaining values..."
+sudo -u ${USER_NAME} nano "${ENV_FILE}"
 
 echo "⚙ Creating systemd service..."
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
