@@ -24,7 +24,7 @@ const sidebars = {
         type: 'doc', 
         id: 'setup/setup'
       },
-      items: ['setup/faststart'],
+      items: ['setup/faststart', 'setup/selfhost'],
     }
   ],
 
