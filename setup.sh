@@ -3,7 +3,7 @@
 set -e
 
 if [ "$EUID" -ne 0 ]; then
-    echo "❌ Please run this script as root"
+    echo "❌ Перезапустите этот скрипт с правами root"
     exit 1
 fi
 
@@ -12,48 +12,48 @@ USER_NAME="komaru"
 GROUP_NAME="komaru-group"
 INSTALL_DIR="/home/${USER_NAME}/komaru-funbox"
 REPO_URL="https://github.com/Komaru-dude/Komaru-FunBox.git"
-echo -n "✍️ Enter github branch name: "
+echo -n "✍️ Введите имя гитхаб ветки: "
 read branch_name
 
 git ls-remote --heads "$REPO_URL" "$branch_name" &> /dev/null
 
 if [ $? -ne 0 ]; then
-    echo "Branch '$branch_name' not found on repo $REPO_URL."
+    echo "Ветка '$branch_name' не найдена в репозитории $REPO_URL."
     exit 1
 fi
 
-echo "🚀 Starting Komaru FunBox installation..."
+echo "🚀 Начинаем установку Komaru FunBox..."
 
-echo "🔄 Updating packages and installing dependencies..."
+echo "🔄 Обновляем пакеты и устанавливаем зависимости..."
 apt update
 apt install -y python3-venv git build-essential autoconf automake libtool pkg-config yt-dlp ffmpeg postgresql
 snap install gifski
 
 if ! id -u ${USER_NAME} >/dev/null 2>&1; then
-    echo "👤 Creating system user: ${USER_NAME}"
+    echo "👤 Создаём системного пользователя: ${USER_NAME}"
     useradd --system --create-home --shell /bin/false ${USER_NAME}
 fi
 
 if ! grep -q "^${GROUP_NAME}:" /etc/group; then
-    echo "👥 Creating group: ${GROUP_NAME}"
+    echo "👥 Создаём группу: ${GROUP_NAME}"
     groupadd ${GROUP_NAME}
     usermod -aG ${GROUP_NAME} ${USER_NAME}
 fi
 
-echo "📦 Cloning/updating repository..."
+echo "📦 Клонируем репозиторий..."
 if [ -d "${INSTALL_DIR}" ]; then
-    echo "❌ Removing old repository..."
+    echo "❌ Удаляем старый репозиторий..."
     rm -rf "${INSTALL_DIR}"
 fi
 sudo -u ${USER_NAME} git clone -b $branch_name ${REPO_URL} "${INSTALL_DIR}"
 
-echo "🌪 Initialize PostgreSQL db"
+echo "🌪 Инициализируем PostgreSQL бд"
 
 DB_NAME="funbox_db"
 DB_USER="komaru"
 DB_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
 
-echo "Generated password for $DB_USER: $DB_PASSWORD"  > /home/${USER_NAME}/db_credentials.txt
+echo "Сгенерированный пароль для: $DB_USER: $DB_PASSWORD"  > /home/${USER_NAME}/db_credentials.txt
 chown ${USER_NAME}:${GROUP_NAME} /home/${USER_NAME}/db_credentials.txt
 
 if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER'" | grep -q 1; then
@@ -66,19 +66,19 @@ fi
 
 sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
 
-echo "🐍 Creating Python virtual environment..."
+echo "🐍 Создаём виртуальное окружение python..."
 sudo -u ${USER_NAME} python3 -m venv "${INSTALL_DIR}/venv"
 
-echo "📦 Installing Python dependencies..."
+echo "📦 Устанавливаем зависимости python..."
 sudo -u ${USER_NAME} "${INSTALL_DIR}/venv/bin/pip" install -r "${INSTALL_DIR}/requirements.txt"
 
 ENV_FILE="${INSTALL_DIR}/.env"
 ENV_EXAMPLE="${INSTALL_DIR}/env_example"
 
-echo "🛠 Generating .env file from template..."
+echo "🛠 Генерируем .env из шаблона..."
 
 if [ ! -f "$ENV_EXAMPLE" ]; then
-    echo "❌ Error: env_example file not found!"
+    echo "❌ env_example не был найден!"
     exit 1
 fi
 
@@ -92,10 +92,10 @@ sudo -u ${USER_NAME} sed -i "s/your_db_port/5432/g" "$ENV_FILE"
 chown ${USER_NAME}:${GROUP_NAME} "${ENV_FILE}"
 chmod 600 "${ENV_FILE}"
 
-echo "✅ .env file created from template. Editing remaining values..."
+echo "✅ .env файл создан. Измените оставшиеся парсметры..."
 sudo -u ${USER_NAME} nano "${ENV_FILE}"
 
-echo "⚙ Creating systemd service..."
+echo "⚙ Создаём systemd сервис..."
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 cat > ${SERVICE_FILE} << EOL
 [Unit]
@@ -120,7 +120,7 @@ Environment=USER=%n
 WantedBy=multi-user.target
 EOL
 
-echo "🔒 Setting permissions..."
+echo "🔒 Настраиваем привлегии..."
 chown -R ${USER_NAME}:${GROUP_NAME} ${INSTALL_DIR}
 chmod 700 ${INSTALL_DIR}
 chmod +x ${INSTALL_DIR}/force-pull.sh
@@ -128,19 +128,19 @@ echo "komaru ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart komaru-funbox.servic
 usermod -aG systemd-journal ${USER_NAME}
 chmod 600 db_credentials.txt
 
-echo "🔄 Reloading systemd and enabling service..."
+echo "🔄 Перезапускаем systemd и включаем сервис..."
 systemctl daemon-reload
 systemctl enable ${SERVICE_NAME}
 systemctl start ${SERVICE_NAME}
 
-echo "✅ Installation completed successfully!"
+echo "✅ Установка прошла успешно!"
 echo " "
-echo "Usage instructions:"
-echo "  Start service:    systemctl start ${SERVICE_NAME}"
-echo "  Stop service:     systemctl stop ${SERVICE_NAME}"
-echo "  Restart service:  systemctl restart ${SERVICE_NAME}"
-echo "  Check status:     systemctl status ${SERVICE_NAME}"
-echo "  View logs:        journalctl -u ${SERVICE_NAME} -f"
+echo "Инструкция по использованию:"
+echo "  Запустить сервис:    systemctl start ${SERVICE_NAME}"
+echo "  Остановить сервис:   systemctl stop ${SERVICE_NAME}"
+echo "  Перезапустить сервис: systemctl restart ${SERVICE_NAME}"
+echo "  Проверить статус:    systemctl status ${SERVICE_NAME}"
+echo "  Просмотреть логи:    journalctl -u ${SERVICE_NAME} -f"
 echo " "
-echo "Edit your configuration: nano ${INSTALL_DIR}/.env"
-echo "Remember to restart the service after configuration changes!"
+echo "Редактировать конфигурацию: nano ${INSTALL_DIR}/.env"
+echo "Не забудьте перезапустить сервис при изменении конфигурации!"
