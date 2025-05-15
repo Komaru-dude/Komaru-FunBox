@@ -127,9 +127,9 @@
 - ⚠️ Некоторые команды (например `/update`, `/restart`, `/ban_media`) доступны **только персоналу**.
 - 🧠 ИИ-команды используют [OnlySQ API](https://api.onlysq.ru/)
 - 🔒 Команду `/set_rank` может использовать только **создатель чата**
-- 📆 Актуально на **13.05.2025**
+- 📆 Актуально на **15.05.2025**
 
 ---
 
-Автор: [@komaru_Dude](https://t.me/komaru_Dude)  
+Автор: [@komaru_dude](https://t.me/komaru_dude)  
 Помощь с документацией: [@nillerxs](https://t.me/nillerxs)
