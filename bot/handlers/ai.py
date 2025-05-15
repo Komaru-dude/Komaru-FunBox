@@ -551,8 +551,9 @@ async def cmd_vocr(message: Message, bot: Bot):
 async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
     try:
         user_id = message.from_user.id
-        split_text = message.text.split(maxsplit=1) if message.text else [""]
-        args_text = split_text[1] if len(split_text) > 1 else ""
+        split_text = message.text.split() if message.text else [""]
+        args = split_text[1:]
+        args_text = " ".join(args)
         argue_mode = "-argue" in split_text[1:]
         default_model = "gemini-2.5-flash-preview-04-17"
         model_name = None
@@ -624,7 +625,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
             active_chats.append(message.chat.id)
 
         reply_text = (
-            f"🔥 Давайте начнем жаркий спор! Озвучьте вашу позицию или тему для обсуждения.\n🧠 Модель: {model_display_name}\n"
+            f"🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\n🧠 Модель: {model_display_name}\n"
             if argue_mode
             else f"👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n🧠 Модель: {model_display_name}\n"
         )
