@@ -166,5 +166,9 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                 )
             else:
                 await message.answer(result_text, parse_mode=ParseMode.HTML)
+    except openai.InternalServerError:
+        await message.reply("⚠️ Внутренняя ошибка API")
+    except openai.RateLimitError:
+        await message.reply("❌ Превышен лимит запросов к API. Попробуйте позже")
     except Exception:
         await error_report(message, bot, "text", traceback.format_exc())
