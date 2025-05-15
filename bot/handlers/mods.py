@@ -111,7 +111,7 @@ async def cmd_history(message: Message, bot: Bot):
         ):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "SendDisabledMsg")
+                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -172,7 +172,7 @@ async def cmd_warn(message: Message, bot: Bot):
         if not await db.is_feature_enabled(chat_id, "warn"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "SendDisabledMsg")
+                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -332,7 +332,7 @@ async def cmd_mute(message: Message, bot: Bot):
         if not await db.is_feature_enabled(chat_id, "mute"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "SendDisabledMsg")
+                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -418,7 +418,7 @@ async def cmd_ban(message: Message, bot: Bot):
         if not await db.is_feature_enabled(chat_id, "ban"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "SendDisabledMsg")
+                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -498,7 +498,7 @@ async def cmd_unmute(message: Message, bot: Bot):
         if not await db.is_feature_enabled(chat_id, "mute"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "SendDisabledMsg")
+                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -556,7 +556,7 @@ async def cmd_unban(message: Message, bot: Bot):
         if not await db.is_feature_enabled(chat_id, "ban"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "SendDisabledMsg")
+                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 

@@ -21,7 +21,7 @@ DEFAULT_FEATURES = [
     ("warn", 0),
     ("mute", 0),
     ("ban", 0),
-    ("SendDisabledMsg", 1),
+    ("senddisabledmsg", 1),
 ]
 
 USERS_COLUMNS = {
