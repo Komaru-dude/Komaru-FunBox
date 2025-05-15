@@ -180,6 +180,10 @@ async def cmd_ban_user(message: Message, bot: Bot):
     target_id = None
     first_name = None
 
+    if message.chat.type in ["private", "channel"]:
+        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+        return
+
     if not await db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
         return
@@ -246,6 +250,10 @@ async def cmd_unban_user(message: Message, bot: Bot):
     chat_id = message.chat.id
     target_id = None
     first_name = None
+
+    if message.chat.type in ["private", "channel"]:
+        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+        return
 
     if not await db.has_permission(user_id, chat_id, 4):
         await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
