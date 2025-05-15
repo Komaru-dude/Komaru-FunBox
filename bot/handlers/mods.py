@@ -33,6 +33,9 @@ def parse_time(time_str: str) -> timedelta:
 async def cmd_enable_func(message: Message, bot: Bot):
     chat_id = message.chat.id
     user_id = message.from_user.id
+    if message.chat.type in ["private", "channel"]:
+        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+        return
 
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
@@ -63,6 +66,9 @@ async def cmd_enable_func(message: Message, bot: Bot):
 async def cmd_disable_func(message: Message, bot: Bot):
     chat_id = message.chat.id
     user_id = message.from_user.id
+    if message.chat.type in ["private", "channel"]:
+        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+        return
 
     parts = message.text.split(maxsplit=1)
     if len(parts) < 2:
@@ -94,6 +100,9 @@ async def cmd_history(message: Message, bot: Bot):
     try:
         split_text = message.text.strip().split()
         chat_id = message.chat.id
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
         if not (
             await db.is_feature_enabled(chat_id, "warn")
@@ -156,6 +165,9 @@ async def cmd_warn(message: Message, bot: Bot):
     command = "warn"
     try:
         chat_id = message.chat.id
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
         if not await db.is_feature_enabled(chat_id, "warn"):
             return (
@@ -267,6 +279,9 @@ async def cmd_info(message: Message, bot: Bot):
         chat_id = message.chat.id
         split_text = message.text.split()
         error = None
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
         if len(split_text) < 2:
             user_id = message.from_user.id
         else:
@@ -310,6 +325,9 @@ async def cmd_mute(message: Message, bot: Bot):
         user_id = message.from_user.id
         chat_id = message.chat.id
         text = message.text or ""
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
         if not await db.is_feature_enabled(chat_id, "mute"):
             return (
@@ -393,6 +411,9 @@ async def cmd_ban(message: Message, bot: Bot):
         user_id = message.from_user.id
         chat_id = message.chat.id
         text = message.text or ""
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
         if not await db.is_feature_enabled(chat_id, "ban"):
             return (
@@ -470,6 +491,9 @@ async def cmd_unmute(message: Message, bot: Bot):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
         if not await db.is_feature_enabled(chat_id, "mute"):
             return (
@@ -525,6 +549,9 @@ async def cmd_unban(message: Message, bot: Bot):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
+        if message.chat.type in ["private", "channel"]:
+            await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+            return
 
         if not await db.is_feature_enabled(chat_id, "ban"):
             return (
