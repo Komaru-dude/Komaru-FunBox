@@ -122,6 +122,11 @@ async def cmd_ai(
         if not cli_mode and (message is None or bot is None):
             raise TypeError("Вне cli_mode обязателен message и bot")
 
+        request = ""
+        base_msg = None
+        user_id = None
+        user_default_model = None
+
         if not cli_mode:
             user_id = message.from_user.id
             base_msg = await message.reply("🔄 Обработка...")
@@ -133,7 +138,6 @@ async def cmd_ai(
 
             args_text = split_text[1] if len(split_text) > 1 else ""
             model_name = None
-            request = ""
 
             if "-m" in args_text:
                 model_match = re.search(r"-m\s+(\S+)", args_text)
@@ -169,6 +173,12 @@ async def cmd_ai(
 
             user_data = await db.get_user_data(user_id, message.chat.id)
             user_default_model = user_data.get("default_model", None)
+        else:
+            request = (
+                " ".join([msg["content"] for msg in messages if msg["role"] == "user"])
+                if messages
+                else ""
+            )
 
         client = openai.AsyncOpenAI(
             api_key=os.getenv("ONLYSQ_API_KEY"),
@@ -176,11 +186,14 @@ async def cmd_ai(
         )
 
         model = model or user_default_model or default_model
+
+        model_info = onlysq_models["models"].get(model, {})
+        model_display_name = model_info.get("name", model)
+        if not cli_mode and model == user_default_model and model != default_model:
+            model_display_name += " (пользовательская модель по умолчанию)"
+
         messages = messages or [
-            {
-                "role": "system",
-                "content": "Не используй markdown/html форматирование",
-            },
+            {"role": "system", "content": "Не используй markdown/html форматирование"},
             {"role": "user", "content": request},
         ]
 
@@ -207,19 +220,29 @@ async def cmd_ai(
                         or delta.endswith((".", "!", "?", "\n"))
                         or now - last_edit_time > 5.0
                     ):
-                        try:
-                            await base_msg.edit_text(
-                                f"💭 Запрос: {request}\n"
-                                f"🧠 Модель: {model}\n\n"
-                                f"📝 Ответ: {final_text}"
-                            )
-                            buffer = ""
-                            last_edit_time = now
-                        except Exception:
-                            pass  # Telegram flood control
+                        if not cli_mode:
+                            try:
+                                await base_msg.edit_text(
+                                    f"💭 Запрос: {request}\n"
+                                    f"🧠 Модель: {model_display_name}\n\n"
+                                    f"📝 Ответ: {final_text}"
+                                )
+                                buffer = ""
+                                last_edit_time = now
+                            except Exception:
+                                pass
+                        else:
+                            pass
 
             answer = final_text.strip()
-
+            if cli_mode:
+                return answer
+            else:
+                await base_msg.edit_text(
+                    f"💭 Запрос: {request}\n"
+                    f"🧠 Модель: {model_display_name}\n\n"
+                    f"📝 Ответ: {answer}"
+                )
         else:
             response = await client.chat.completions.create(
                 model=model,
@@ -241,42 +264,42 @@ async def cmd_ai(
             else:
                 answer = answer_content
 
-        if not cli_mode:
-            model_display_name = (
-                onlysq_models["models"][model]["name"]
-                if model in onlysq_models["models"]
-                else model
-            )
-            if model == user_default_model and model != default_model:
-                model_display_name += " (пользовательская модель по умолчанию)"
+            if cli_mode:
+                return answer
+            else:
+                raw_answer = (
+                    f"💭 Запрос: {request}\n"
+                    f"🧠 Модель: {model_display_name}\n\n"
+                    f"📝 Ответ: {answer}"
+                )
 
-            raw_answer = (
-                f"💭 Запрос: {request}\n"
-                f"🧠 Модель: {model_display_name}\n\n"
-                f"📝 Ответ: {answer}"
-            )
+                chunks = [
+                    raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)
+                ]
 
-            chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
-
-            for idx, chunk in enumerate(chunks):
-                if idx == 0 and not can_stream:
-                    await base_msg.edit_text(chunk)
-                else:
-                    await message.reply(chunk)
-        else:
-            return answer
+                for idx, chunk in enumerate(chunks):
+                    if idx == 0:
+                        await base_msg.edit_text(chunk)
+                    else:
+                        await message.reply(chunk)
 
     except openai.InternalServerError:
         if not cli_mode:
             await base_msg.edit_text("⚠️ Внутренняя ошибка API")
+        else:
+            raise e
     except openai.RateLimitError:
         if not cli_mode:
             await base_msg.edit_text(
                 "❌ Превышен лимит запросов к API. Попробуйте позже"
             )
-    except Exception:
+        else:
+            raise e
+    except Exception as e:
         if not cli_mode:
-            await error_report(message, bot, "ai", traceback.format_exc())
+            await base_msg.edit_text(f"⚠️ Произошла ошибка: {str(e)}")
+        else:
+            raise e
 
 
 @ai_router.message(Command("agai"))
