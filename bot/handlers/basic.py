@@ -35,6 +35,7 @@ async def cmd_start(message: Message):
         "❔ Если хочешь узнать более подробную информацию о командах, напиши /help.\n\n"
         "👤 Владелец бота: @komaru_dude\n"
         "📚 Гайд по настройке бота: https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart\n"
+        "📰 Новостной канал бота: @komaru_funbox\n"
         "🧑‍💻 Исходный код бота: https://github.com/Komaru-dude/Komaru-FunBox\n\n"
         "🎩 Приятного использования!",
         disable_web_page_preview=True,
