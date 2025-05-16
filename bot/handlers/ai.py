@@ -265,7 +265,7 @@ async def cmd_aggemini(message: Message, bot: Bot):
         ]
 
         await cmd_ai(
-            message, bot, model="gemini-2.5-flash-preview-04-17", messages=messages
+            message, bot, model=" gemini-2.0-flash", messages=messages
         )
     except Exception:
         await error_report(message, bot, "agai", traceback.format_exc())
