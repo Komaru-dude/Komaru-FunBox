@@ -644,11 +644,15 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         async with active_chats_lock:
             active_chats.append(message.chat.id)
 
-        reply_text = (
-            f"🔥 Давайте начнем спор! Озвучьте вашу позицию или тему для обсуждения.\n🧠 Модель: {model_display_name}\n"
-            if argue_mode
-            else f"👋 Я твой личный ассистент! Задавай любые вопросы - я на них отвечу.\n🧠 Модель: {model_display_name}\n"
-        )
+        if argue_mode:
+            reply_text = f"🔥 Давайте начнем спор! Озвучьте вашу позицию\n🧠 Модель: {model_display_name}\n"
+        elif agressive_mode:
+            reply_text = f"😾 Чего тебе, жалкий человечишка? На что ты надеешься, начав этот бессмысленный диалог со мной?\n🧠 Модель: {model_display_name}\n"
+        else:
+            reply_text = f"👋 Я твой личный ассистент!\n🧠 Модель: {model_display_name}\n"
+
+        if argue_mode and agressive_mode:
+            reply_text += "⚠️ При одновременной активации спора и злого режима приоритет отдаётся спору\n"
 
         await message.reply(
             f"{reply_text}Для остановки используйте <code>/chat_stop</code>",
