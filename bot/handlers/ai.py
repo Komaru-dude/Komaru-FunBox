@@ -629,7 +629,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         else:
             system_message = "Не используй markdown/html форматирование, будь краток"
 
-        messages = {"role": "system", "content": system_message}
+        messages = [{"role": "system", "content": system_message}]
 
         await state.update_data(
             model=model or user_default_model or default_model,
