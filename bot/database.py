@@ -49,6 +49,19 @@ BANNED_USERS_COLUMNS = {
     "user_id": "BIGINT PRIMARY KEY",
 }
 
+CHATS_COLUMNS = {
+    "chat_id": "BIGINT PRIMARY KEY",
+    "type": "TEXT",
+    "registered_at": "TIMESTAMP DEFAULT NOW()",
+}
+
+GLOBAL_USERS_COLUMNS = {
+    "user_id": "BIGINT PRIMARY KEY",
+    "language_code": "TEXT DEFAULT 'ru'",
+    "registered_at": "TIMESTAMP DEFAULT NOW()",
+}
+
+
 
 class Database:
     def __init__(self):
@@ -149,6 +162,20 @@ class Database:
                         {banned_users_def}
                     )
                     """
+                )
+
+                # Таблица chats
+                await conn.execute(
+                    f"""CREATE TABLE IF NOT EXISTS chats (
+                        {", ".join([f"{k} {v}" for k, v in CHATS_COLUMNS.items()])}
+                    )"""
+                )
+                
+                # Таблица global_users
+                await conn.execute(
+                    f"""CREATE TABLE IF NOT EXISTS global_users (
+                        {", ".join([f"{k} {v}" for k, v in GLOBAL_USERS_COLUMNS.items()])}
+                    )"""
                 )
 
                 # Добавляем недостающие столбцы в users
