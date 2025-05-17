@@ -122,7 +122,10 @@ class Database:
 
                 # Таблица features
                 features_def = ",\n".join(
-                    [f"{col} {definition}" for col, definition in FEATURES_COLUMNS.items()]
+                    [
+                        f"{col} {definition}"
+                        for col, definition in FEATURES_COLUMNS.items()
+                    ]
                 )
                 await conn.execute(
                     f"""
@@ -135,7 +138,10 @@ class Database:
 
                 # Таблица banned_users
                 banned_users_def = ",\n".join(
-                    [f"{col} {definition}" for col, definition in BANNED_USERS_COLUMNS.items()]
+                    [
+                        f"{col} {definition}"
+                        for col, definition in BANNED_USERS_COLUMNS.items()
+                    ]
                 )
                 await conn.execute(
                     f"""
