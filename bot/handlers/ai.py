@@ -297,7 +297,7 @@ async def cmd_ai(
             raise e
     except Exception as e:
         if not cli_mode:
-            await base_msg.edit_text(f"⚠️ Произошла ошибка: {str(e)}")
+            await error_report(message, bot, "ai", traceback.format_exc())
         else:
             raise e
 
