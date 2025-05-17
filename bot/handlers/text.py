@@ -235,11 +235,19 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             else:
                 await message.answer(result_text, parse_mode=ParseMode.HTML)
             return
-        elif any(
-            word in text_msg.lower().split() for word in ("alo", "ало", "алё", "ale")
-        ) and await db.is_feature_enabled(chat_id, "alo"):
+
+        clean_text = re.sub(r'[^\w\s]', '', text_msg.lower())
+
+        words = clean_text.split()
+
+        if any(word in words for word in ("alo", "ало", "алё", "ale")) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("📞 В очко себе поалёкай")
             return
+
+        if any(word in words for word in ("ау", "ay", "au")) in words and await db.is_feature_enabled(chat_id, "alo"):
+            await message.reply("🪵 В лесу аукай, себе в сраку себе")
+            return
+
     except openai.InternalServerError:
         await message.reply("⚠️ Внутренняя ошибка API")
     except openai.RateLimitError:
