@@ -39,6 +39,16 @@ USERS_COLUMNS = {
     "default_model": "TEXT DEFAULT ''",
 }
 
+FEATURES_COLUMNS = {
+    "chat_id": "BIGINT",
+    "feature_name": "TEXT",
+    "is_enabled": "BOOLEAN DEFAULT FALSE",
+}
+
+BANNED_USERS_COLUMNS = {
+    "user_id": "BIGINT PRIMARY KEY",
+}
+
 
 class Database:
     def __init__(self):
@@ -97,38 +107,40 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                # Формируем SQL из USERS_COLUMNS
-                columns_def = ",\n".join(
+                # Таблица users
+                users_def = ",\n".join(
                     [f"{col} {definition}" for col, definition in USERS_COLUMNS.items()]
                 )
-                primary_keys = "PRIMARY KEY (user_id, chat_id)"
-
                 await conn.execute(
                     f"""
                     CREATE TABLE IF NOT EXISTS users (
-                        {columns_def},
-                        {primary_keys}
+                        {users_def},
+                        PRIMARY KEY (user_id, chat_id)
                     )
                     """
                 )
 
-                # Таблица фич
+                # Таблица features
+                features_def = ",\n".join(
+                    [f"{col} {definition}" for col, definition in FEATURES_COLUMNS.items()]
+                )
                 await conn.execute(
-                    """
+                    f"""
                     CREATE TABLE IF NOT EXISTS features (
-                        chat_id BIGINT,
-                        feature_name TEXT,
-                        is_enabled BOOLEAN DEFAULT FALSE,
+                        {features_def},
                         PRIMARY KEY (chat_id, feature_name)
                     )
                     """
                 )
 
-                # Таблица заблокированных
+                # Таблица banned_users
+                banned_users_def = ",\n".join(
+                    [f"{col} {definition}" for col, definition in BANNED_USERS_COLUMNS.items()]
+                )
                 await conn.execute(
-                    """
+                    f"""
                     CREATE TABLE IF NOT EXISTS banned_users (
-                        user_id BIGINT PRIMARY KEY
+                        {banned_users_def}
                     )
                     """
                 )
