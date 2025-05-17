@@ -237,12 +237,6 @@ async def cmd_ai(
             answer = final_text.strip()
             if cli_mode:
                 return answer
-            else:
-                await base_msg.edit_text(
-                    f"💭 Запрос: {request}\n"
-                    f"🧠 Модель: {model_display_name}\n\n"
-                    f"📝 Ответ: {answer}"
-                )
         else:
             response = await client.chat.completions.create(
                 model=model,
