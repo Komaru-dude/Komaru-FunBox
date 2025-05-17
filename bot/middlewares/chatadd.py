@@ -6,6 +6,7 @@ from bot import database
 
 db = database.Database()
 
+
 class ChatAddMiddleware(BaseMiddleware):
     async def __call__(
         self,
@@ -14,7 +15,7 @@ class ChatAddMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         event_type = data.get("event_update_type")
-        bot: Bot = data['bot']
+        bot: Bot = data["bot"]
         user_id = None
         chat_id = None
 
@@ -32,5 +33,7 @@ class ChatAddMiddleware(BaseMiddleware):
 
         if not is_chat_init:
             await db.add_chat(chat_id, chat_data={"type": "private"})
-            await bot.send_message(os.getenv("OWNER_ID"), f"🔔 Новый чат: {chat_id}, имя: {chat_name}")
+            await bot.send_message(
+                os.getenv("OWNER_ID"), f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
+            )
         return await handler(event, data)
