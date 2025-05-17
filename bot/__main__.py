@@ -12,6 +12,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 from bot.database import BASE_DIR, Database
+from bot.middlewares import chatadd
 from bot.utils.global_storage import onlysq_models
 from bot.utils.aio_tools import fetch_json
 
@@ -34,6 +35,7 @@ logging.basicConfig(level=logging.INFO)
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
+dp.message.outer_middleware(chatadd())
 db = Database()
 DATA_DIR = BASE_DIR / "data"
 
