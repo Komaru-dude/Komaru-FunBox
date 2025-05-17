@@ -235,7 +235,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             else:
                 await message.answer(result_text, parse_mode=ParseMode.HTML)
             return
-        elif split_text in ("alo", "ало", "алё", "ale"):
+        elif text_msg.lower() in ("alo", "ало", "алё", "ale") and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("📞 В очко себе поалёкай")
             return
     except openai.InternalServerError:
