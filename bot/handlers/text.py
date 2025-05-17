@@ -247,6 +247,22 @@ async def text(message: Message, bot: Bot, state: FSMContext):
         if any(word in words for word in ("ау", "ay", "au")) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
+        
+        if any(word in words for word in ("спс", "thx", "благодарю", "мерси")) and await db.is_feature_enabled(chat_id, "alo"):
+            await message.reply("🎁 Спасибо принеси в жопу заверни, тут не дарят")
+            return
+        
+        if any(word in words for word in ("привет", "privet")) and await db.is_feature_enabled(chat_id, "privet"):
+            await message.reply("👋 Засунь свой привет себе в жопу")
+            return
+
+        if any(word in words for word in ("пока", "poka", "boka")) and await db.is_feature_enabled(chat_id, "poka"):
+            await message.reply("🚪 Иди нахуй, не задерживайся")
+            return
+        
+        if any(word in words for word in ("согласен", "true", "ok")) and await db.is_feature_enabled(chat_id, "soglasen"):
+            await message.reply("👍 Мне похуй, чё ты там согласен")
+            return
 
     except openai.InternalServerError:
         await message.reply("⚠️ Внутренняя ошибка API")
