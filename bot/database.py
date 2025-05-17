@@ -504,6 +504,7 @@ class Database:
                     chat_id,
                 )
 
+    # Функции для совместимости, в будущем будут убраны
     async def update_user_warns(self, user_id: int, chat_id: int, reason: str):
         await self.update_user_history(user_id, chat_id, "warn", reason)
 
