@@ -236,31 +236,43 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                 await message.answer(result_text, parse_mode=ParseMode.HTML)
             return
 
-        clean_text = re.sub(r'[^\w\s]', '', text_msg.lower())
+        clean_text = re.sub(r"[^\w\s]", "", text_msg.lower())
 
         words = clean_text.split()
 
-        if any(word in words for word in ("alo", "ало", "алё", "ale")) and await db.is_feature_enabled(chat_id, "alo"):
+        if any(
+            word in words for word in ("alo", "ало", "алё", "ale")
+        ) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("📞 В очко себе поалёкай")
             return
 
-        if any(word in words for word in ("ау", "ay", "au")) and await db.is_feature_enabled(chat_id, "alo"):
+        if any(
+            word in words for word in ("ау", "ay", "au")
+        ) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
-        
-        if any(word in words for word in ("спс", "thx", "благодарю", "мерси")) and await db.is_feature_enabled(chat_id, "alo"):
+
+        if any(
+            word in words for word in ("спс", "thx", "благодарю", "мерси")
+        ) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("🎁 Спасибо принеси в жопу заверни, тут не дарят")
             return
-        
-        if any(word in words for word in ("привет", "privet")) and await db.is_feature_enabled(chat_id, "alo"):
+
+        if any(
+            word in words for word in ("привет", "privet")
+        ) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("👋 Засунь свой привет себе в жопу")
             return
 
-        if any(word in words for word in ("пока", "poka", "boka")) and await db.is_feature_enabled(chat_id, "alo"):
+        if any(
+            word in words for word in ("пока", "poka", "boka")
+        ) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("🚪 Иди нахуй, не задерживайся")
             return
-        
-        if any(word in words for word in ("согласен", "true", "ok")) and await db.is_feature_enabled(chat_id, "alo"):
+
+        if any(
+            word in words for word in ("согласен", "true", "ok")
+        ) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("👍 Мне похуй, чё ты там согласен")
             return
 
