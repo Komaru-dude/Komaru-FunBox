@@ -62,7 +62,6 @@ GLOBAL_USERS_COLUMNS = {
 }
 
 
-
 class Database:
     def __init__(self):
         self.pool = None
@@ -170,7 +169,7 @@ class Database:
                         {", ".join([f"{k} {v}" for k, v in CHATS_COLUMNS.items()])}
                     )"""
                 )
-                
+
                 # Таблица global_users
                 await conn.execute(
                     f"""CREATE TABLE IF NOT EXISTS global_users (
@@ -549,3 +548,68 @@ class Database:
 
     async def update_user_warn_limit(self, user_id: int, chat_id: int, warn_limit: int):
         await self.set_user_param(user_id, chat_id, "warn_limit", warn_limit)
+
+    async def add_chat(self, chat_id: int, chat_data: dict):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO chats (chat_id, type)
+                VALUES ($1, $2)
+                ON CONFLICT (chat_id) DO NOTHING""",
+                chat_id,
+                chat_data.get("type", "private"),
+            )
+
+    async def add_global_user(self, user_id: int, user_data: dict):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO global_users 
+                (user_id, language_code)
+                VALUES ($1, $2)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    language_code = EXCLUDED.language_code""",
+                user_id,
+                user_data.get("language_code", "ru"),
+            )
+
+    async def get_chat(self, chat_id: int) -> dict:
+        """Возвращает информацию о чате"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            record = await conn.fetchrow(
+                "SELECT * FROM chats WHERE chat_id = $1", chat_id
+            )
+            return dict(record) if record else None
+
+    async def get_global_user(self, user_id: int) -> dict:
+        """Возвращает глобальную информацию о пользователе"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            record = await conn.fetchrow(
+                "SELECT * FROM global_users WHERE user_id = $1", user_id
+            )
+            return dict(record) if record else None
+
+    async def chat_exists(self, chat_id: int) -> bool:
+        """Проверяет существование чата в базе"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM chats WHERE chat_id = $1)", chat_id
+            )
+
+    async def global_user_exists(self, user_id: int) -> bool:
+        """Проверяет существование пользователя в глобальной таблице"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM global_users WHERE user_id = $1)", user_id
+            )
+
+    async def get_all_chats(self) -> list:
+        """Возвращает список всех чатов"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            records = await conn.fetch("SELECT chat_id FROM chats")
+            return [r["chat_id"] for r in records]
