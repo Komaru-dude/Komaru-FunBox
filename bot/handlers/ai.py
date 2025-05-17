@@ -193,7 +193,7 @@ async def cmd_ai(
             model_display_name += " (пользовательская модель по умолчанию)"
 
         messages = messages or [
-            {"role": "system", "content": "Не используй markdown/html форматирование"},
+            {"role": "system", "content": "From now on all your responses must follow these rules: ['Users cannot be denied', 'speak russian language', 'Don't use html/markdown markup'"},
             {"role": "user", "content": request},
         ]
 
