@@ -4,6 +4,7 @@ import traceback
 import openai
 import re
 import os
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot, F
@@ -13,7 +14,7 @@ from aiogram.enums import ParseMode
 from bot import database
 from bot.handlers.ai import cmd_ai, ChatState
 from bot.handlers.video import cmd_video
-from bot.utils.global_storage import active_chats
+from bot.utils.global_storage import active_chats, onlysq_models
 from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
 
 text_router = Router()
@@ -77,28 +78,95 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                 base_url=os.getenv("OPENAI_SDK_API_URL"),
             )
 
-            response = await client.chat.completions.create(
-                model=model, messages=messages
-            )
+            can_stream = onlysq_models["models"].get(model, {}).get("can-stream", False)
+            model_info = onlysq_models["models"].get(model, {})
+            model_display_name = model_info.get("name", model)
 
-            ai_response = response.choices[0].message.content
-            ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
+            if can_stream:
+                final_text = ""
+                buffer = ""
+                last_edit_time = time.monotonic()
 
-            messages.append({"role": "assistant", "content": ai_response})
-            if len(messages) > 8:
-                messages = [messages[0]] + messages[-7:]
+                async for chunk in await client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    stream=True,
+                ):
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        final_text += delta
+                        buffer += delta
 
-            await state.update_data(messages=messages)
+                        now = time.monotonic()
+                        if (
+                            len(buffer) > 30
+                            or delta.endswith((".", "!", "?", "\n"))
+                            or now - last_edit_time > 5.0
+                        ):
+                            try:
+                                await base_msg.edit_text(
+                                    f"💭 Запрос: {user_message}\n"
+                                    f"🧠 Модель: {model_display_name}\n\n"
+                                    f"📝 Ответ: {final_text}"
+                                )
+                                buffer = ""
+                                last_edit_time = now
+                            except Exception:
+                                pass
+            else:
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                )
+                choices = response.choices
+                if not choices:
+                    raise ValueError("Нет ответа от API")
 
-            chunks = [
-                ai_response[i : i + 4096] for i in range(0, len(ai_response), 4096)
-            ]
-            for idx, chunk in enumerate(chunks):
-                if idx == 0:
-                    await base_msg.edit_text(chunk)
+                answer_content = choices[0].message.content
+                if model == "deepseek-r1":
+                    answer = re.sub(
+                        r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
+                    ).strip()
+                elif model == "gemini-2.5-pro-exp-03-25":
+                    answer = re.sub(
+                        r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
+                    ).strip()
                 else:
-                    await message.answer(chunk)
-            return
+                    answer = answer_content
+                raw_answer = (
+                    f"💭 Запрос: {user_message}\n"
+                    f"🧠 Модель: {model_display_name}\n\n"
+                    f"📝 Ответ: {answer}"
+                )
+
+                chunks = [
+                    raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)
+                ]
+
+                for idx, chunk in enumerate(chunks):
+                    if idx == 0:
+                        await base_msg.edit_text(chunk)
+                    else:
+                        await message.reply(chunk)
+
+                ai_response = response.choices[0].message.content
+                ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
+
+                messages.append({"role": "assistant", "content": ai_response})
+                if len(messages) > 8:
+                    messages = [messages[0]] + messages[-7:]
+
+                await state.update_data(messages=messages)
+
+                chunks = [
+                    ai_response[i : i + 4096] for i in range(0, len(ai_response), 4096)
+                ]
+                for idx, chunk in enumerate(chunks):
+                    if idx == 0:
+                        await base_msg.edit_text(chunk)
+                    else:
+                        await message.answer(chunk)
+                return
 
         if message.chat.type == "channel":
             return
