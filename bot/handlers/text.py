@@ -244,7 +244,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             await message.reply("📞 В очко себе поалёкай")
             return
 
-        if any(word in words for word in ("ау", "ay", "au")) in words and await db.is_feature_enabled(chat_id, "alo"):
+        if any(word in words for word in ("ау", "ay", "au")) and await db.is_feature_enabled(chat_id, "alo"):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
 
