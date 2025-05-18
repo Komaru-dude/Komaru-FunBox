@@ -93,13 +93,22 @@ async def show_working_models(message: Message):
         for model in models:
             paid_icon = "🔐" if model["paid"] else "🆓"
             stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
-
+            if model["type"] == "provider":
+                type_icon = "🟡"
+            elif model["type"] == "keys":
+                type_icon = "🟢"
+            else:
+                type_icon = ""
             display_name = model["id"]
 
-            model_line = f"{paid_icon} " f"<code>{display_name}</code>{stream_icon}\n"
+            model_line = (
+                f"{paid_icon} {type_icon} "
+                f"<code>{display_name}</code>{stream_icon}\n"
+            )
             category_body.append(model_line)
 
         message_text += category_header + "".join(category_body) + "\n"
+    message_text += "\n❓ Что значат все эти эмодзи?\n\n🔐 - Платные модели, могут быть лимиты для бесплатных пользователей\n\n🟡 - Могут не работать, не рекомендуются к длительному использованию\n\n🟢 - Вероятнее всего, будут работать всегда"
 
     await message.reply(
         f"🚀 <b>Доступные рабочие модели:</b>\n\n{message_text}",
