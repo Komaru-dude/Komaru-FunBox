@@ -7,7 +7,7 @@ from bot import database
 db = database.Database()
 
 
-class ChatAddMiddleware(BaseMiddleware):
+class ChatWatcher(BaseMiddleware):
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
