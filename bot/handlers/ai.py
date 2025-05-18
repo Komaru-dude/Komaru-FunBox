@@ -214,6 +214,7 @@ async def cmd_ai(
         if can_stream:
             final_text = ""
             buffer = ""
+            edited_once = False
             last_edit_time = time.monotonic()
 
             async for chunk in await client.chat.completions.create(
@@ -240,6 +241,7 @@ async def cmd_ai(
                                     f"📝 Ответ: {final_text}"
                                 )
                                 buffer = ""
+                                edited_once = True
                                 last_edit_time = now
                             except Exception:
                                 pass
@@ -249,6 +251,15 @@ async def cmd_ai(
             answer = final_text.strip()
             if cli_mode:
                 return answer
+            elif not edited_once:
+                try:
+                    await base_msg.edit_text(
+                        f"💭 Запрос: {request}\n"
+                        f"🧠 Модель: {model_display_name}\n\n"
+                        f"📝 Ответ: {answer}"
+                    )
+                except Exception:
+                    pass
         else:
             response = await client.chat.completions.create(
                 model=model,
