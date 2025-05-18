@@ -12,6 +12,11 @@ required_vars = {
     "JIGSAW_API_KEY": "Апи ключ для jigsaw функций",
     "ONLYSQ_API_KEY": "Апи ключ для onlysq",
     "OPENAI_SDK_API_URL": "Апи ключ для onlysq",
+    "DB_NAME": "Имя базы данных",
+    "DB_USER": "Пользователь базы данных",
+    "DB_PASSWORD": "Пароль базы данных",
+    "DB_HOST": "Хост базы данных",
+    "DB_PORT": "Порт базы данных",
 }
 
 for var, description in required_vars.items():
