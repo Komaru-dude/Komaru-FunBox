@@ -232,7 +232,7 @@ async def cmd_ai(
                     if (
                         len(buffer) > 30
                         or delta.endswith((".", "!", "?", "\n"))
-                        or now - last_edit_time > 2.5
+                        or now - last_edit_time > 3.0
                     ):
                         if not cli_mode:
                             try:
