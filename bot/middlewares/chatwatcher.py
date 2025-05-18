@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import Bot, BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
@@ -33,6 +34,7 @@ class ChatWatcher(BaseMiddleware):
 
         if not is_chat_init:
             await db.add_chat(chat_id, chat_data={"type": "private"})
+            logging.info(f"Новый чат: {chat_id}, имя: {chat_name}")
             await bot.send_message(
                 os.getenv("OWNER_ID"), f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
             )
