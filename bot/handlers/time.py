@@ -30,7 +30,7 @@ async def cmd_time_to_new_year(message: Message, bot: Bot):
         minutes, seconds = divmod(remainder, 60)
 
         await message.reply(
-            f"До 2026 года осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
+            f"⏳ До 2026 года осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
         )
     except Exception:
         await error_report(message, bot, "new_year", traceback.format_exc())
@@ -73,7 +73,7 @@ async def cmd_cats_birthdays(message: Message, bot: Bot):
             minutes, seconds = divmod(remainder, 60)
 
             responses.append(
-                f"{name}: через {int(days)} дней, {int(hours)} часов, {int(minutes)} минут, {int(seconds)} секунд "
+                f"⏳ {name}: через {int(days)} дней, {int(hours)} часов, {int(minutes)} минут, {int(seconds)} секунд "
                 f"(день рождения {next_birthday.date()})."
             )
 
@@ -105,7 +105,7 @@ async def cmd_time_to_revx(message: Message, bot: Bot):
         minutes, seconds = divmod(remainder, 60)
 
         await message.reply(
-            f"До днюхи ревха осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
+            f"⏳ До днюхи ревха осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
         )
     except Exception:
         await error_report(message, bot, "birthdays", traceback.format_exc())
