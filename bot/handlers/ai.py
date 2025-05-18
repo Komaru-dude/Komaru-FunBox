@@ -15,6 +15,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramRetryAfter
 from bot.utils.aio_tools import make_post_request, error_report
 from bot.utils.global_storage import (
     active_chats,
@@ -231,7 +232,7 @@ async def cmd_ai(
                     if (
                         len(buffer) > 30
                         or delta.endswith((".", "!", "?", "\n"))
-                        or now - last_edit_time > 5.0
+                        or now - last_edit_time > 2.5
                     ):
                         if not cli_mode:
                             try:
@@ -243,6 +244,8 @@ async def cmd_ai(
                                 buffer = ""
                                 edited_once = True
                                 last_edit_time = now
+                            except TelegramRetryAfter as e:
+                                await asyncio.sleep(e.retry_after)
                             except Exception:
                                 pass
                         else:
