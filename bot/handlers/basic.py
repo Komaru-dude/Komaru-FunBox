@@ -254,7 +254,7 @@ async def cmd_send_logs(message: Message, bot: Bot):
             "-u",
             "komaru-funbox.service",
             "-n",
-            "50",
+            "80",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
