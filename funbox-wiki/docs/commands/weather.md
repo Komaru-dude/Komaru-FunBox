@@ -1,11 +1,27 @@
 # ⛅️ /weather
 
-Отправляет погоду на сегодня с использованием wttr.in
+Отправляет погоду на сегодня с использованием wttr.in, принимает город в качестве аргумента, пример: <br />
 
-![Иллюстрация](/img/weather_no.png)
+``` telegram
+/weather Москва
+```
+
+<div className="update-container">
+
+<div className="image-block">
+<img
+  src={require("/img/weather_no.png").default}
+  alt="При отсутствии указанного города"
+/>
 <p className="image-caption">При отсутствии указанного города</p>
+</div>
 
-Обрабатывает в качестве аргумента город, при написании города на русском язык будет русским
-
-![Иллюстрация](/img/weather_yes.png)
+<div className="image-block">
+<img
+  src={require("/img/weather_yes.png").default}
+  alt="Указан город на русском языке"
+/>
 <p className="image-caption">Указан город на русском языке</p>
+</div>
+
+</div>
