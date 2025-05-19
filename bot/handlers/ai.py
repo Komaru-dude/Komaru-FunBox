@@ -565,15 +565,14 @@ async def cmd_translate(
 async def cmd_vocr(message: Message, bot: Bot):
     try:
         base_msg = await message.reply("🔄 Обработка...")
+        photo = None
+
         if message.photo:
             photo = message.photo[-1]
         elif message.reply_to_message and message.reply_to_message.photo:
             photo = message.reply_to_message.photo[-1]
-        if (
-            not message.photo
-            and not message.reply_to_message
-            and not message.reply_to_message.photo
-        ):
+
+        if not photo:
             return await message.reply(
                 "❌ Отправьте фото или ответьте на фото для его распознавания."
             )
