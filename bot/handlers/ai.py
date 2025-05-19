@@ -562,7 +562,7 @@ async def cmd_translate(
 
 
 @ai_router.message(Command("ocr"))
-async def cmd_vocr(message: Message, bot: Bot):
+async def cmd_ocr(message: Message, bot: Bot):
     try:
         base_msg = await message.reply("🔄 Обработка...")
         photo = None
