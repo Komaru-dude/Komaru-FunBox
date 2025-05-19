@@ -17,49 +17,55 @@ class ChatWatcher(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         try:
-            event_type = data.get("event_update_type")
             bot: Bot = data["bot"]
-            user_id = None
-            chat_id = None
+
+            if isinstance(event, CallbackQuery):
+                return await handler(event, data)
 
             if isinstance(event, Message):
                 user_id = event.from_user.id
                 chat_id = event.chat.id
-                chat_name = event.chat.full_name
                 chat_type = event.chat.type
-            elif isinstance(event, CallbackQuery):
-                return await handler(event, data)
+                chat_name = event.chat.full_name
+                language_code = event.from_user.language_code
+                text = event.text or ""
 
-            is_chat_init = await db.chat_exists(chat_id)
+                is_chat_init = await db.chat_exists(chat_id)
+                if not is_chat_init:
+                    await db.add_chat(chat_id, chat_data={"type": chat_type})
+                    msg = (
+                        f"🔔 Новый пользователь бота: {chat_id}, имя: {chat_name}"
+                        if chat_type == "private"
+                        else f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
+                    )
+                    logging.info(msg)
+                    owner_id = os.getenv("OWNER_ID")
+                    if owner_id:
+                        await bot.send_message(owner_id, msg)
 
-            if not is_chat_init:
-                await db.add_chat(chat_id, chat_data={"type": chat_type})
-                if chat_type == "private":
-                    logging.info(
-                        f"Новый пользователь бота: {chat_id}, имя: {chat_name}"
-                    )
-                    await bot.send_message(
-                        os.getenv("OWNER_ID"),
-                        f"🔔 Новый пользователь бота: {chat_id}, имя: {chat_name}",
-                    )
-                else:
-                    logging.info(f"Новый чат: {chat_id}, имя: {chat_name}")
-                    await bot.send_message(
-                        os.getenv("OWNER_ID"),
-                        f"🔔 Новый чат: {chat_id}, имя: {chat_name}",
-                    )
+                if chat_type == "private" or text.startswith("/"):
+                    user_info = await db.get_global_user(user_id)
+                    if user_info is None:
+                        await db.add_global_user(
+                            user_id, {"language_code": language_code}
+                        )
+                        msg = f"🔔 Новый пользователь бота: {chat_id}, имя: {chat_name}"
+                        logging.info(msg)
+                        owner_id = os.getenv("OWNER_ID")
+                        if owner_id:
+                            await bot.send_message(owner_id, msg)
+
             return await handler(event, data)
         except Exception:
-            logging.error(
-                f"❌ Не удалось проверить чат.\n\n📛 Traceback: {traceback.format_exc()}"
-            )
+            logging.error("❌ Не удалось проверить чат.", exc_info=True)
             try:
-                await bot.send_message(
-                    os.getenv("OWNER_ID"),
-                    f"❌ Не удалось проверить чат.\n\n📛 Traceback: {traceback.format_exc()}",
-                )
+                owner_id = os.getenv("OWNER_ID")
+                if owner_id:
+                    await bot.send_message(
+                        owner_id,
+                        f"❌ Не удалось проверить чат.\n\n📛 Traceback: {traceback.format_exc()}",
+                    )
             except Exception:
-                logging.error(
-                    f"❌ Не удалось отправить овнеру репорт, ошибка: {traceback.format_exc()}"
-                )
+                logging.error("❌ Не удалось отправить овнеру репорт.", exc_info=True)
+
             return await handler(event, data)
