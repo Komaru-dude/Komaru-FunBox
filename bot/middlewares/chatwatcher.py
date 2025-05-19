@@ -23,25 +23,25 @@ class ChatWatcher(BaseMiddleware):
                 return await handler(event, data)
 
             if isinstance(event, Message):
-                user_id = event.from_user.id
-                chat_id = event.chat.id
-                chat_type = event.chat.type
-                chat_name = event.chat.full_name
-                language_code = event.from_user.language_code
+                user = event.from_user
+                chat = event.chat
                 text = event.text or ""
 
-                is_chat_init = await db.chat_exists(chat_id)
-                if not is_chat_init:
+                user_id = user.id
+                chat_id = chat.id
+                chat_type = chat.type
+                chat_name = chat.full_name
+                user_name = user.full_name
+                language_code = user.language_code
+
+                if not await db.chat_exists(chat_id):
                     await db.add_chat(chat_id, chat_data={"type": chat_type})
-                    msg = (
-                        f"🔔 Новый пользователь бота: {chat_id}, имя: {chat_name}"
-                        if chat_type == "private"
-                        else f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
-                    )
-                    logging.info(msg)
-                    owner_id = os.getenv("OWNER_ID")
-                    if owner_id:
-                        await bot.send_message(owner_id, msg)
+                    if chat_type != "private":
+                        msg = f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
+                        logging.info(msg)
+                        owner_id = os.getenv("OWNER_ID")
+                        if owner_id:
+                            await bot.send_message(owner_id, msg)
 
                 if chat_type == "private" or text.startswith("/"):
                     user_info = await db.get_global_user(user_id)
@@ -49,7 +49,7 @@ class ChatWatcher(BaseMiddleware):
                         await db.add_global_user(
                             user_id, {"language_code": language_code}
                         )
-                        msg = f"🔔 Новый пользователь бота: {chat_id}, имя: {chat_name}"
+                        msg = f"🔔 Новый пользователь бота: {user_id}, имя: {user_name}"
                         logging.info(msg)
                         owner_id = os.getenv("OWNER_ID")
                         if owner_id:
