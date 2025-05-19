@@ -308,6 +308,11 @@ async def cmd_ai(
             await base_msg.edit_text("⚠️ Внутренняя ошибка API")
         else:
             raise e
+    except openai.APIError:
+        if not cli_mode:
+            await base_msg.edit_text("⚠️ Внутренняя ошибка API")
+        else:
+            raise e
     except openai.RateLimitError:
         if not cli_mode:
             await base_msg.edit_text(
