@@ -573,7 +573,7 @@ async def cmd_ocr(message: Message, bot: Bot):
             photo = message.reply_to_message.photo[-1]
 
         if not photo:
-            return await message.reply(
+            return await base_msg.edit_text(
                 "❌ Отправьте фото или ответьте на фото для его распознавания."
             )
         file_id = photo.file_id
