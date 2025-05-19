@@ -18,6 +18,7 @@ class ChatWatcher(BaseMiddleware):
     ) -> Any:
         try:
             bot: Bot = data["bot"]
+            bot_username = (await bot.me()).username
 
             if isinstance(event, CallbackQuery):
                 return await handler(event, data)
@@ -26,13 +27,15 @@ class ChatWatcher(BaseMiddleware):
                 user = event.from_user
                 chat = event.chat
                 text = event.text or ""
-
                 user_id = user.id
                 chat_id = chat.id
                 chat_type = chat.type
                 chat_name = chat.full_name
                 user_name = user.full_name
                 language_code = user.language_code
+
+                if not text:
+                    return await handler(event, data)
 
                 if not await db.chat_exists(chat_id):
                     await db.add_chat(chat_id, chat_data={"type": chat_type})
@@ -42,6 +45,17 @@ class ChatWatcher(BaseMiddleware):
                         owner_id = os.getenv("OWNER_ID")
                         if owner_id:
                             await bot.send_message(owner_id, msg)
+
+                if event.entities:
+                    for entity in event.entities:
+                        if entity.type == "bot_command":
+                            command = text[
+                                entity.offset : entity.offset + entity.length
+                            ]
+                            if "@" in command:
+                                mentioned_bot = command.split("@")[1].lower()
+                                if mentioned_bot != bot_username.lower():
+                                    return await handler(event, data)
 
                 if chat_type == "private" or text.startswith("/"):
                     user_info = await db.get_global_user(user_id)
