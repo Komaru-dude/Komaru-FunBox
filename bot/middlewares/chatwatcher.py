@@ -45,9 +45,6 @@ class ChatWatcher(BaseMiddleware):
                                 if chat_type == "private":
                                     is_bot_command = True
                                     break
-                                else:
-                                    is_bot_command = True
-                                    break
 
                 user_id = user.id
                 chat_id = chat.id
