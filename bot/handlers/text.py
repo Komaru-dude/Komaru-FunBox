@@ -5,12 +5,14 @@ import openai
 import re
 import os
 import time
+import asyncio
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramRetryAfter
 from bot import database
 from bot.handlers.ai import cmd_ai, ChatState
 from bot.handlers.video import cmd_video
@@ -85,6 +87,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
             if can_stream:
                 final_text = ""
                 buffer = ""
+                edited_once = False
                 last_edit_time = time.monotonic()
 
                 async for chunk in await client.chat.completions.create(
@@ -101,7 +104,7 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                         if (
                             len(buffer) > 30
                             or delta.endswith((".", "!", "?", "\n"))
-                            or now - last_edit_time > 5.0
+                            or now - last_edit_time > 3.0
                         ):
                             try:
                                 await base_msg.edit_text(
@@ -110,7 +113,19 @@ async def text(message: Message, bot: Bot, state: FSMContext):
                                     f"📝 Ответ: {final_text}"
                                 )
                                 buffer = ""
+                                edited_once = True
                                 last_edit_time = now
+                            except TelegramRetryAfter as e:
+                                await asyncio.sleep(e.retry_after)
+                            except Exception:
+                                pass
+                        elif not edited_once:
+                            try:
+                                await base_msg.edit_text(
+                                    f"💭 Запрос: {user_message}\n"
+                                    f"🧠 Модель: {model_display_name}\n\n"
+                                    f"📝 Ответ: {final_text}"
+                                )
                             except Exception:
                                 pass
             else:
