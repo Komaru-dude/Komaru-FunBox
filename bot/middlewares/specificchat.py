@@ -8,12 +8,17 @@ from bot import database
 
 db = database.Database()
 
+
 class SpecificChat(BaseMiddleware):
     def __init__(self):
         super().__init__()
         self.restrict_enabled = os.getenv("SPECIFIC_CHAT", "").strip().lower() == "true"
         specific_chats = os.getenv("SPECIFIC_CHATS_ID", "")
-        self.allowed_chat_ids = [int(cid.strip()) for cid in specific_chats.split(",") if cid.strip().isdigit()]
+        self.allowed_chat_ids = [
+            int(cid.strip())
+            for cid in specific_chats.split(",")
+            if cid.strip().isdigit()
+        ]
         self.owner_id = os.getenv("OWNER_ID")
 
     async def __call__(
@@ -39,6 +44,7 @@ class SpecificChat(BaseMiddleware):
             logging.error("❌ Ошибка в SpecificChat:", exc_info=True)
             if self.owner_id:
                 await bot.send_message(
-                    self.owner_id, f"❌ Ошибка в SpecificChat:\n\n{traceback.format_exc()}"
+                    self.owner_id,
+                    f"❌ Ошибка в SpecificChat:\n\n{traceback.format_exc()}",
                 )
             return await handler(event, data)

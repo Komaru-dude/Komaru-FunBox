@@ -4,3 +4,4 @@ from bot import database
 from bot.utils.aio_tools import error_report
 
 eco_router = Router()
+db = database.Database()
