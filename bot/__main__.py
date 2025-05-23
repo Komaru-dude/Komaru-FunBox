@@ -38,7 +38,7 @@ token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
 dp.message.outer_middleware(ChatWatcher())
-dp.message.outer_middleware(SpecificChat)
+dp.message.outer_middleware(SpecificChat())
 db = Database()
 DATA_DIR = BASE_DIR / "data"
 
