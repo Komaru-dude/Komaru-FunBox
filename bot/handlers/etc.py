@@ -304,3 +304,8 @@ async def send_weather(message: Message):
             await message.reply(
                 f"<code>{cleaned_art}</code>", parse_mode=ParseMode.HTML
             )
+
+
+@etc_router.message(Command("nillerxs"))
+async def cmd_nillerxs(message: Message):
+    await message.reply("нильрекс")
