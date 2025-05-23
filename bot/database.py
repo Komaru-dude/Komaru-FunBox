@@ -23,6 +23,7 @@ DEFAULT_FEATURES = [
     ("ban", 0),
     ("senddisabledmsg", 1),
     ("alo", 0),
+    ("economy", 1),
 ]
 
 USERS_COLUMNS = {
@@ -37,6 +38,7 @@ USERS_COLUMNS = {
     "history": "JSONB DEFAULT '[]'::JSONB",
     "warn_limit": "INTEGER DEFAULT 3",
     "default_model": "TEXT DEFAULT ''",
+    "money": "BIGINT DEFAULT 0",
 }
 
 FEATURES_COLUMNS = {
@@ -53,6 +55,15 @@ CHATS_COLUMNS = {
     "chat_id": "BIGINT PRIMARY KEY",
     "type": "TEXT",
     "registered_at": "TIMESTAMP DEFAULT NOW()",
+    "currency_sign": "TEXT DEFAULT '🪙'",
+    "min_work_income": "INTEGER DEFAULT 20",
+    "max_work_income": "INTEGER DEFAULT 250",
+    "work_timeout": "INTEGER DEFAULT 14400",      # 4 часа
+    "min_steal_income": "INTEGER DEFAULT 50",
+    "max_steal_income": "INTEGER DEFAULT 400",
+    "min_steal_penalty": "INTEGER DEFAULT 100",
+    "max_steal_penalty": "INTEGER DEFAULT 600",
+    "steal_timeout": "INTEGER DEFAULT 21600"      # 6 часов
 }
 
 GLOBAL_USERS_COLUMNS = {

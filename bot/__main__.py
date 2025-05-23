@@ -12,6 +12,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 from bot.database import BASE_DIR, Database
+from bot.middlewares.specificchat import SpecificChat
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.utils.global_storage import onlysq_models
 from bot.utils.aio_tools import fetch_json
@@ -27,6 +28,7 @@ from .handlers.rights import rights_router
 from .handlers.tag import tag_router
 from .handlers.video import video_router
 from .handlers.image import image_router
+from .handlers.economy import eco_router
 from .handlers.text import text_router
 
 load_dotenv()
@@ -36,6 +38,7 @@ token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
 dp.message.outer_middleware(ChatWatcher())
+dp.message.outer_middleware(SpecificChat)
 db = Database()
 DATA_DIR = BASE_DIR / "data"
 
@@ -129,6 +132,7 @@ async def main():
         tag_router,
         video_router,
         image_router,
+        eco_router,
         text_router,
     )
 
