@@ -749,6 +749,24 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "chat", traceback.format_exc())
 
 
+@ai_router.message(Command("chat_clear"))
+async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
+    try:
+        current_state = await state.get_state()
+        if current_state is None:
+            await message.reply("📛 Нечего очищать")
+        user_data = await state.get_data()
+        model = user_data["model"]
+        system_message = user_data["messages"][:1]
+        await state.update_data(
+            model=model,
+            messages=system_message,
+        )
+        await message.reply("✅ Чат очищен")
+    except Exception:
+        await error_report(message, bot, "chat_clear", traceback.format_exc())
+
+
 @ai_router.message(Command("chat_stop"))
 async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext):
     try:
