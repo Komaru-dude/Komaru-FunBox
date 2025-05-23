@@ -21,6 +21,10 @@ ONLYSQ_API_KEY=openai
 # Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
 JIGSAW_API_KEY=your_api_key
 
+# Включает работу бота ТОЛЬКО в одном/нескольких чатах указанных ниже
+SPECIFIC_CHAT=false
+SPECIFIC_CHATS_ID=123456789,987654321
+
 # Бд, не трогайте это
 DB_NAME=DB_NAME
 DB_USER=DB_USER
