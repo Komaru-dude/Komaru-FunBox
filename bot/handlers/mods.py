@@ -310,7 +310,7 @@ async def cmd_info(message: Message, bot: Bot):
             f"🔇 Мьюты: {user_data['mutes']}\n"
             f"🔨 Баны: {user_data['bans']}\n"
             f"💎 Репутация: {user_data['reputation']}\n"
-            f"{chat_data["currency_sign"]} Монет: {user_data["money"]}"
+            f"{chat_data["currency_sign"]} Монет: {user_data["money"]}\n"
             f"📨 Сообщений: {user_data['message_count']}\n"
             f"🏅 Ранг: {user_data['rank']}\n"
         )
