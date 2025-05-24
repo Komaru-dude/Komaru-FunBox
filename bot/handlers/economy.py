@@ -51,7 +51,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         chat_data = await db.get_chat(chat_id)
         current_bal = await db.get_user_param(user_id, chat_id, "money")
         if current_bal < chat_data["max_steal_penalty"] / 2:
-            await message.reply(f"❌ Вам нужно иметь на балансе хотя бы половину от максимальной суммы штрафа ({chat_data['max_steal_penalty'] / 2})")
+            await message.reply(f"❌ Вам нужно иметь на балансе хотя бы половину от максимальной суммы штрафа ({chat_data["currency_sign"]}{chat_data['max_steal_penalty'] / 2})")
             return
 
         min_income = chat_data["min_steal_income"]
