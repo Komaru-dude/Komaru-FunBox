@@ -66,12 +66,12 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         if random.randint(1, 100) <= fail_percent:
             new_bal = current_bal - current_penalty
             await message.reply(
-                f"😔 Вам не повезло.\nВы потеряли: {current_penalty}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+                f"😔 Вам не повезло.\n🧨 Вы потеряли: {current_penalty}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
         else:
             new_bal = current_bal + current_income
             await message.reply(
-                f"🤑 Повезло!\nВы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+                f"🤑 Повезло!\n💡 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
 
         await db.set_user_param(user_id, chat_id, "money", new_bal)
