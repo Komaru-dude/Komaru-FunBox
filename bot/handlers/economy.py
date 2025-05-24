@@ -2,13 +2,12 @@ import random
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
-from bot import database
+from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report
 
 eco_router = Router()
-db = database.Database()
 
 
 @eco_router.message(
@@ -16,7 +15,7 @@ db = database.Database()
     FuncEnabled(func_name="economy"),
     CooldownFilter(command="work", cooldown=14400),
 )
-async def cmd_work(message: Message, bot: Bot):
+async def cmd_work(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     chat_id = message.chat.id
     chat_data = await db.get_chat(chat_id)

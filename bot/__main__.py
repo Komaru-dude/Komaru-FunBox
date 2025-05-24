@@ -40,6 +40,7 @@ dp = Dispatcher()
 dp.message.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(SpecificChat())
 db = Database()
+dp["db"] = db
 DATA_DIR = BASE_DIR / "data"
 
 
