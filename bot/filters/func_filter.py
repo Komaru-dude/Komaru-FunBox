@@ -5,7 +5,7 @@ from bot import database
 db = database.Database()
 
 
-class func_enabled(BaseFilter):
+class FuncEnabled(BaseFilter):
     def __init__(self, func_name: str):
         self.func_name = func_name
 
