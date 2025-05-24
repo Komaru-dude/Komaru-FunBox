@@ -36,3 +36,42 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         )
     except Exception:
         await error_report(message, bot, "work", traceback.format_ext())
+
+
+@eco_router.message(
+    Command("steal"),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
+    FuncEnabled(func_name="economy"),
+    CooldownFilter(command="steal", cooldown=14400),
+)
+async def cmd_steal(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        chat_data = await db.get_chat(chat_id)
+        current_bal = await db.get_user_param(user_id, chat_id, "money")
+
+        min_income = chat_data["min_steal_income"]
+        max_income = chat_data["max_steal_income"]
+        current_income = random.randint(min_income, max_income)
+
+        min_penalty = chat_data["min_steal_penalty"]
+        max_penalty = chat_data["max_steal_penalty"]
+        current_penalty = random.randint(min_penalty, max_penalty)
+
+        fail_percent = chat_data["steal_fail_percent"]
+        if random.randint(1, 100) <= fail_percent:
+            new_bal = current_bal - current_penalty
+            await message.reply(
+                f"😔 Вам не повезло.\nВы потеряли: {current_penalty}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+            )
+        else:
+            new_bal = current_bal + current_income
+            await message.reply(
+                f"🤑 Повезло!\nВы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+            )
+
+        await db.set_user_param(user_id, chat_id, "money", new_bal)
+
+    except Exception:
+        await error_report(message, bot, "steal", traceback.format_ext())

@@ -63,6 +63,7 @@ CHATS_COLUMNS = {
     "max_steal_income": "INTEGER DEFAULT 400",
     "min_steal_penalty": "INTEGER DEFAULT 100",
     "max_steal_penalty": "INTEGER DEFAULT 600",
+    "steal_fail_percent": "INTEGER DEFAULT 30",
     "steal_timeout": "INTEGER DEFAULT 21600",  # 6 часов
 }
 
