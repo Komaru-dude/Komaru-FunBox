@@ -11,4 +11,8 @@ class func_enabled(BaseFilter):
 
     async def __call__(self, message: Message) -> bool:
         chat_id = message.chat.id
-        return await db.is_feature_enabled(chat_id, self.func_name)
+        enabled = await db.is_feature_enabled(chat_id, self.func_name)
+        if not enabled:
+            if await db.is_feature_enabled(chat_id, "senddisabledmsg"):
+                await message.reply("❌ Функция отключена")
+            return False
