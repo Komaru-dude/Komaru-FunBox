@@ -13,14 +13,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramRetryAfter
-from bot import database
+from bot.database import Database
 from bot.handlers.ai import cmd_ai, ChatState
 from bot.handlers.video import cmd_video
 from bot.utils.global_storage import active_chats, onlysq_models
 from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
 
 text_router = Router()
-db = database.Database()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
@@ -56,7 +55,7 @@ async def get_chat_commands(chat_id: int):
 
 
 @text_router.message(F.text)
-async def text(message: Message, bot: Bot, state: FSMContext):
+async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user1 = message.from_user
         chat_id = message.chat.id
