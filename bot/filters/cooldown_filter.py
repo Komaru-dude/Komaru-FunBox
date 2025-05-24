@@ -25,3 +25,4 @@ class CooldownFilter(BaseFilter):
                 )
                 await message.reply(f"⏳ Команда будет доступна через: {cooldown_sec}")
             return False
+        return True
