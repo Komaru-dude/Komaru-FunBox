@@ -365,6 +365,17 @@ class Database:
                     return {}
 
             return dict(record)
+        
+    async def get_user_param(self, user_id: int, chat_id: int, param: str):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""SELECT * FROM users WHERE user_id = $1 AND chat_id = $2""", user_id, chat_id,)
+            if not row:
+                await self.add_user(user_id, chat_id)
+                row = await conn.fetchrow("""SELECT * FROM users WHERE user_id = $1 AND chat_id = $2""", user_id, chat_id,)
+                if not row:
+                    return {}
+            return row.get(param)
 
     async def set_user_param(self, user_id: int, chat_id: int, param: str, value):
         await self.ensure_connection()
