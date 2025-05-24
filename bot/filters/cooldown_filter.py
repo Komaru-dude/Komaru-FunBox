@@ -17,7 +17,7 @@ class CooldownFilter(BaseFilter):
         available  = await db.is_command_available(
             user_id, chat_id, self.command, self.cooldown
         )
-        logging.info(available)
+        logging.info(f"{available}1")
         if not available:
             if await db.is_feature_enabled(chat_id, "sendcooldown"):
                 cooldown_sec = await db.get_cooldown_remaining(
