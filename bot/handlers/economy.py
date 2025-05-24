@@ -6,6 +6,7 @@ from aiogram.filters import Command
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
+from bot.filters.chat_type import ChatTypeFilter
 from bot.utils.aio_tools import error_report
 
 eco_router = Router()
@@ -13,6 +14,7 @@ eco_router = Router()
 
 @eco_router.message(
     Command("work"),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
     FuncEnabled(func_name="economy"),
     CooldownFilter(command="work", cooldown=14400),
 )
