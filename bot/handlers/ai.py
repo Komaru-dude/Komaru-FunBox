@@ -755,6 +755,7 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
         current_state = await state.get_state()
         if current_state is None:
             await message.reply("📛 Нечего очищать")
+            return
         user_data = await state.get_data()
         model = user_data["model"]
         system_message = user_data["messages"][:1]
