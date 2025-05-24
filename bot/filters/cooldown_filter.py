@@ -1,6 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 from bot import database
+from bot.utils.aio_tools import convert_seconds
 
 db = database.Database()
 
@@ -21,6 +22,9 @@ class CooldownFilter(BaseFilter):
                 cooldown_sec = await db.get_cooldown_remaining(
                     user_id, chat_id, self.command
                 )
-                await message.reply(f"⏳ Команда будет доступна через: {cooldown_sec} секунд(ы)")
+                d, h, m, s = convert_seconds(cooldown_sec)
+                await message.reply(
+                    f"⏳ Команда будет доступна через: {d} дней {h} часов {m} минут {s} секунд"
+                )
             return False
         return True
