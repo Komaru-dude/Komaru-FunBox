@@ -183,3 +183,13 @@ async def error_report(message: Message, bot: Bot, command, traceback):
             await bot.send_message(os.getenv("OWNER_ID"), alert_message)
         except Exception as e:
             logging.error(f"Ошибка при отправке предупреждения: {e}")
+
+
+def convert_seconds(seconds):
+    days = seconds // 86400
+    seconds %= 86400
+    hours = seconds // 3600
+    seconds %= 3600
+    minutes = seconds // 60
+    seconds %= 60
+    return days, hours, minutes, seconds
