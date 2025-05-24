@@ -1,5 +1,4 @@
-import asyncio, asyncpg, os, time, random, json
-import logging
+import asyncio, asyncpg, os, time, random, json, logging, time
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -23,6 +22,7 @@ DEFAULT_FEATURES = [
     ("ban", 0),
     ("senddisabledmsg", 1),
     ("alo", 0),
+    ("sendcooldown", 1),
     ("economy", 1),
 ]
 
@@ -70,6 +70,13 @@ GLOBAL_USERS_COLUMNS = {
     "user_id": "BIGINT PRIMARY KEY",
     "language_code": "TEXT DEFAULT 'ru'",
     "registered_at": "TIMESTAMP DEFAULT NOW()",
+}
+
+COMMAND_COOLDOWNS_COLUMNS = {
+    "user_id": "BIGINT NOT NULL",
+    "chat_id": "BIGINT NOT NULL",
+    "command": "TEXT NOT NULL",
+    "available_at": "BIGINT NOT NULL",
 }
 
 
@@ -185,6 +192,14 @@ class Database:
                 await conn.execute(
                     f"""CREATE TABLE IF NOT EXISTS global_users (
                         {", ".join([f"{k} {v}" for k, v in GLOBAL_USERS_COLUMNS.items()])}
+                    )"""
+                )
+
+                # Таблица command_cooldowns
+                await conn.execute(
+                    f"""CREATE TABLE IF NOT EXISTS command_cooldowns (
+                        {", ".join([f"{k} {v}" for k, v in COMMAND_COOLDOWNS_COLUMNS.items()])},
+                        PRIMARY KEY (user_id, chat_id, command)
                     )"""
                 )
 
@@ -624,3 +639,99 @@ class Database:
         async with self.pool.acquire() as conn:
             records = await conn.fetch("SELECT chat_id FROM chats")
             return [r["chat_id"] for r in records]
+        
+    async def is_command_available(
+        self,
+        user_id: int,
+        chat_id: int,
+        command: str,
+        cooldown: int,
+    ) -> bool:
+        """
+        Проверяет, доступна ли команда. Если доступна устанавливает новый кулдаун.
+
+        :param user_id: ID пользователя
+        :param chat_id: ID чата
+        :param command: Название команды
+        :param cooldown: Время кулдауна в секундах
+        :return: True, если можно выполнять команду, False — если кулдаун ещё активен
+        """
+        await self.ensure_connection()
+        now = int(time.time())
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT available_at FROM command_cooldowns
+                WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                """,
+                user_id, chat_id, command
+            )
+
+            if row and row["available_at"] > now:
+                return False  # Кулдаун активен
+
+            new_available_at = now + cooldown
+
+            if row:
+                await conn.execute(
+                    """
+                    UPDATE command_cooldowns
+                    SET available_at = $4
+                    WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                    """,
+                    user_id, chat_id, command, new_available_at
+                )
+            else:
+                await conn.execute(
+                    """
+                    INSERT INTO command_cooldowns (user_id, chat_id, command, available_at)
+                    VALUES ($1, $2, $3, $4)
+                    """,
+                    user_id, chat_id, command, new_available_at
+                )
+
+            return True
+
+    async def get_cooldown_remaining(
+        self,
+        user_id: int,
+        chat_id: int,
+        command: str,
+    ) -> int:
+        """
+        Возвращает оставшееся время кулдауна в секундах.
+
+        :return: Количество секунд до окончания кулдауна или 0
+        """
+        await self.ensure_connection()
+        now = int(time.time())
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT available_at FROM command_cooldowns
+                WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                """,
+                user_id, chat_id, command
+            )
+            if row:
+                return max(0, row["available_at"] - now)
+            return 0
+
+    async def reset_cooldown(
+        self,
+        user_id: int,
+        chat_id: int,
+        command: str,
+    ) -> None:
+        """
+        Принудительно удаляет кулдаун команды.
+        """
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """
+                DELETE FROM command_cooldowns
+                WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                """,
+                user_id, chat_id, command
+            )
