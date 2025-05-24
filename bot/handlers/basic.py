@@ -274,6 +274,7 @@ async def cmd_send_logs(message: Message, bot: Bot):
         if out_path.exists():
             out_path.unlink()
 
+
 @base_router.message(Command("reset_cooldown"))
 async def cmd_reset_cooldown(message: Message, bot: Bot):
     try:
@@ -282,11 +283,14 @@ async def cmd_reset_cooldown(message: Message, bot: Bot):
         if not await db.has_permission(message.from_user.id, message.chat.id, 4):
             await message.reply("❌ Эта команда только для персонала.")
             return
-        
+
         if len(split_text) < 4:
-            await message.reply("❌ Некорректный синтаксис!\nИспользуйте: <code>/reset_cooldown chat_id user_id command_name</code>", parse_mode=ParseMode.HTML)
+            await message.reply(
+                "❌ Некорректный синтаксис!\nИспользуйте: <code>/reset_cooldown chat_id user_id command_name</code>",
+                parse_mode=ParseMode.HTML,
+            )
             return
-        
+
         try:
             target_chat_id = int(split_text[1])
             target_user_id = int(split_text[2])
@@ -299,4 +303,3 @@ async def cmd_reset_cooldown(message: Message, bot: Bot):
         await message.reply("✅ Успешно сброшено")
     except Exception:
         await error_report(message, bot, "reset_cooldown", traceback.format_exc())
-

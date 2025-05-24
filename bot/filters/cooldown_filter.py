@@ -14,7 +14,7 @@ class CooldownFilter(BaseFilter):
     async def __call__(self, message: Message):
         user_id = message.from_user.id
         chat_id = message.chat.id
-        available  = await db.is_command_available(
+        available = await db.is_command_available(
             user_id, chat_id, self.command, self.cooldown
         )
         logging.info(f"{available}1")
