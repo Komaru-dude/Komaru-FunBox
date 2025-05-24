@@ -57,6 +57,7 @@ async def cmd_help(message: Message, bot: Bot):
             "disable": "Выключить функцию в чате",
             "ban_media": "Блокирует часть функций пользователю",
             "unban_media": "Разблокирует часть функций пользователю",
+            "reset_cooldown": "Сбрасывает кулдаун юзера",
         }
 
         cmd_detailed_descriptions = {
@@ -107,6 +108,7 @@ async def cmd_help(message: Message, bot: Bot):
             "modules": "<b>Модули</b>\n\nЭто система для управления функциями бота, в основном используется для текстовых триггеров, например 'who'\n\nДля управления используется <code>/enable *имя*</code> и <code>/disable *имя*</code>",
             "ban_media": "Блокирует медиа функции пользователю\n\n📛 <b>Только</b> для персонала",
             "unban_media": "Разблокирует медиа функции пользователю\n\n📛 <b>Только</b> для персонала",
+            "reset_cooldown": "Используется для сброса кулдауна команд у пользователей.\nПример: <code>/reset_cooldown 123456789 987654321 work</code>",
         }
 
         mod_short_descriptions = {
