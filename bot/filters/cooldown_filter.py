@@ -1,9 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
-from bot import database
+from bot.database import Database
 from bot.utils.aio_tools import convert_seconds
-
-db = database.Database()
 
 
 class CooldownFilter(BaseFilter):
@@ -11,7 +9,7 @@ class CooldownFilter(BaseFilter):
         self.command = command
         self.cooldown = cooldown
 
-    async def __call__(self, message: Message):
+    async def __call__(self, message: Message, db: Database):
         user_id = message.from_user.id
         chat_id = message.chat.id
         available = await db.is_command_available(
