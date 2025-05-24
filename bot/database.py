@@ -222,7 +222,7 @@ class Database:
 
                 # Добавляем недостающие столбцы в chats
                 chats_existing_cols = await conn.fetch(
-                    """SELECT collumn_name FROM information_schema.columns 
+                    """SELECT column_name FROM information_schema.columns 
                     WHERE table_name = 'chats'
                     """
                 )
