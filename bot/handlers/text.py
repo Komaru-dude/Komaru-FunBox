@@ -127,6 +127,10 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                                 )
                             except Exception:
                                 pass
+                            messages.append({"role": "assistant", "content": final_text})
+                            if len(messages) > 8:
+                                messages = [messages[0]] + messages[-7:]
+                            await state.update_data(messages=messages)
             else:
                 response = await client.chat.completions.create(
                     model=model,
