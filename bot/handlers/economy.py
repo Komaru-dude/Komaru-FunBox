@@ -1,3 +1,4 @@
+import random
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
@@ -16,4 +17,15 @@ db = database.Database()
     CooldownFilter(command="work", cooldown=14400),
 )
 async def cmd_work(message: Message, bot: Bot):
-    await message.reply("1")
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    chat_data = await db.get_chat(chat_id)
+    current_bal = await db.get_user_param(user_id, chat_id, "money")
+
+    min_income = chat_data["min_work_income"]
+    max_income = chat_data["max_work_income"]
+    current_income = random.randint(min_income, max_income)
+
+    new_bal = current_bal + current_income
+    await db.set_user_param(user_id, chat_id, "money", new_bal)
+    await message.reply(f"👨‍💻 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}")
