@@ -204,19 +204,34 @@ class Database:
                 )
 
                 # Добавляем недостающие столбцы в users
-                existing_cols = await conn.fetch(
+                users_existing_cols = await conn.fetch(
                     """
                     SELECT column_name FROM information_schema.columns
                     WHERE table_name = 'users'
                     """
                 )
-                existing_col_names = {r["column_name"] for r in existing_cols}
+                users_existing_col_names = {r["column_name"] for r in users_existing_cols}
 
                 for col, definition in USERS_COLUMNS.items():
-                    if col not in existing_col_names:
+                    if col not in users_existing_col_names:
                         await conn.execute(
                             f"""ALTER TABLE users ADD COLUMN {col} {definition}"""
                         )
+
+                # Добавляем недостающие столбцы в chats
+                chats_existing_cols = await conn.fetch(
+                    """SELECT collumn_name FROM information_schema.columns 
+                    WHERE table_name = 'chats'
+                    """
+                )
+                chats_existing_col_names = {r["column_name"] for r in chats_existing_cols}
+
+                for col, definition in CHATS_COLUMNS.items():
+                    if col not in chats_existing_col_names:
+                        await conn.execute(
+                            f"""ALTER TABLE chats ADD COLUMN {col} {definition}"""
+                        ) 
+                
 
     async def sync_all(self):
         await self.ensure_connection()
