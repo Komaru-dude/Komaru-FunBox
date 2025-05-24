@@ -28,4 +28,6 @@ async def cmd_work(message: Message, bot: Bot):
 
     new_bal = current_bal + current_income
     await db.set_user_param(user_id, chat_id, "money", new_bal)
-    await message.reply(f"👨‍💻 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}")
+    await message.reply(
+        f"👨‍💻 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+    )

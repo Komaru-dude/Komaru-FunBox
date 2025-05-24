@@ -210,7 +210,9 @@ class Database:
                     WHERE table_name = 'users'
                     """
                 )
-                users_existing_col_names = {r["column_name"] for r in users_existing_cols}
+                users_existing_col_names = {
+                    r["column_name"] for r in users_existing_cols
+                }
 
                 for col, definition in USERS_COLUMNS.items():
                     if col not in users_existing_col_names:
@@ -224,14 +226,15 @@ class Database:
                     WHERE table_name = 'chats'
                     """
                 )
-                chats_existing_col_names = {r["column_name"] for r in chats_existing_cols}
+                chats_existing_col_names = {
+                    r["column_name"] for r in chats_existing_cols
+                }
 
                 for col, definition in CHATS_COLUMNS.items():
                     if col not in chats_existing_col_names:
                         await conn.execute(
                             f"""ALTER TABLE chats ADD COLUMN {col} {definition}"""
-                        ) 
-                
+                        )
 
     async def sync_all(self):
         await self.ensure_connection()
@@ -380,14 +383,22 @@ class Database:
                     return {}
 
             return dict(record)
-        
+
     async def get_user_param(self, user_id: int, chat_id: int, param: str):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            row = await conn.fetchrow("""SELECT * FROM users WHERE user_id = $1 AND chat_id = $2""", user_id, chat_id,)
+            row = await conn.fetchrow(
+                """SELECT * FROM users WHERE user_id = $1 AND chat_id = $2""",
+                user_id,
+                chat_id,
+            )
             if not row:
                 await self.add_user(user_id, chat_id)
-                row = await conn.fetchrow("""SELECT * FROM users WHERE user_id = $1 AND chat_id = $2""", user_id, chat_id,)
+                row = await conn.fetchrow(
+                    """SELECT * FROM users WHERE user_id = $1 AND chat_id = $2""",
+                    user_id,
+                    chat_id,
+                )
                 if not row:
                     return {}
             return row.get(param)
