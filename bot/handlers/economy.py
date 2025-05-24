@@ -10,6 +10,6 @@ eco_router = Router()
 db = database.Database()
 
 
-@eco_router.message(Command("work"), FuncEnabled(func_name="eco"), CooldownFilter(command="work", cooldown=14400))
+@eco_router.message(Command("work"), FuncEnabled(func_name="economy"), CooldownFilter(command="work", cooldown=14400))
 async def cmd_work(message: Message, bot: Bot):
     await message.reply("1")
