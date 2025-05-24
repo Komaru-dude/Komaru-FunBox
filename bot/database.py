@@ -639,7 +639,7 @@ class Database:
         async with self.pool.acquire() as conn:
             records = await conn.fetch("SELECT chat_id FROM chats")
             return [r["chat_id"] for r in records]
-        
+
     async def is_command_available(
         self,
         user_id: int,
@@ -664,7 +664,9 @@ class Database:
                 SELECT available_at FROM command_cooldowns
                 WHERE user_id = $1 AND chat_id = $2 AND command = $3
                 """,
-                user_id, chat_id, command
+                user_id,
+                chat_id,
+                command,
             )
 
             if row and row["available_at"] > now:
@@ -679,7 +681,10 @@ class Database:
                     SET available_at = $4
                     WHERE user_id = $1 AND chat_id = $2 AND command = $3
                     """,
-                    user_id, chat_id, command, new_available_at
+                    user_id,
+                    chat_id,
+                    command,
+                    new_available_at,
                 )
             else:
                 await conn.execute(
@@ -687,7 +692,10 @@ class Database:
                     INSERT INTO command_cooldowns (user_id, chat_id, command, available_at)
                     VALUES ($1, $2, $3, $4)
                     """,
-                    user_id, chat_id, command, new_available_at
+                    user_id,
+                    chat_id,
+                    command,
+                    new_available_at,
                 )
 
             return True
@@ -711,7 +719,9 @@ class Database:
                 SELECT available_at FROM command_cooldowns
                 WHERE user_id = $1 AND chat_id = $2 AND command = $3
                 """,
-                user_id, chat_id, command
+                user_id,
+                chat_id,
+                command,
             )
             if row:
                 return max(0, row["available_at"] - now)
@@ -733,5 +743,7 @@ class Database:
                 DELETE FROM command_cooldowns
                 WHERE user_id = $1 AND chat_id = $2 AND command = $3
                 """,
-                user_id, chat_id, command
+                user_id,
+                chat_id,
+                command,
             )

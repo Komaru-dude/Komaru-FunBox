@@ -1,3 +1,4 @@
+import time
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 from bot import database
@@ -23,3 +24,5 @@ class CooldownFilter(BaseFilter):
                 )
                 await message.reply(f"⏳ Команда будет доступна через: {cooldown_sec}")
             return False
+        else:
+            return True
