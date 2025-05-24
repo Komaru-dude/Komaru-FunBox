@@ -18,3 +18,4 @@ class FuncEnabled(BaseFilter):
             if await db.is_feature_enabled(chat_id, "senddisabledmsg"):
                 await message.reply("❌ Функция отключена")
             return False
+        return True
