@@ -4,9 +4,7 @@ import traceback
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import Bot, BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
-from bot import database
-
-db = database.Database()
+from bot.database import Database
 
 
 class ChatWatcher(BaseMiddleware):
@@ -18,6 +16,7 @@ class ChatWatcher(BaseMiddleware):
     ) -> Any:
         try:
             bot: Bot = data["bot"]
+            db: Database = data["db"]
             bot_username = (await bot.me()).username.lower()
 
             if isinstance(event, CallbackQuery):

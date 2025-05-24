@@ -4,9 +4,7 @@ import traceback
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import Bot, BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
-from bot import database
-
-db = database.Database()
+from bot.database import Database
 
 
 class SpecificChat(BaseMiddleware):
@@ -29,6 +27,7 @@ class SpecificChat(BaseMiddleware):
     ) -> Any:
         try:
             bot: Bot = data["bot"]
+            db: Database = data["db"]
 
             if isinstance(event, CallbackQuery):
                 return await handler(event, data)
