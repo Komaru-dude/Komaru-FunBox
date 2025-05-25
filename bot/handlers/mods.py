@@ -288,11 +288,11 @@ async def cmd_info(message: Message, bot: Bot):
             user_id, error = await get_user_id(message)
 
         if error:
-            return await message.reply(f"❌ {error}")
+            raise error
 
         user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
         if "error" in user_info:
-            return await message.reply(f"❌ {user_info['error']}")
+            raise user_info['error']
 
         user_data = await db.get_user_data(user_info["user_id"], chat_id)
         if not user_data:
