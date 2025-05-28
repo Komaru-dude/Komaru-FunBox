@@ -59,7 +59,7 @@ SUPPORTED_LANGUAGES = {
 
 image_generation_queue = deque()
 last_generation_time = datetime.min
-rate_limit_seconds = 5
+rate_limit_seconds = 6
 is_generating = False
 
 
