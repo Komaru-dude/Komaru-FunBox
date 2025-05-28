@@ -1,8 +1,10 @@
+import os
 import random
 import traceback
 from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
+from aiogram.enums import ParseMode
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
@@ -135,5 +137,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         await db.set_user_param(user_id, chat_id, "money", new_bal)
         await db.set_user_param(target_id, chat_id, "money", target_new_bal)
 
+    except ZeroDivisionError:
+        profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
+        await message.reply(f'❌ Произошло деление на ноль! Убедитесь что все используемые командой значения больше нуля.\nЕсли всё корректно, обратитесь к владельцу: <a href="{profile_link}">Тык</a>', parse_mode=ParseMode.HTML) # Не используем юзернейм во избежании его изменения
     except Exception:
         await error_report(message, bot, "rob", traceback.format_ext())
