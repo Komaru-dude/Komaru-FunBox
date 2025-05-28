@@ -7,7 +7,7 @@ from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.filters.chat_type import ChatTypeFilter
-from bot.utils.aio_tools import error_report
+from bot.utils.aio_tools import error_report, get_user_id
 
 eco_router = Router()
 
@@ -51,7 +51,9 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         chat_data = await db.get_chat(chat_id)
         current_bal = await db.get_user_param(user_id, chat_id, "money")
         if current_bal < chat_data["max_steal_penalty"] / 2:
-            await message.reply(f"❌ Вам нужно иметь на балансе хотя бы половину от максимальной суммы штрафа ({chat_data["currency_sign"]}{chat_data['max_steal_penalty'] / 2})")
+            await message.reply(
+                f"❌ Вам нужно иметь на балансе хотя бы половину от максимальной суммы штрафа ({chat_data["currency_sign"]}{chat_data['max_steal_penalty'] / 2})"
+            )
             return
 
         min_income = chat_data["min_steal_income"]
@@ -78,3 +80,60 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
 
     except Exception:
         await error_report(message, bot, "steal", traceback.format_ext())
+
+
+@eco_router.message(
+    Command("rob"),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
+    FuncEnabled(func_name="economy"),
+    CooldownFilter(command="rob", cooldown=28800),
+)
+async def cmd_rob(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        split_text = message.text.split()
+        chat_data = await db.get_chat(chat_id)
+        target_id, get_id_error = await get_user_id(message)
+
+        if len(split_text) < 2 and not message.reply_to_message:
+            await message.reply(
+                "❌ Требуется упоминание/ответ на сообщение пользователя."
+            )
+            return
+
+        if get_id_error:
+            await message.reply("❌ Не удалось получить user_id!")
+            return
+
+        user_bal = await db.get_user_param(user_id, chat_id, "money")
+        target_user_bal = await db.get_user_param(target_id, chat_id, "money")
+
+        if target_user_bal < 0:
+            await message.reply("❌ У цели нет наличных")
+            return
+
+        succeed_percent = random.randint(
+            chat_data["rob_min_percent"], chat_data["rob_max_percent"]
+        )
+        if target_user_bal * succeed_percent / 100 < 1:
+            await message.reply("❌ У цели недостаточно наличных")
+            return
+
+        fail_percent = chat_data["rob_fail_percent"]
+        if random.randint(1, 100) <= fail_percent:
+            new_bal = user_bal / 2
+            await message.reply(f"😔 Вам не повезло.\n🧨 Ваш новый баланс: {new_bal}")
+        else:
+            target_penalty = target_user_bal * (succeed_percent / 100)
+            target_new_bal = target_user_bal - target_penalty
+            new_bal = user_bal + target_penalty
+            await message.reply(
+                f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+            )
+
+        await db.set_user_param(user_id, chat_id, "money", new_bal)
+        await db.set_user_param(target_id, chat_id, "money", target_new_bal)
+
+    except Exception:
+        await error_report(message, bot, "rob", traceback.format_ext())

@@ -39,6 +39,7 @@ USERS_COLUMNS = {
     "warn_limit": "INTEGER DEFAULT 3",
     "default_model": "TEXT DEFAULT ''",
     "money": "BIGINT DEFAULT 0",
+    "bank": "BIGINT DEFAULT 0",
 }
 
 FEATURES_COLUMNS = {
@@ -65,6 +66,10 @@ CHATS_COLUMNS = {
     "max_steal_penalty": "INTEGER DEFAULT 600",
     "steal_fail_percent": "INTEGER DEFAULT 30",
     "steal_timeout": "INTEGER DEFAULT 21600",  # 6 часов
+    "rob_min_percent": "INTEGER DEFAULT 5",
+    "rob_max_percent": "INTEGER DEFAULT 15",
+    "rob_fail_percent": "INTEGER DEFAULT 55",
+    "rob_timeout": "INTEGER DEFAULT 28800",  # 8 часов
 }
 
 GLOBAL_USERS_COLUMNS = {
