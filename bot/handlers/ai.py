@@ -172,7 +172,7 @@ async def cmd_ai(
                     return
                 model = model_name
 
-            if message.reply_to_message:
+            if message.reply_to_message and message.reply_to_message.text is not None:
                 request += f'"{message.reply_to_message.text}"\n'
             if args_text:
                 request += args_text
