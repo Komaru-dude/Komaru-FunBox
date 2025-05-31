@@ -394,6 +394,7 @@ async def cmd_image(message: Message, bot: Bot):
 
         if prompt_en.lower() == "false":
             await message.reply("❌ Запрос содержит 18+ контент и был отклонён.")
+            await processing_message.delete()
             return
 
         queue_id = uuid.uuid4().hex
