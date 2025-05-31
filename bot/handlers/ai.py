@@ -440,7 +440,7 @@ async def process_image_queue():
         try:
             message = task["message"]
             bot = task["bot"]
-            prompt_ru = task["prompt_ru"]
+            prompt_ru = task["prompt_ru"][:1020] if len(task["prompt_ru"]) > 1020 else task["prompt_ru"]
             prompt_en = task["prompt_en"]
             processing_message = task["processing_message"]
 
