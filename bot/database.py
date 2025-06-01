@@ -86,9 +86,7 @@ COMMAND_COOLDOWNS_COLUMNS = {
     "available_at": "BIGINT NOT NULL",
 }
 
-USES_COLUMNS = {
-    "count": "INTEGER NOT NULL DEFAULT 0"
-}
+USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
 
 
 class Database:
@@ -220,7 +218,7 @@ class Database:
                         day DATE PRIMARY KEY,
                         {", ".join([f"{k} {v}" for k, v in USES_COLUMNS.items()])}
                     )"""
-                )    
+                )
 
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
@@ -261,15 +259,13 @@ class Database:
                     WHERE table_name = 'uses'
                     """
                 )
-                uses_existing_col_names = {
-                    r["column_name"] for r in uses_existing_cols
-                }
+                uses_existing_col_names = {r["column_name"] for r in uses_existing_cols}
 
                 for col, definition in USES_COLUMNS.items():
                     if col not in uses_existing_col_names:
                         await conn.execute(
                             f"""ALTER TABLE uses ADD COLUMN {col} {definition}"""
-                        )       
+                        )
 
     async def sync_all(self):
         await self.ensure_connection()
@@ -819,34 +815,52 @@ class Database:
                 chat_id,
                 command,
             )
-    
+
     async def log_command(self):
         today = date.today()
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                await conn.execute("""
+                await conn.execute(
+                    """
                     INSERT INTO uses (day, count)
                     VALUES ($1, 1)
                     ON CONFLICT (day) DO UPDATE SET count = uses.count + 1
-                """, today)
+                """,
+                    today,
+                )
 
                 cutoff = today - timedelta(days=7)
-                await conn.execute("""
+                await conn.execute(
+                    """
                     DELETE FROM uses WHERE day < $1
-                """, cutoff)
+                """,
+                    cutoff,
+                )
 
     async def get_use_stats(self):
         today = date.today()
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            day_count = await conn.fetchval("""
+            day_count = (
+                await conn.fetchval(
+                    """
                 SELECT count FROM uses WHERE day = $1
-            """, today) or 0
+            """,
+                    today,
+                )
+                or 0
+            )
 
-            week_count = await conn.fetchval("""
+            week_count = (
+                await conn.fetchval(
+                    """
                 SELECT SUM(count) FROM uses
                 WHERE day >= $1
-            """, today - timedelta(days=6)) or 0
+            """,
+                    today - timedelta(days=6),
+                )
+                or 0
+            )
 
             return day_count, week_count
