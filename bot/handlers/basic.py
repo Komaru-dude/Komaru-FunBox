@@ -110,54 +110,59 @@ async def cmd_status(message: Message, bot: Bot):
         latest_commit = None
 
         if branch != "unknown" and commit != "unknown" and repo_url:
-            async with aiohttp.ClientSession() as session:
-                version_json_url = (
-                    "https://api.github.com/repos/Komaru-dude/Komaru-FunBox/"
-                    "contents/bot/version.json"
-                )
-                async with session.get(
-                    version_json_url, headers={"User-Agent": "KomaruBot/1.0"}
-                ) as resp_v:
-                    if resp_v.status != 200:
-                        raise Exception(
-                            f"Не удалось получить version.json (status {resp_v.status})"
-                        )
-                    vi_data = await resp_v.json()
-                content_base64 = vi_data.get("content")
-                if not content_base64:
-                    raise Exception("Нет содержимого version.json")
-                content_bytes = base64.b64decode(content_base64)
-                version_list = json.loads(content_bytes.decode("utf-8"))
+            try:
+                async with aiohttp.ClientSession() as session:
+                    version_json_url = (
+                        "https://api.github.com/repos/Komaru-dude/Komaru-FunBox/"
+                        "contents/bot/version.json"
+                    )
+                    async with session.get(
+                        version_json_url, headers={"User-Agent": "KomaruBot/1.0"}
+                    ) as resp_v:
+                        if resp_v.status != 200:
+                            raise Exception(
+                                f"Не удалось получить version.json (status {resp_v.status})"
+                            )
+                        vi_data = await resp_v.json()
+                    content_base64 = vi_data.get("content")
+                    if not content_base64:
+                        raise Exception("Нет содержимого version.json")
+                    content_bytes = base64.b64decode(content_base64)
+                    version_list = json.loads(content_bytes.decode("utf-8"))
 
-                branch_entry = next(
-                    (item for item in version_list if item["branch"] == branch),
-                    None,
-                )
-                if branch_entry:
-                    latest_version = branch_entry.get("version")
-                else:
-                    raise Exception("Не найдена версия для ветки " + branch)
+                    branch_entry = next(
+                        (item for item in version_list if item["branch"] == branch),
+                        None,
+                    )
+                    if branch_entry:
+                        latest_version = branch_entry.get("version")
+                    else:
+                        raise Exception("Не найдена версия для ветки " + branch)
 
-                branch_api_url = f"https://api.github.com/repos/Komaru-dude/Komaru-FunBox/branches/{branch}"
-                async with session.get(
-                    branch_api_url, headers={"User-Agent": "KomaruBot/1.0"}
-                ) as resp_b:
-                    if resp_b.status != 200:
-                        raise Exception(
-                            f"Не удалось получить данные ветки (status {resp_b.status})"
-                        )
-                    branch_data = await resp_b.json()
-                latest_commit = branch_data["commit"]["sha"][:7]
+                    branch_api_url = f"https://api.github.com/repos/Komaru-dude/Komaru-FunBox/branches/{branch}"
+                    async with session.get(
+                        branch_api_url, headers={"User-Agent": "KomaruBot/1.0"}
+                    ) as resp_b:
+                        if resp_b.status != 200:
+                            raise Exception(
+                                f"Не удалось получить данные ветки (status {resp_b.status})"
+                            )
+                        branch_data = await resp_b.json()
+                    latest_commit = branch_data["commit"]["sha"][:7]
 
-            if latest_commit != commit:
-                update_status = f"⚡️ <b>Доступно обновление</b>: {latest_version}@{latest_commit}"
-            else:
-                if latest_version != local_version:
+                if latest_commit != commit:
                     update_status = f"⚡️ <b>Доступно обновление</b>: {latest_version}@{latest_commit}"
                 else:
-                    update_status = (
-                        f"😌 <b>Версия актуальна</b>: {local_version}@{commit}"
-                    )
+                    if latest_version != local_version:
+                        update_status = f"⚡️ <b>Доступно обновление</b>: {latest_version}@{latest_commit}"
+                    else:
+                        update_status = (
+                            f"😌 <b>Версия актуальна</b>: {local_version}@{commit}"
+                        )
+
+            except Exception as e:
+                update_status = f"⚠️ Ошибка проверки: {str(e)}"
+                report = e
                 
 
         status_message = (
@@ -175,6 +180,9 @@ async def cmd_status(message: Message, bot: Bot):
 
     except Exception:
         await error_report(message, bot, "status", traceback.format_exc())
+    finally:
+        if report:
+            await error_report(message, bot, "status", traceback.format_exc())
 
 
 @base_router.message(Command("cancel"))
