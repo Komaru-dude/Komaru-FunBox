@@ -826,14 +826,14 @@ class Database:
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute("""
-                    INSERT INTO command_stats (day, count)
+                    INSERT INTO uses (day, count)
                     VALUES ($1, 1)
-                    ON CONFLICT (day) DO UPDATE SET count = command_stats.count + 1
+                    ON CONFLICT (day) DO UPDATE SET count = uses.count + 1
                 """, today)
 
                 cutoff = today - timedelta(days=7)
                 await conn.execute("""
-                    DELETE FROM command_stats WHERE day < $1
+                    DELETE FROM uses WHERE day < $1
                 """, cutoff)
 
     async def get_use_stats(self):
@@ -841,11 +841,11 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             day_count = await conn.fetchval("""
-                SELECT count FROM command_stats WHERE day = $1
+                SELECT count FROM uses WHERE day = $1
             """, today) or 0
 
             week_count = await conn.fetchval("""
-                SELECT SUM(count) FROM command_stats
+                SELECT SUM(count) FROM uses
                 WHERE day >= $1
             """, today - timedelta(days=6)) or 0
 
