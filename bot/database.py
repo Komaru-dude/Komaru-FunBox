@@ -1,6 +1,7 @@
 import asyncio, asyncpg, os, time, random, json, logging, time
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import date, timedelta
 
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -83,6 +84,10 @@ COMMAND_COOLDOWNS_COLUMNS = {
     "chat_id": "BIGINT NOT NULL",
     "command": "TEXT NOT NULL",
     "available_at": "BIGINT NOT NULL",
+}
+
+USES_COLUMNS = {
+    "count": "INTEGER NOT NULL DEFAULT 0"
 }
 
 
@@ -209,6 +214,14 @@ class Database:
                     )"""
                 )
 
+                # Таблица uses
+                await conn.execute(
+                    f"""CREATE TABLE IF NOT EXISTS bot (
+                        {", ".join([f"{k} {v}" for k, v in USES_COLUMNS.items()])},
+                        DATE PRIMARY KEY day
+                    )"""
+                )        
+
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
                     """
@@ -241,6 +254,22 @@ class Database:
                         await conn.execute(
                             f"""ALTER TABLE chats ADD COLUMN {col} {definition}"""
                         )
+
+                # Добавляем недостающие столбцы в uses
+                uses_existing_cols = await conn.fetch(
+                    """SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'uses'
+                    """
+                )
+                uses_existing_col_names = {
+                    r["column_name"] for r in uses_existing_cols
+                }
+
+                for col, definition in USES_COLUMNS.items():
+                    if col not in uses_existing_col_names:
+                        await conn.execute(
+                            f"""ALTER TABLE uses ADD COLUMN {col} {definition}"""
+                        )       
 
     async def sync_all(self):
         await self.ensure_connection()
@@ -790,3 +819,34 @@ class Database:
                 chat_id,
                 command,
             )
+    
+    async def log_command(self):
+        today = date.today()
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute("""
+                    INSERT INTO command_stats (day, count)
+                    VALUES ($1, 1)
+                    ON CONFLICT (day) DO UPDATE SET count = command_stats.count + 1
+                """, today)
+
+                cutoff = today - timedelta(days=7)
+                await conn.execute("""
+                    DELETE FROM command_stats WHERE day < $1
+                """, cutoff)
+
+    async def get_use_stats(self):
+        today = date.today()
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            day_count = await conn.fetchval("""
+                SELECT count FROM command_stats WHERE day = $1
+            """, today) or 0
+
+            week_count = await conn.fetchval("""
+                SELECT SUM(count) FROM command_stats
+                WHERE day >= $1
+            """, today - timedelta(days=6)) or 0
+
+            return day_count, week_count

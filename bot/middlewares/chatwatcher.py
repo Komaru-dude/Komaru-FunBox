@@ -60,6 +60,7 @@ class ChatWatcher(BaseMiddleware):
                             await bot.send_message(owner_id, msg)
 
                 if chat_type == "private" or is_bot_command:
+                    await db.log_command()
                     if not await db.get_global_user(user_id):
                         await db.add_global_user(
                             user_id, {"language_code": language_code}

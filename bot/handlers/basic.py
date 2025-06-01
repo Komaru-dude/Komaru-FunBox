@@ -130,6 +130,8 @@ async def cmd_status(message: Message, bot: Bot):
             except Exception as e:
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
 
+        day_count, week_count = await db.get_use_stats()
+
         status_message = (
             f"<blockquote><b>🍕 Komaru FunBox</b>\n"
             f"🧬 Версия: <code>{version}@{commit}</code>\n"
@@ -137,6 +139,8 @@ async def cmd_status(message: Message, bot: Bot):
             f"{update_status}\n"
             f"⏳ Пинг: {int(ping)} мс\n"
             f"🚀 Аптайм: {uptime_str}\n"
+            f"🔺 Использований сегодня: {day_count}\n"
+            f"♦️ Использований за неделю: {week_count}\n"
             f"📊 CPU (5 мин): {avg_cpu_load:.1f}%\n"
             f"📊 RAM (5 мин): {avg_memory_load:.1f}%</blockquote>"
         )
