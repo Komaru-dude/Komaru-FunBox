@@ -186,7 +186,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                         await base_msg.edit_text(chunk)
                     else:
                         await message.answer(chunk)
-                return
+            return
 
         if message.chat.type == "channel":
             return
