@@ -7,7 +7,6 @@ import json
 import subprocess
 import traceback
 import uuid
-import base64
 from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
@@ -16,7 +15,7 @@ from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from bot import database
-from bot.utils.aio_tools import error_report, fetch_json
+from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import CACHE_DIR
 
 base_router = Router()
@@ -51,7 +50,7 @@ async def cmd_status(message: Message, bot: Bot):
         ping_start_time = time.monotonic()
         sent_message = await message.reply("⏳")
         end_time = time.monotonic()
-        ping = int((end_time - ping_start_time) * 1000)
+        ping = (end_time - ping_start_time) * 1000
 
         current_time = time.time()
         uptime_seconds = int(current_time - start_time)
@@ -62,9 +61,17 @@ async def cmd_status(message: Message, bot: Bot):
         memory_loads.append((current_time, memory_percent))
         five_minutes_ago = current_time - 300
         cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
-        memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
-        avg_cpu_load = sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
-        avg_memory_load = sum(load for _, load in memory_loads) / len(memory_loads) if memory_loads else 0
+        memory_loads[:] = [
+            (t, load) for t, load in memory_loads if t >= five_minutes_ago
+        ]
+        avg_cpu_load = (
+            sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
+        )
+        avg_memory_load = (
+            sum(load for _, load in memory_loads) / len(memory_loads)
+            if memory_loads
+            else 0
+        )
 
         days, rem = divmod(uptime_seconds, 86400)
         hours, rem = divmod(rem, 3600)
@@ -74,68 +81,61 @@ async def cmd_status(message: Message, bot: Bot):
         try:
             version_path = Path(__file__).resolve().parent.parent / "version.json"
             with version_path.open() as f:
-                data = json.load(f)
-                local_version = data.get("version", "unknown")
-        except Exception:
-            local_version = "unknown"
+                version_data = json.load(f)
+                version = version_data.get("version", "unknown")
 
-        try:
-            branch = subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-            ).decode().strip()
-            commit = subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"]
-            ).decode().strip()
+            branch = (
+                subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+                .decode()
+                .strip()
+            )
+            commit = (
+                subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+                .decode()
+                .strip()
+            )
+            repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
         except Exception:
-            branch = "unknown"
-            commit = "unknown"
-
-        repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
+            version = branch = commit = "unknown"
+            repo_url = ""
 
         update_status = "⚠️ Не удалось проверить обновления"
-        latest_version = None
-        latest_commit = None
-
-        if branch != "unknown" and commit != "unknown" and repo_url:
+        if all([branch != "unknown", version != "unknown", repo_url]):
             try:
-                version_json_url = f"https://api.github.com/repos/Komaru-dude/Komaru-FunBox/contents/bot/version.json"
-                version_info_data = await fetch_json(version_json_url)
-                content_base64 = version_info_data.get("content")
-                if not content_base64:
-                    raise Exception("Нет содержимого version.json")
-                content_bytes = base64.b64decode(content_base64)
-                version_list = json.loads(content_bytes.decode("utf-8"))
+                if "github.com" not in repo_url:
+                    raise ValueError("Поддерживаются только GitHub репозитории")
 
-                branch_entry = next((item for item in version_list if item["branch"] == branch), None)
-                if branch_entry:
-                    latest_version = branch_entry.get("version", None)
-                else:
-                    latest_version = None
+                repo_path = urlparse(repo_url).path.strip("/")
+                if not repo_path:
+                    raise ValueError("Неверный формат URL")
 
-                if not latest_version:
-                    raise Exception("Не удалось найти версию для текущей ветки")
+                owner, repo = repo_path.split("/")[:2]
+                repo = repo.replace(".git", "")
 
-                branch_api_url = f"https://api.github.com/repos/Komaru-dude/Komaru-FunBox/branches/{branch}"
-                branch_data = await fetch_json(branch_api_url)
-                latest_commit = branch_data["commit"]["sha"][:7]
-
-                if latest_commit != commit:
-                    update_status = f"⚡️ <b>Доступно обновление</b>: {latest_version}@{latest_commit}"
-                else:
-                    if latest_version != local_version:
-                        update_status = f"⚡️ <b>Доступно обновление</b>: {latest_version}@{latest_commit}"
-                    else:
-                        update_status = f"😌 <b>Версия актуальна</b>: {local_version}@{commit}"
-
+                headers = {"User-Agent": "KomaruBot/1.0"}
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(
+                        f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
+                        headers=headers,
+                    ) as resp:
+                        if resp.status == 200:
+                            data = await resp.json()
+                            latest_commit = data["commit"]["sha"][:7]
+                            if latest_commit != commit:
+                                update_status = f"⚡️ <b>Доступно обновление</b>: {branch}@{latest_commit}"
+                            else:
+                                update_status = "😌 <b>Версия актуальна</b>"
+                        else:
+                            update_status = f"⚠️ Ошибка API: {resp.status}"
             except Exception as e:
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
 
         status_message = (
             f"<blockquote><b>🍕 Komaru FunBox</b>\n"
-            f"🧬 Версия: <code>{local_version}@{commit}</code>\n"
+            f"🧬 Версия: <code>{version}@{commit}</code>\n"
             f"🌿 Ветка: <b>{branch}</b>\n"
             f"{update_status}\n"
-            f"⏳ Пинг: {ping} мс\n"
+            f"⏳ Пинг: {int(ping)} мс\n"
             f"🚀 Аптайм: {uptime_str}\n"
             f"📊 CPU (5 мин): {avg_cpu_load:.1f}%\n"
             f"📊 RAM (5 мин): {avg_memory_load:.1f}%</blockquote>"
