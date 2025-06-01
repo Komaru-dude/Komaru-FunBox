@@ -62,9 +62,17 @@ async def cmd_status(message: Message, bot: Bot):
         memory_loads.append((current_time, memory_percent))
         five_minutes_ago = current_time - 300
         cpu_loads[:] = [(t, load) for t, load in cpu_loads if t >= five_minutes_ago]
-        memory_loads[:] = [(t, load) for t, load in memory_loads if t >= five_minutes_ago]
-        avg_cpu_load = sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
-        avg_memory_load = sum(load for _, load in memory_loads) / len(memory_loads) if memory_loads else 0
+        memory_loads[:] = [
+            (t, load) for t, load in memory_loads if t >= five_minutes_ago
+        ]
+        avg_cpu_load = (
+            sum(load for _, load in cpu_loads) / len(cpu_loads) if cpu_loads else 0
+        )
+        avg_memory_load = (
+            sum(load for _, load in memory_loads) / len(memory_loads)
+            if memory_loads
+            else 0
+        )
 
         days, rem = divmod(uptime_seconds, 86400)
         hours, rem = divmod(rem, 3600)
@@ -80,12 +88,16 @@ async def cmd_status(message: Message, bot: Bot):
             local_version = "unknown"
 
         try:
-            branch = subprocess.check_output(
-                ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-            ).decode().strip()
-            commit = subprocess.check_output(
-                ["git", "rev-parse", "--short", "HEAD"]
-            ).decode().strip()
+            branch = (
+                subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+                .decode()
+                .strip()
+            )
+            commit = (
+                subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+                .decode()
+                .strip()
+            )
         except Exception:
             branch = "unknown"
             commit = "unknown"
@@ -103,9 +115,13 @@ async def cmd_status(message: Message, bot: Bot):
                         "https://api.github.com/repos/Komaru-dude/Komaru-FunBox/"
                         "contents/bot/version.json"
                     )
-                    async with session.get(version_json_url, headers={"User-Agent": "KomaruBot/1.0"}) as resp_v:
+                    async with session.get(
+                        version_json_url, headers={"User-Agent": "KomaruBot/1.0"}
+                    ) as resp_v:
                         if resp_v.status != 200:
-                            raise Exception(f"Не удалось получить version.json (status {resp_v.status})")
+                            raise Exception(
+                                f"Не удалось получить version.json (status {resp_v.status})"
+                            )
                         vi_data = await resp_v.json()
                     content_base64 = vi_data.get("content")
                     if not content_base64:
@@ -113,16 +129,23 @@ async def cmd_status(message: Message, bot: Bot):
                     content_bytes = base64.b64decode(content_base64)
                     version_list = json.loads(content_bytes.decode("utf-8"))
 
-                    branch_entry = next((item for item in version_list if item["branch"] == branch), None)
+                    branch_entry = next(
+                        (item for item in version_list if item["branch"] == branch),
+                        None,
+                    )
                     if branch_entry:
                         latest_version = branch_entry.get("version")
                     else:
                         raise Exception("Не найдена версия для ветки " + branch)
 
                     branch_api_url = f"https://api.github.com/repos/Komaru-dude/Komaru-FunBox/branches/{branch}"
-                    async with session.get(branch_api_url, headers={"User-Agent": "KomaruBot/1.0"}) as resp_b:
+                    async with session.get(
+                        branch_api_url, headers={"User-Agent": "KomaruBot/1.0"}
+                    ) as resp_b:
                         if resp_b.status != 200:
-                            raise Exception(f"Не удалось получить данные ветки (status {resp_b.status})")
+                            raise Exception(
+                                f"Не удалось получить данные ветки (status {resp_b.status})"
+                            )
                         branch_data = await resp_b.json()
                     latest_commit = branch_data["commit"]["sha"][:7]
 
@@ -132,7 +155,9 @@ async def cmd_status(message: Message, bot: Bot):
                     if latest_version != local_version:
                         update_status = f"⚡️ <b>Доступно обновление</b>: {latest_version}@{latest_commit}"
                     else:
-                        update_status = f"😌 <b>Версия актуальна</b>: {local_version}@{commit}"
+                        update_status = (
+                            f"😌 <b>Версия актуальна</b>: {local_version}@{commit}"
+                        )
 
             except Exception as e:
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
