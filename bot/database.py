@@ -217,10 +217,10 @@ class Database:
                 # Таблица uses
                 await conn.execute(
                     f"""CREATE TABLE IF NOT EXISTS bot (
-                        {", ".join([f"{k} {v}" for k, v in USES_COLUMNS.items()])},
-                        DATE PRIMARY KEY day
+                        day DATE PRIMARY KEY,
+                        {", ".join([f"{k} {v}" for k, v in USES_COLUMNS.items()])}
                     )"""
-                )        
+                )    
 
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
