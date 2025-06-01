@@ -216,7 +216,7 @@ class Database:
 
                 # Таблица uses
                 await conn.execute(
-                    f"""CREATE TABLE IF NOT EXISTS bot (
+                    f"""CREATE TABLE IF NOT EXISTS uses (
                         day DATE PRIMARY KEY,
                         {", ".join([f"{k} {v}" for k, v in USES_COLUMNS.items()])}
                     )"""
