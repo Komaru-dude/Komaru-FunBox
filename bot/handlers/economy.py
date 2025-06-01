@@ -139,6 +139,9 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
 
     except ZeroDivisionError:
         profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
-        await message.reply(f'❌ Произошло деление на ноль! Убедитесь что все используемые командой значения больше нуля.\nЕсли всё корректно, обратитесь к владельцу: <a href="{profile_link}">Тык</a>', parse_mode=ParseMode.HTML) # Не используем юзернейм во избежании его изменения
+        await message.reply(
+            f'❌ Произошло деление на ноль! Убедитесь что все используемые командой значения больше нуля.\nЕсли всё корректно, обратитесь к владельцу: <a href="{profile_link}">Тык</a>',
+            parse_mode=ParseMode.HTML,
+        )  # Не используем юзернейм во избежании его изменения
     except Exception:
         await error_report(message, bot, "rob", traceback.format_ext())

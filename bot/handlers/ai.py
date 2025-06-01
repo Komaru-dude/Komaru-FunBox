@@ -393,15 +393,17 @@ async def cmd_image(message: Message, bot: Bot):
                     "- Упоминание наркотиков, алкоголя, курения\n"
                     "- Оскорбительное, унижающее или социально чувствительное содержание\n\n"
                     "Верни ТОЛЬКО перевод без форматирования. Если обнаружено запрещённое — верни `False`."
-                )
+                ),
             },
             {"role": "user", "content": prompt_ru},
         ]
-        translated = await cmd_ai(messages = messages, cli_mode = True)
+        translated = await cmd_ai(messages=messages, cli_mode=True)
         prompt_en = translated.strip()
 
         if prompt_en.lower() == "false":
-            await message.reply("⚠️ Ваш запрос отклонён, так как содержит чувствительный или запрещённый контент.")
+            await message.reply(
+                "⚠️ Ваш запрос отклонён, так как содержит чувствительный или запрещённый контент."
+            )
             await processing_message.delete()
             return
 
@@ -440,7 +442,11 @@ async def process_image_queue():
         try:
             message = task["message"]
             bot = task["bot"]
-            prompt_ru = task["prompt_ru"][:1020] if len(task["prompt_ru"]) > 1020 else task["prompt_ru"]
+            prompt_ru = (
+                task["prompt_ru"][:1020]
+                if len(task["prompt_ru"]) > 1020
+                else task["prompt_ru"]
+            )
             prompt_en = task["prompt_en"]
             processing_message = task["processing_message"]
 
