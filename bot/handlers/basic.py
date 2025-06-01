@@ -47,6 +47,7 @@ async def cmd_start(message: Message):
 async def cmd_status(message: Message, bot: Bot):
     try:
         global start_time
+        report = ""
 
         ping_start_time = time.monotonic()
         sent_message = await message.reply("⏳")
@@ -161,6 +162,8 @@ async def cmd_status(message: Message, bot: Bot):
 
             except Exception as e:
                 update_status = f"⚠️ Ошибка проверки: {str(e)}"
+                report = e
+                
 
         status_message = (
             f"<blockquote><b>🍕 Komaru FunBox</b>\n"
@@ -177,6 +180,9 @@ async def cmd_status(message: Message, bot: Bot):
 
     except Exception:
         await error_report(message, bot, "status", traceback.format_exc())
+    finally:
+        if report:
+            await error_report(message, bot, "status", traceback.format_exc())
 
 
 @base_router.message(Command("cancel"))
