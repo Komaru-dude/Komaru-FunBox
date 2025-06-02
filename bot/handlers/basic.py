@@ -243,13 +243,12 @@ async def cmd_restart(message: Message, bot: Bot):
 @base_router.message(Command("logs"))
 async def cmd_send_logs(message: Message, bot: Bot):
     try:
+        random_log_name = f"{uuid.uuid4()}.log"
         out_path = CACHE_DIR / random_log_name
 
         if not await db.has_permission(message.from_user.id, message.chat.id, 4):
             await message.reply("❌ Эта команда только для персонала.")
             return
-
-        random_log_name = f"{uuid.uuid4()}.log"
 
         out_path.parent.mkdir(exist_ok=True, parents=True)
 
