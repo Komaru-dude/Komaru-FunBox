@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkfunbox_wiki=self.webpackChunkfunbox_wiki||[]).push([[634],{192:(u,n,e)=>{e.r(n),e.d(n,{default:()=>s});var i=e(6347),r=e(4848);function s(){return(0,r.jsx)(i.rd,{to:"docs/intro"})}}}]);
