@@ -201,7 +201,7 @@ async def cmd_ban_user(message: Message, bot: Bot):
                 data = await aio_tools.fetch_json(f"{API_URL}/user/{username}")
 
                 if "user_id" in data:
-                    target_id = data["user_id"]
+                    target_id = int(data["user_id"])
                     name_data = await aio_tools.fetch_json(
                         f"{API_URL}/first_name/{message.chat.id}/{target_id}"
                     )
@@ -218,7 +218,7 @@ async def cmd_ban_user(message: Message, bot: Bot):
                 )
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
-            target_id = split_text[1]
+            target_id = int(split_text[1])
             try:
                 data = await aio_tools.fetch_json(
                     f"{API_URL}/first_name/{message.chat.id}/{target_id}"
@@ -271,7 +271,7 @@ async def cmd_unban_user(message: Message, bot: Bot):
                 data = await aio_tools.fetch_json(f"{API_URL}/user/{username}")
 
                 if "user_id" in data:
-                    target_id = data["user_id"]
+                    target_id = int(data["user_id"])
                     name_data = await aio_tools.fetch_json(
                         f"{API_URL}/first_name/{message.chat.id}/{target_id}"
                     )
@@ -288,7 +288,7 @@ async def cmd_unban_user(message: Message, bot: Bot):
                 )
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
-            target_id = split_text[1]
+            target_id = int(split_text[1])
             try:
                 data = await aio_tools.fetch_json(
                     f"{API_URL}/first_name/{message.chat.id}/{target_id}"
