@@ -202,10 +202,6 @@ async def cmd_ban_user(message: Message, bot: Bot):
 
                 if "user_id" in data:
                     target_id = int(data["user_id"])
-                    name_data = await aio_tools.fetch_json(
-                        f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                    )
-                    first_name = name_data.get("first_name", "Неизвестный")
                 else:
                     await message.reply(
                         f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
@@ -219,18 +215,19 @@ async def cmd_ban_user(message: Message, bot: Bot):
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = int(split_text[1])
-            try:
-                data = await aio_tools.fetch_json(
-                    f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                )
-                first_name = data.get("first_name", "Неизвестный")
-            except Exception:
-                first_name = "Неизвестный"
         else:
             await message.reply(
                 "Укажите пользователя через реплай, @username или айди."
             )
             return
+
+        try:
+            data = await aio_tools.fetch_json(
+            f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+            )
+            first_name = data.get("first_name", "Неизвестный")
+        except Exception:
+                first_name = "Неизвестный"
 
     if await db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже заблокирован")
@@ -272,10 +269,6 @@ async def cmd_unban_user(message: Message, bot: Bot):
 
                 if "user_id" in data:
                     target_id = int(data["user_id"])
-                    name_data = await aio_tools.fetch_json(
-                        f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                    )
-                    first_name = name_data.get("first_name", "Неизвестный")
                 else:
                     await message.reply(
                         f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
@@ -289,18 +282,19 @@ async def cmd_unban_user(message: Message, bot: Bot):
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = int(split_text[1])
-            try:
-                data = await aio_tools.fetch_json(
-                    f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                )
-                first_name = data.get("first_name", "Неизвестный")
-            except Exception:
-                first_name = "Неизвестный"
         else:
             await message.reply(
                 "Укажите пользователя через реплай, @username или айди."
             )
             return
+        
+        try:
+            data = await aio_tools.fetch_json(
+            f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+            )
+            first_name = data.get("first_name", "Неизвестный")
+        except Exception:
+                first_name = "Неизвестный"
 
     if not await db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже разблокирован")
