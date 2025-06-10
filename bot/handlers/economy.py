@@ -37,7 +37,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         )
     except Exception:
         await db.reset_cooldown(user_id, chat_id, "work")
-        await error_report(message, bot, "work", traceback.format_ext())
+        await error_report(message, bot, "work", traceback.format_exc())
 
 
 @eco_router.message(
@@ -82,7 +82,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
 
     except Exception:
         await db.reset_cooldown(user_id, chat_id, "steal") # FIXME: Потенциальный абуз
-        await error_report(message, bot, "steal", traceback.format_ext())
+        await error_report(message, bot, "steal", traceback.format_exc())
 
 
 @eco_router.message(
@@ -149,4 +149,4 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         )  # Не используем юзернейм во избежании его изменения
     except Exception:
         await db.reset_cooldown(user_id, chat_id, "rob") # FIXME: Потенциальный абуз
-        await error_report(message, bot, "rob", traceback.format_ext())
+        await error_report(message, bot, "rob", traceback.format_exc())
