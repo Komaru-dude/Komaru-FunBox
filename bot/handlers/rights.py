@@ -223,11 +223,11 @@ async def cmd_ban_user(message: Message, bot: Bot):
 
         try:
             data = await aio_tools.fetch_json(
-            f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                f"{API_URL}/first_name/{message.chat.id}/{target_id}"
             )
             first_name = data.get("first_name", "Неизвестный")
         except Exception:
-                first_name = "Неизвестный"
+            first_name = "Неизвестный"
 
     if await db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже заблокирован")
@@ -287,14 +287,14 @@ async def cmd_unban_user(message: Message, bot: Bot):
                 "Укажите пользователя через реплай, @username или айди."
             )
             return
-        
+
         try:
             data = await aio_tools.fetch_json(
-            f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+                f"{API_URL}/first_name/{message.chat.id}/{target_id}"
             )
             first_name = data.get("first_name", "Неизвестный")
         except Exception:
-                first_name = "Неизвестный"
+            first_name = "Неизвестный"
 
     if not await db.is_user_mediabanned(target_id):
         await message.reply("❌ Пользователь уже разблокирован")

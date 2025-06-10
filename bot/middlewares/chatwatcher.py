@@ -69,7 +69,9 @@ class ChatWatcher(BaseMiddleware):
                         msg = f'🔔 Новый пользователь бота: <a href="tg://user?id={user_id}">{user_id}</a>, имя: {user_name}'
                         logging.info(msg)
                         if owner_id := os.getenv("OWNER_ID"):
-                            await bot.send_message(owner_id, msg, parse_mode=ParseMode.HTML)
+                            await bot.send_message(
+                                owner_id, msg, parse_mode=ParseMode.HTML
+                            )
 
             return await handler(event, data)
         except Exception:
