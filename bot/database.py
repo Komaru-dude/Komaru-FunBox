@@ -24,7 +24,6 @@ DEFAULT_FEATURES = [
     ("senddisabledmsg", 1),
     ("alo", 0),
     ("sendcooldown", 1),
-    ("economy", 1),
 ]
 
 USERS_COLUMNS = {
@@ -39,8 +38,6 @@ USERS_COLUMNS = {
     "history": "JSONB DEFAULT '[]'::JSONB",
     "warn_limit": "INTEGER DEFAULT 3",
     "default_model": "TEXT DEFAULT ''",
-    "money": "BIGINT DEFAULT 0",
-    "bank": "BIGINT DEFAULT 0",
 }
 
 FEATURES_COLUMNS = {
@@ -57,6 +54,26 @@ CHATS_COLUMNS = {
     "chat_id": "BIGINT PRIMARY KEY",
     "type": "TEXT",
     "registered_at": "TIMESTAMP DEFAULT NOW()",
+}
+
+GLOBAL_USERS_COLUMNS = {
+    "user_id": "BIGINT PRIMARY KEY",
+    "language_code": "TEXT DEFAULT 'ru'",
+    "registered_at": "TIMESTAMP DEFAULT NOW()",
+    "money": "BIGINT DEFAULT 0",
+    "bank": "BIGINT DEFAULT 0",
+}
+
+COMMAND_COOLDOWNS_COLUMNS = {
+    "user_id": "BIGINT NOT NULL",
+    "chat_id": "BIGINT NOT NULL",
+    "command": "TEXT NOT NULL",
+    "available_at": "BIGINT NOT NULL",
+}
+
+USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
+
+ECONOMY_COLUMNS = {
     "currency_sign": "TEXT DEFAULT '🪙'",
     "min_work_income": "INTEGER DEFAULT 20",
     "max_work_income": "INTEGER DEFAULT 250",
@@ -72,21 +89,6 @@ CHATS_COLUMNS = {
     "rob_fail_percent": "INTEGER DEFAULT 55",
     "rob_timeout": "INTEGER DEFAULT 28800",  # 8 часов
 }
-
-GLOBAL_USERS_COLUMNS = {
-    "user_id": "BIGINT PRIMARY KEY",
-    "language_code": "TEXT DEFAULT 'ru'",
-    "registered_at": "TIMESTAMP DEFAULT NOW()",
-}
-
-COMMAND_COOLDOWNS_COLUMNS = {
-    "user_id": "BIGINT NOT NULL",
-    "chat_id": "BIGINT NOT NULL",
-    "command": "TEXT NOT NULL",
-    "available_at": "BIGINT NOT NULL",
-}
-
-USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
 
 
 class Database:
@@ -220,6 +222,13 @@ class Database:
                     )"""
                 )
 
+                # Таблица economy
+                await conn.execute(
+                    f"""CREATE TABLE IF NOT EXISTS economy (
+                        {", ".join([f"{k} {v}" for k, v in ECONOMY_COLUMNS.items()])}
+                    )"""
+                )
+
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
                     """
@@ -265,6 +274,20 @@ class Database:
                     if col not in uses_existing_col_names:
                         await conn.execute(
                             f"""ALTER TABLE uses ADD COLUMN {col} {definition}"""
+                        )
+
+                # Добавляем недостающие столбцы в economy
+                eco_existing_cols = await conn.fetch(
+                    """SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'economy'
+                    """
+                )
+                eco_existing_col_names = {r["column_name"] for r in eco_existing_cols}
+
+                for col, definition in ECONOMY_COLUMNS.items():
+                    if col not in eco_existing_col_names:
+                        await conn.execute(
+                            f"""ALTER TABLE economy ADD COLUMN {col} {definition}"""
                         )
 
     async def sync_all(self):
@@ -654,7 +677,7 @@ class Database:
                 chat_data.get("type", "private"),
             )
 
-    async def add_global_user(self, user_id: int, user_data: dict):
+    async def add_global_user(self, user_id: int, user_data: dict = None):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
@@ -664,7 +687,7 @@ class Database:
                 ON CONFLICT (user_id) DO UPDATE SET
                     language_code = EXCLUDED.language_code""",
                 user_id,
-                user_data.get("language_code", "ru"),
+                user_data.get("language_code", "en") if user_data is not None else "en"
             )
 
     async def get_chat(self, chat_id: int) -> dict:
@@ -684,6 +707,37 @@ class Database:
                 "SELECT * FROM global_users WHERE user_id = $1", user_id
             )
             return dict(record) if record else None
+        
+    async def get_global_user_param(self, user_id: int, param: str):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """SELECT * FROM users WHERE user_id = $1""",
+                user_id,
+            )
+            if not row:
+                await self.add_global_user(user_id)
+                row = await conn.fetchrow(
+                    """SELECT * FROM users WHERE user_id = $1""",
+                    user_id,
+                )
+                if not row:
+                    return {}
+            return row.get(param)
+
+    async def set_global_user_param(self, user_id: int, param: str, value):
+        """Устанавливает параметр пользователю глобально"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                f"""
+                UPDATE global_users 
+                SET {param} = $1 
+                WHERE user_id = $2
+            """,
+                value,
+                user_id,
+            )
 
     async def chat_exists(self, chat_id: int) -> bool:
         """Проверяет существование чата в базе"""

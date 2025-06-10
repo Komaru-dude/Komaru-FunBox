@@ -17,7 +17,6 @@ eco_router = Router()
 @eco_router.message(
     Command("work"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
-    FuncEnabled(func_name="economy"),
     CooldownFilter(command="work", cooldown=14400),
 )
 async def cmd_work(message: Message, bot: Bot, db: Database):
@@ -25,14 +24,14 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         user_id = message.from_user.id
         chat_id = message.chat.id
         chat_data = await db.get_chat(chat_id)
-        current_bal = await db.get_user_param(user_id, chat_id, "money")
+        current_bal = await db.get_global_user_param(user_id, "money")
 
         min_income = chat_data["min_work_income"]
         max_income = chat_data["max_work_income"]
         current_income = random.randint(min_income, max_income)
 
         new_bal = current_bal + current_income
-        await db.set_user_param(user_id, chat_id, "money", new_bal)
+        await db.set_global_user_param(user_id,"money", new_bal)
         await message.reply(
             f"👨‍💻 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
         )
@@ -44,7 +43,6 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
 @eco_router.message(
     Command("steal"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
-    FuncEnabled(func_name="economy"),
     CooldownFilter(command="steal", cooldown=14400),
 )
 async def cmd_steal(message: Message, bot: Bot, db: Database):
@@ -52,12 +50,12 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         user_id = message.from_user.id
         chat_id = message.chat.id
         chat_data = await db.get_chat(chat_id)
-        current_bal = await db.get_user_param(user_id, chat_id, "money")
+        current_bal = await db.get_global_user_param(user_id, "money")
         if current_bal < chat_data["max_steal_penalty"] / 2:
             await message.reply(
                 f"❌ Вам нужно иметь на балансе хотя бы половину от максимальной суммы штрафа ({chat_data["currency_sign"]}{chat_data['max_steal_penalty'] / 2})"
             )
-            await db.reset_cooldown(user_id, chat_id, "steal")
+            await db.reset_cooldown(user_id, "steal")
             return
 
         min_income = chat_data["min_steal_income"]
@@ -80,17 +78,16 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
                 f"🤑 Повезло!\n💡 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
 
-        await db.set_user_param(user_id, chat_id, "money", new_bal)
+        await db.set_global_user_param(user_id,"money", new_bal)
 
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "steal")
+        await db.reset_cooldown(user_id, chat_id, "steal") # FIXME: Потенциальный абуз
         await error_report(message, bot, "steal", traceback.format_ext())
 
 
 @eco_router.message(
     Command("rob"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
-    FuncEnabled(func_name="economy"),
     CooldownFilter(command="rob", cooldown=28800),
 )
 async def cmd_rob(message: Message, bot: Bot, db: Database):
@@ -113,8 +110,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await db.reset_cooldown(user_id, chat_id, "rob")
             return
 
-        user_bal = await db.get_user_param(user_id, chat_id, "money")
-        target_user_bal = await db.get_user_param(target_id, chat_id, "money")
+        user_bal = await db.get_global_user_param(user_id, "money")
+        target_user_bal = await db.get_global_user_param(target_id, "money")
 
         if target_user_bal < 0:
             await message.reply("❌ У цели нет наличных")
@@ -126,7 +123,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         )
         if target_user_bal * succeed_percent / 100 < 1:
             await message.reply("❌ У цели недостаточно наличных")
-            await db.reset_cooldown(user_id, chat_id, "rob")
+            await db.reset_cooldown(user_id, chat_id, "rob") # FIXME: Потенциальный абуз
             return
 
         fail_percent = chat_data["rob_fail_percent"]
@@ -141,8 +138,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
                 f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{chat_data["currency_sign"]}\nНовый баланс цели {target_new_bal}\nВаш новый баланс: {new_bal}"
             )
 
-        await db.set_user_param(user_id, chat_id, "money", new_bal)
-        await db.set_user_param(target_id, chat_id, "money", target_new_bal)
+        await db.set_global_user_param(user_id,"money", new_bal)
+        await db.set_global_user_param(target_id,"money", target_new_bal)
 
     except ZeroDivisionError:
         profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
@@ -151,5 +148,5 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             parse_mode=ParseMode.HTML,
         )  # Не используем юзернейм во избежании его изменения
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "rob")
+        await db.reset_cooldown(user_id, chat_id, "rob") # FIXME: Потенциальный абуз
         await error_report(message, bot, "rob", traceback.format_ext())
