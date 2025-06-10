@@ -31,7 +31,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         current_income = random.randint(min_income, max_income)
 
         new_bal = current_bal + current_income
-        await db.set_global_user_param(user_id,"money", new_bal)
+        await db.set_global_user_param(user_id, "money", new_bal)
         await message.reply(
             f"👨‍💻 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
         )
@@ -78,10 +78,10 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
                 f"🤑 Повезло!\n💡 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
 
-        await db.set_global_user_param(user_id,"money", new_bal)
+        await db.set_global_user_param(user_id, "money", new_bal)
 
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "steal") # FIXME: Потенциальный абуз
+        await db.reset_cooldown(user_id, chat_id, "steal")  # FIXME: Потенциальный абуз
         await error_report(message, bot, "steal", traceback.format_exc())
 
 
@@ -123,7 +123,9 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         )
         if target_user_bal * succeed_percent / 100 < 1:
             await message.reply("❌ У цели недостаточно наличных")
-            await db.reset_cooldown(user_id, chat_id, "rob") # FIXME: Потенциальный абуз
+            await db.reset_cooldown(
+                user_id, chat_id, "rob"
+            )  # FIXME: Потенциальный абуз
             return
 
         fail_percent = chat_data["rob_fail_percent"]
@@ -138,8 +140,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
                 f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{chat_data["currency_sign"]}\nНовый баланс цели {target_new_bal}\nВаш новый баланс: {new_bal}"
             )
 
-        await db.set_global_user_param(user_id,"money", new_bal)
-        await db.set_global_user_param(target_id,"money", target_new_bal)
+        await db.set_global_user_param(user_id, "money", new_bal)
+        await db.set_global_user_param(target_id, "money", target_new_bal)
 
     except ZeroDivisionError:
         profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
@@ -148,5 +150,5 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             parse_mode=ParseMode.HTML,
         )  # Не используем юзернейм во избежании его изменения
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "rob") # FIXME: Потенциальный абуз
+        await db.reset_cooldown(user_id, chat_id, "rob")  # FIXME: Потенциальный абуз
         await error_report(message, bot, "rob", traceback.format_exc())

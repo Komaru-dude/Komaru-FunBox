@@ -703,7 +703,7 @@ class Database:
                 ON CONFLICT (user_id) DO UPDATE SET
                     language_code = EXCLUDED.language_code""",
                 user_id,
-                user_data.get("language_code", "en") if user_data is not None else "en"
+                user_data.get("language_code", "en") if user_data is not None else "en",
             )
 
     async def get_chat(self, chat_id: int) -> dict:
@@ -723,7 +723,7 @@ class Database:
                 "SELECT * FROM global_users WHERE user_id = $1", user_id
             )
             return dict(record) if record else None
-        
+
     async def get_global_user_param(self, user_id: int, param: str):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
