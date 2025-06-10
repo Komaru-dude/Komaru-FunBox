@@ -224,9 +224,8 @@ async def cmd_ban_user(message: Message, bot: Bot):
                     f"{API_URL}/first_name/{message.chat.id}/{target_id}"
                 )
                 first_name = data.get("first_name", "Неизвестный")
-            except Exception as e:
-                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
-                return
+            except Exception:
+                first_name = "Неизвестный"
         else:
             await message.reply(
                 "Укажите пользователя через реплай, @username или айди."
@@ -295,9 +294,8 @@ async def cmd_unban_user(message: Message, bot: Bot):
                     f"{API_URL}/first_name/{message.chat.id}/{target_id}"
                 )
                 first_name = data.get("first_name", "Неизвестный")
-            except Exception as e:
-                await message.reply(f"Произошла ошибка {e} при обработке запроса.")
-                return
+            except Exception:
+                first_name = "Неизвестный"
         else:
             await message.reply(
                 "Укажите пользователя через реплай, @username или айди."
