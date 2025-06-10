@@ -262,6 +262,22 @@ class Database:
                             f"""ALTER TABLE chats ADD COLUMN {col} {definition}"""
                         )
 
+                # Добавляем недостающие столбцы в global_users
+                globusers_existing_cols = await conn.fetch(
+                    """SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'global_users'
+                    """
+                )
+                globusers_existing_col_names = {
+                    r["column_name"] for r in globusers_existing_cols
+                }
+
+                for col, definition in GLOBAL_USERS_COLUMNS.items():
+                    if col not in globusers_existing_col_names:
+                        await conn.execute(
+                            f"""ALTER TABLE global_users ADD COLUMN {col} {definition}"""
+                        )
+
                 # Добавляем недостающие столбцы в uses
                 uses_existing_cols = await conn.fetch(
                     """SELECT column_name FROM information_schema.columns 
