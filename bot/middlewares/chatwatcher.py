@@ -4,6 +4,7 @@ import traceback
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import Bot, BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
+from aiogram.enums import ParseMode
 from bot.database import Database
 
 
@@ -65,10 +66,10 @@ class ChatWatcher(BaseMiddleware):
                         await db.add_global_user(
                             user_id, {"language_code": language_code}
                         )
-                        msg = f"🔔 Новый пользователь бота: {user_id}, имя: {user_name}"
+                        msg = f'🔔 Новый пользователь бота: <a href="tg://user?id={user_id}">{user_id}</a>, имя: {user_name}'
                         logging.info(msg)
                         if owner_id := os.getenv("OWNER_ID"):
-                            await bot.send_message(owner_id, msg)
+                            await bot.send_message(owner_id, msg, parse_mode=ParseMode.HTML)
 
             return await handler(event, data)
         except Exception:
