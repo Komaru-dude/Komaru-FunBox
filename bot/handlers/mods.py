@@ -282,7 +282,10 @@ async def cmd_info(message: Message, bot: Bot):
         if message.chat.type in ["private", "channel"]:
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
-        if len(split_text) < 2:
+
+        if message.reply_to_message:
+            user_id = message.reply_to_message.from_user.id
+        elif len(split_text) < 2:
             user_id = message.from_user.id
         else:
             user_id, error = await get_user_id(message)
