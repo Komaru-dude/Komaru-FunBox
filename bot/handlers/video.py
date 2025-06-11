@@ -2,6 +2,7 @@ import asyncio
 import uuid
 import traceback
 import shutil
+import logging
 from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -169,7 +170,7 @@ async def cmd_gif(message: Message, bot: Bot):
             if output_path and output_path.exists():
                 output_path.unlink(missing_ok=True)
         except Exception as cleanup_error:
-            print(f"Ошибка при очистке: {cleanup_error}")
+            logging.warning(f"Ошибка при очистке: {cleanup_error}")
 
         if processing_msg:
             await processing_msg.delete()
