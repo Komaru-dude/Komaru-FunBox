@@ -123,9 +123,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         )
         if target_user_bal * succeed_percent / 100 < 1:
             await message.reply("❌ У цели недостаточно наличных")
-            await db.reset_cooldown(
-                user_id, "rob"
-            )
+            await db.reset_cooldown(user_id, "rob")
             return
 
         fail_percent = chat_data["rob_fail_percent"]
