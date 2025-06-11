@@ -300,7 +300,6 @@ async def cmd_info(message: Message, bot: Bot):
 
         profile_link = f"tg://user?id={user_info['user_id']}"
         clickable_name = f'<a href="{profile_link}">{user_info["first_name"]}</a>'
-        chat_data = await db.get_chat(chat_id)
 
         info_text = (
             f"👤 Информация о {clickable_name}\n"
