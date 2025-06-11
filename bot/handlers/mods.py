@@ -290,6 +290,10 @@ async def cmd_info(message: Message, bot: Bot):
         else:
             user_id, error = await get_user_id(message)
 
+        if user_id == (await bot.get_me()).id:
+            await message.reply("❌ Не имеет смысла")
+            return
+
         if error:
             raise error
 
