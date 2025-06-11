@@ -36,7 +36,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
             f"👨‍💻 Вы заработали: {current_income}\n{chat_data["currency_sign"]} Ваш новый баланс: {new_bal}"
         )
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "work")
+        await db.reset_cooldown(user_id, "work")
         await error_report(message, bot, "work", traceback.format_exc())
 
 
@@ -81,7 +81,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         await db.set_global_user_param(user_id, "money", new_bal)
 
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "steal")  # FIXME: Потенциальный абуз
+        await db.reset_cooldown(user_id, "steal")
         await error_report(message, bot, "steal", traceback.format_exc())
 
 
@@ -102,12 +102,12 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await message.reply(
                 "❌ Требуется упоминание/ответ на сообщение пользователя."
             )
-            await db.reset_cooldown(user_id, chat_id, "rob")
+            await db.reset_cooldown(user_id, "rob")
             return
 
         if get_id_error:
             await message.reply("❌ Не удалось получить user_id!")
-            await db.reset_cooldown(user_id, chat_id, "rob")
+            await db.reset_cooldown(user_id, "rob")
             return
 
         user_bal = await db.get_global_user_param(user_id, "money")
@@ -115,7 +115,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
 
         if target_user_bal < 0:
             await message.reply("❌ У цели нет наличных")
-            await db.reset_cooldown(user_id, chat_id, "rob")
+            await db.reset_cooldown(user_id, "rob")
             return
 
         succeed_percent = random.randint(
@@ -124,8 +124,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         if target_user_bal * succeed_percent / 100 < 1:
             await message.reply("❌ У цели недостаточно наличных")
             await db.reset_cooldown(
-                user_id, chat_id, "rob"
-            )  # FIXME: Потенциальный абуз
+                user_id, "rob"
+            )
             return
 
         fail_percent = chat_data["rob_fail_percent"]
@@ -150,5 +150,5 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             parse_mode=ParseMode.HTML,
         )  # Не используем юзернейм во избежании его изменения
     except Exception:
-        await db.reset_cooldown(user_id, chat_id, "rob")  # FIXME: Потенциальный абуз
+        await db.reset_cooldown(user_id, "rob")
         await error_report(message, bot, "rob", traceback.format_exc())

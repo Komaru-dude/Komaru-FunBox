@@ -66,7 +66,6 @@ GLOBAL_USERS_COLUMNS = {
 
 COMMAND_COOLDOWNS_COLUMNS = {
     "user_id": "BIGINT NOT NULL",
-    "chat_id": "BIGINT NOT NULL",
     "command": "TEXT NOT NULL",
     "available_at": "BIGINT NOT NULL",
 }
@@ -781,7 +780,6 @@ class Database:
     async def is_command_available(
         self,
         user_id: int,
-        chat_id: int,
         command: str,
         cooldown: int,
     ) -> bool:
@@ -789,7 +787,6 @@ class Database:
         Проверяет, доступна ли команда. Если доступна устанавливает новый кулдаун.
 
         :param user_id: ID пользователя
-        :param chat_id: ID чата
         :param command: Название команды
         :param cooldown: Время кулдауна в секундах
         :return: True, если можно выполнять команду, False — если кулдаун ещё активен
@@ -800,10 +797,9 @@ class Database:
             row = await conn.fetchrow(
                 """
                 SELECT available_at FROM command_cooldowns
-                WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                WHERE user_id = $1 AND command = $3
                 """,
                 user_id,
-                chat_id,
                 command,
             )
 
@@ -817,21 +813,19 @@ class Database:
                     """
                     UPDATE command_cooldowns
                     SET available_at = $4
-                    WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                    WHERE user_id = $1 AND command = $3
                     """,
                     user_id,
-                    chat_id,
                     command,
                     new_available_at,
                 )
             else:
                 await conn.execute(
                     """
-                    INSERT INTO command_cooldowns (user_id, chat_id, command, available_at)
-                    VALUES ($1, $2, $3, $4)
+                    INSERT INTO command_cooldowns (user_id, command, available_at)
+                    VALUES ($1, $3, $4)
                     """,
                     user_id,
-                    chat_id,
                     command,
                     new_available_at,
                 )
@@ -841,7 +835,6 @@ class Database:
     async def get_cooldown_remaining(
         self,
         user_id: int,
-        chat_id: int,
         command: str,
     ) -> int:
         """
@@ -855,10 +848,9 @@ class Database:
             row = await conn.fetchrow(
                 """
                 SELECT available_at FROM command_cooldowns
-                WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                WHERE user_id = $1 AND command = $3
                 """,
                 user_id,
-                chat_id,
                 command,
             )
             if row:
@@ -868,7 +860,6 @@ class Database:
     async def reset_cooldown(
         self,
         user_id: int,
-        chat_id: int,
         command: str,
     ) -> None:
         """
@@ -879,10 +870,9 @@ class Database:
             await conn.execute(
                 """
                 DELETE FROM command_cooldowns
-                WHERE user_id = $1 AND chat_id = $2 AND command = $3
+                WHERE user_id = $1 AND command = $3
                 """,
                 user_id,
-                chat_id,
                 command,
             )
 

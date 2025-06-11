@@ -288,22 +288,21 @@ async def cmd_reset_cooldown(message: Message, bot: Bot):
             await message.reply("❌ Эта команда только для персонала.")
             return
 
-        if len(split_text) < 4:
+        if len(split_text) < 3:
             await message.reply(
-                "❌ Некорректный синтаксис!\nИспользуйте: <code>/reset_cooldown chat_id user_id command_name</code>",
+                "❌ Некорректный синтаксис!\nИспользуйте: <code>/reset_cooldown user_id command_name</code>",
                 parse_mode=ParseMode.HTML,
             )
             return
 
         try:
-            target_chat_id = int(split_text[1])
-            target_user_id = int(split_text[2])
+            target_user_id = int(split_text[1])
         except ValueError:
-            await message.reply("❌ chat_id и user_id должны быть числами.")
+            await message.reply("❌ user_id должен быть числом.")
             return
-        target_command = split_text[3]
+        target_command = split_text[2]
 
-        await db.reset_cooldown(target_user_id, target_chat_id, target_command)
+        await db.reset_cooldown(target_user_id, target_command)
         await message.reply("✅ Успешно сброшено")
     except Exception:
         await error_report(message, bot, "reset_cooldown", traceback.format_exc())
