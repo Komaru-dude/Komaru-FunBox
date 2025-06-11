@@ -727,13 +727,13 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
-                """SELECT * FROM users WHERE user_id = $1""",
+                """SELECT * FROM global_users WHERE user_id = $1""",
                 user_id,
             )
             if not row:
                 await self.add_global_user(user_id)
                 row = await conn.fetchrow(
-                    """SELECT * FROM users WHERE user_id = $1""",
+                    """SELECT * FROM global_users WHERE user_id = $1""",
                     user_id,
                 )
                 if not row:
