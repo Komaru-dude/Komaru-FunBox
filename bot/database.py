@@ -797,7 +797,7 @@ class Database:
             row = await conn.fetchrow(
                 """
                 SELECT available_at FROM command_cooldowns
-                WHERE user_id = $1 AND command = $3
+                WHERE user_id = $1 AND command = $2
                 """,
                 user_id,
                 command,
@@ -813,7 +813,7 @@ class Database:
                     """
                     UPDATE command_cooldowns
                     SET available_at = $4
-                    WHERE user_id = $1 AND command = $3
+                    WHERE user_id = $1 AND command = $2
                     """,
                     user_id,
                     command,
@@ -823,7 +823,7 @@ class Database:
                 await conn.execute(
                     """
                     INSERT INTO command_cooldowns (user_id, command, available_at)
-                    VALUES ($1, $3, $4)
+                    VALUES ($1, $2, $3)
                     """,
                     user_id,
                     command,
@@ -848,7 +848,7 @@ class Database:
             row = await conn.fetchrow(
                 """
                 SELECT available_at FROM command_cooldowns
-                WHERE user_id = $1 AND command = $3
+                WHERE user_id = $1 AND command = $2
                 """,
                 user_id,
                 command,
@@ -870,7 +870,7 @@ class Database:
             await conn.execute(
                 """
                 DELETE FROM command_cooldowns
-                WHERE user_id = $1 AND command = $3
+                WHERE user_id = $1 AND command = $2
                 """,
                 user_id,
                 command,
