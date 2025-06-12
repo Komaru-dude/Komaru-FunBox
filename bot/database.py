@@ -952,8 +952,8 @@ class Database:
     async def get_eco_settings(self):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            record = await conn.fetch("SELECT * FROM economy")
-            return dict(record) if record else None
+            row = await conn.fetchrow("SELECT * FROM economy")
+            return dict(row) if row else None
 
     async def get_eco_param(self, param: str):
         await self.ensure_connection()
