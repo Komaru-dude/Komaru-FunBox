@@ -924,3 +924,20 @@ class Database:
             )
 
             return day_count, week_count
+
+    async def get_eco_settings(self):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            record = await conn.fetch("SELECT * FROM economy")
+            return dict(record) if record else None
+
+    async def get_eco_param(self, param: str):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(f"SELECT {param} FROM economy")
+            return row[param] if row else None
+
+    async def set_eco_param(self, param: str, value):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(f"UPDATE economy SET {param} = $1", value)
