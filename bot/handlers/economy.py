@@ -17,6 +17,7 @@ eco_router = Router()
 @eco_router.message(
     Command("work"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
+    FuncEnabled("economy"),
     CooldownFilter(command="work", cooldown=14400),
 )
 async def cmd_work(message: Message, bot: Bot, db: Database):
@@ -42,6 +43,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
 @eco_router.message(
     Command("steal"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
+    FuncEnabled("economy"),
     CooldownFilter(command="steal", cooldown=14400),
 )
 async def cmd_steal(message: Message, bot: Bot, db: Database):
@@ -86,6 +88,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
 @eco_router.message(
     Command("rob"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
+    FuncEnabled("economy"),
     CooldownFilter(command="rob", cooldown=28800),
 )
 async def cmd_rob(message: Message, bot: Bot, db: Database):

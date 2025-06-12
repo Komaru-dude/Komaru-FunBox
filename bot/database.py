@@ -23,6 +23,7 @@ DEFAULT_FEATURES = [
     ("ban", 0),
     ("senddisabledmsg", 1),
     ("alo", 0),
+    ("economy", 1)
     ("sendcooldown", 1),
 ]
 
