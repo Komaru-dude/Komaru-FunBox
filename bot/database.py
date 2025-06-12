@@ -228,6 +228,9 @@ class Database:
                         {", ".join([f"{k} {v}" for k, v in ECONOMY_COLUMNS.items()])}
                     )"""
                 )
+                await conn.execute(
+                    "INSERT INTO economy DEFAULT VALUES WHERE NOT EXISTS (SELECT 1 FROM economy);"
+                )
 
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
