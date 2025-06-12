@@ -812,7 +812,7 @@ class Database:
                 await conn.execute(
                     """
                     UPDATE command_cooldowns
-                    SET available_at = $4
+                    SET available_at = $3
                     WHERE user_id = $1 AND command = $2
                     """,
                     user_id,
