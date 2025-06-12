@@ -228,6 +228,9 @@ class Database:
                         {", ".join([f"{k} {v}" for k, v in ECONOMY_COLUMNS.items()])}
                     )"""
                 )
+                await conn.execute(
+                    "INSERT INTO economy DEFAULT VALUES WHERE NOT EXISTS (SELECT 1 FROM economy);"
+                )
 
                 # Парсим дефолтные значения из ECONOMY_COLUMNS
                 defaults = [
