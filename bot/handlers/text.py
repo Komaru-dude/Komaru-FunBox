@@ -213,7 +213,8 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 },
                 {"role": "user", "content": message.reply_to_message.text},
             ]
-            await cmd_ai(message, bot, messages=messages)
+            answer = await cmd_ai(messages=messages, cli_mode=True)
+            await message.reply(f"📝 Ответ: {answer}")
             return
         elif message.text.startswith(
             ("http://", "https://")
