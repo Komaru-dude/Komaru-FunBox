@@ -126,6 +126,21 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "cancel", traceback.format_exc())
 
 
+def get_service_name() -> str:
+    """Получает имя systemd сервиса через cgroup текущего процесса"""
+    try:
+        with open("/proc/self/cgroup", "r") as f:
+            for line in f:
+                if "name=systemd" in line:
+                    parts = line.strip().split("/")
+                    if len(parts) > 2 and parts[-1].endswith(".service"):
+                        return parts[-1]
+    except Exception:
+        pass
+    return "komaru-funbox.service"
+
+SERVICE_NAME = get_service_name()
+
 @base_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot):
     user_id = message.from_user.id
@@ -136,13 +151,12 @@ async def cmd_restart(message: Message, bot: Bot):
     await message.answer("Перезапускаюсь... 🔄")
 
     try:
-        subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
+        subprocess.Popen(["sudo", "systemctl", "restart", SERVICE_NAME])
     except Exception:
         await error_report(message, bot, "restart", traceback.format_exc())
 
-
 @base_router.message(Command("update"))
-async def cmd_restart(message: Message, bot: Bot):
+async def cmd_update(message: Message, bot: Bot):
     user_id = message.from_user.id
     chat_id = message.chat.id
     if not await db.has_permission(user_id, chat_id, 4):
@@ -184,7 +198,7 @@ async def cmd_restart(message: Message, bot: Bot):
             if resp.status == 200:
                 data = await resp.json()
                 latest_commit = data["commit"]["sha"][:7]
-                if not latest_commit != commit:
+                if latest_commit == commit:
                     return await update_msg.edit_text("☃️ Версия актуальна")
             else:
                 return await update_msg.edit_text(
@@ -197,9 +211,47 @@ async def cmd_restart(message: Message, bot: Bot):
         await update_msg.edit_text("⚠️ Не удалось удалить кэш загруженных моделей")
 
     try:
-        subprocess.Popen(["sudo", "systemctl", "restart", "komaru-funbox.service"])
+        subprocess.Popen(["sudo", "systemctl", "restart", SERVICE_NAME])
     except Exception:
-        await error_report(message, bot, "restart", traceback.format_exc())
+        await error_report(message, bot, "update", traceback.format_exc())
+
+@base_router.message(Command("logs"))
+async def cmd_send_logs(message: Message, bot: Bot):
+    try:
+        random_log_name = f"{uuid.uuid4()}.log"
+        out_path = CACHE_DIR / random_log_name
+
+        if not await db.has_permission(message.from_user.id, message.chat.id, 4):
+            await message.reply("❌ Эта команда только для персонала.")
+            return
+
+        out_path.parent.mkdir(exist_ok=True, parents=True)
+
+        process = await asyncio.create_subprocess_exec(
+            "journalctl",
+            "--no-pager",
+            "-u",
+            SERVICE_NAME,
+            "-n",
+            "80",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout, stderr = await process.communicate()
+
+        if process.returncode != 0:
+            raise RuntimeError(f"Ошибка выполнения команды: {stderr.decode()}")
+
+        with open(out_path, "wb") as f:
+            f.write(stdout)
+
+        await message.reply_document(FSInputFile(out_path), caption="📝 Вот ваши логи:")
+    except Exception:
+        await error_report(message, bot, "logs", traceback.format_exc())
+    finally:
+        if out_path.exists():
+            out_path.unlink()
 
 
 @base_router.message(Command("logs"))
