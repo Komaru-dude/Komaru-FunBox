@@ -242,7 +242,7 @@ class Database:
                 )
 
                 # Выполняем запрос
-                await self.pool.execute(
+                await conn.execute(
                     f"""
                     INSERT INTO economy
                     SELECT * FROM (
