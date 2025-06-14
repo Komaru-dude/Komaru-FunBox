@@ -137,9 +137,9 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await message.reply(
                 f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{eco_data["currency_sign"]}\nНовый баланс цели {target_new_bal}\nВаш новый баланс: {new_bal}"
             )
+            await db.set_global_user_param(target_id, "money", target_new_bal)
 
         await db.set_global_user_param(user_id, "money", new_bal)
-        await db.set_global_user_param(target_id, "money", target_new_bal)
 
     except ZeroDivisionError:
         profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
