@@ -7,6 +7,7 @@ import json
 import subprocess
 import traceback
 import uuid
+from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -127,17 +128,11 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
 
 
 def get_service_name() -> str:
-    """Получает имя systemd сервиса через cgroup текущего процесса"""
-    try:
-        with open("/proc/self/cgroup", "r") as f:
-            for line in f:
-                if "name=systemd" in line:
-                    parts = line.strip().split("/")
-                    if len(parts) > 2 and parts[-1].endswith(".service"):
-                        return parts[-1]
-    except Exception:
-        pass
-    return "komaru-funbox.service"
+    folder_name = Path(__path__).parent.parent.parent.name
+    if "test" in folder_name:
+        return "komaru-funbox_test.service"
+    else:
+        return "komaru-funbox.service"
 
 SERVICE_NAME = get_service_name()
 
