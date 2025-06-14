@@ -48,7 +48,6 @@ dp["db"] = db
 DATA_DIR = BASE_DIR / "data"
 start_port = 8001
 max_attempts = 15
-current_port = start_port
 host = "127.0.0.1"
 
 
@@ -134,11 +133,12 @@ def clear_cache():
 
 
 async def main():
+    current_port = start_port
     clear_cache()
     await load_models()
     await db.connect()
 
-    logging.info("Ищем свободный прост для Pyrogram...")
+    logging.info("Ищем свободный порт для Pyrogram...")
     for _ in range(max_attempts):
         if is_port_available(host, current_port):
             break
