@@ -135,7 +135,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             target_new_bal = target_user_bal - target_penalty
             new_bal = user_bal + target_penalty
             await message.reply(
-                f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{eco_data["currency_sign"]}\nНовый баланс цели {target_new_bal}\nВаш новый баланс: {new_bal}"
+                f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{eco_data["currency_sign"]}Новый баланс цели {target_new_bal}\n{eco_data["currency_sign"]}Ваш новый баланс: {new_bal}"
             )
             await db.set_global_user_param(target_id, "money", target_new_bal)
 
