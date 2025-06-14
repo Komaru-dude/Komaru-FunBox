@@ -8,6 +8,9 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 SERVICE_NAME="komaru-funbox"
+if [ "$branch_name" != "release" ]; then
+    SERVICE_NAME="${SERVICE_NAME}_$branch_name"
+fi
 USER_NAME="komaru"
 GROUP_NAME="komaru-group"
 INSTALL_DIR="/home/${USER_NAME}/komaru-funbox"
