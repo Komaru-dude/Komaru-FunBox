@@ -128,7 +128,7 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
 
 
 def get_service_name() -> str:
-    folder_name = Path(__path__).parent.parent.parent.name
+    folder_name = Path(__file__).parent.parent.parent.name
     if "test" in folder_name:
         return "komaru-funbox_test.service"
     else:
