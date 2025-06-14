@@ -105,6 +105,9 @@ sudo -u ${USER_NAME} nano "${ENV_FILE}"
 
 echo "⚙ Создаём systemd сервис..."
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+if [ "$branch_name" != "release" ]; then
+    SERVICE_FILE="${SERVICE_FILE}_$branch_name"
+fi
 cat > ${SERVICE_FILE} << EOL
 [Unit]
 Description=Komaru FunBox bot
