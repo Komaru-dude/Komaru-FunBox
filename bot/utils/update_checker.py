@@ -49,7 +49,8 @@ async def check_updates():
                 if resp.status != 200:
                     logging.error(f"Ошибка API (version.json), статус: {resp.status}")
                     return
-                data = await resp.json()
+                text = await resp.text()
+                data = json.loads(text)
                 update_cache["latest_ver"] = data.get(branch, "unknown")
 
         update_cache["current_commit"] = commit
