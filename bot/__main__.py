@@ -158,7 +158,7 @@ async def main():
     )
 
     try:
-        await asyncio.create_task(background_update_checker())
+        asyncio.create_task(background_update_checker())
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     finally:
