@@ -7,7 +7,6 @@ import json
 import subprocess
 import traceback
 import uuid
-from pathlib import Path
 from urllib.parse import urlparse
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -16,7 +15,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from bot import database
 from bot.utils.aio_tools import error_report
-from bot.utils.global_storage import CACHE_DIR
+from bot.utils.global_storage import CACHE_DIR, update_cache
 
 base_router = Router()
 models_path = database.BASE_DIR / "data" / "models.json"
@@ -79,56 +78,19 @@ async def cmd_status(message: Message, bot: Bot):
         uptime_str = f"{days}д {hours}ч {minutes}м {seconds}с"
 
         try:
-            version_path = Path(__file__).resolve().parent.parent / "version.json"
-            with version_path.open() as f:
-                version_data = json.load(f)
-                version = version_data.get("version", "unknown")
+            version = update_cache.get("current_ver", "unknown")
+            commit = update_cache.get("current_commit", "unknown")
+            branch = update_cache.get("branch", "unknown")
+            if update_cache.get("has_update", "unknown"):
+                update_status = f"⚡️ Доступно обновление: {update_cache.get("latest_ver", "unknown")}@{update_cache.get("latest_commit", "unknown")}"
+            else:
+                update_status = f"😉 Обновлений нет"
 
-            branch = (
-                subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-                .decode()
-                .strip()
-            )
-            commit = (
-                subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-                .decode()
-                .strip()
-            )
-            repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
-        except Exception:
-            version = branch = commit = "unknown"
-            repo_url = ""
-
-        update_status = "⚠️ Не удалось проверить обновления"
-        if all([branch != "unknown", version != "unknown", repo_url]):
-            try:
-                if "github.com" not in repo_url:
-                    raise ValueError("Поддерживаются только GitHub репозитории")
-
-                repo_path = urlparse(repo_url).path.strip("/")
-                if not repo_path:
-                    raise ValueError("Неверный формат URL")
-
-                owner, repo = repo_path.split("/")[:2]
-                repo = repo.replace(".git", "")
-
-                headers = {"User-Agent": "KomaruBot/1.0"}
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(
-                        f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
-                        headers=headers,
-                    ) as resp:
-                        if resp.status == 200:
-                            data = await resp.json()
-                            latest_commit = data["commit"]["sha"][:7]
-                            if latest_commit != commit:
-                                update_status = f"⚡️ <b>Доступно обновление</b>: {branch}@{latest_commit}"
-                            else:
-                                update_status = "😌 <b>Версия актуальна</b>"
-                        else:
-                            update_status = f"⚠️ Ошибка API: {resp.status}"
-            except Exception as e:
-                update_status = f"⚠️ Ошибка проверки: {str(e)}"
+        except:
+            version = "unknown"
+            commit = "unknown"
+            branch = "unknown"
+            update_status = "unknown"
 
         day_count, week_count = await db.get_use_stats()
 

@@ -22,6 +22,10 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+if [ "$branch_name" != "release" ]; then
+    INSTALL_DIR="${INSTALL_DIR}_$branch_name"
+fi
+
 echo "🚀 Начинаем установку Komaru FunBox..."
 
 echo "🔄 Обновляем пакеты и устанавливаем зависимости..."
@@ -52,6 +56,10 @@ echo "🌪 Инициализируем PostgreSQL бд"
 DB_NAME="funbox_db"
 DB_USER="komaru"
 DB_PASSWORD=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 16)
+
+if [ "$branch_name" != "release" ]; then
+    DB_NAME="${branch_name}_${DB_NAME}"
+fi
 
 echo "Сгенерированный пароль для: $DB_USER: $DB_PASSWORD"  > /home/${USER_NAME}/db_credentials.txt
 chown ${USER_NAME}:${GROUP_NAME} /home/${USER_NAME}/db_credentials.txt
