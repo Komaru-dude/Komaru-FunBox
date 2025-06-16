@@ -6,7 +6,6 @@ import signal
 import sys
 import shutil
 import json
-import socket
 import sys
 import subprocess
 from pathlib import Path
@@ -14,6 +13,7 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
+from bot import PYRO_HOST, PYRO_PORT
 from bot.database import BASE_DIR, Database
 from bot.middlewares.specificchat import SpecificChat
 from bot.middlewares.chatwatcher import ChatWatcher
@@ -46,18 +46,6 @@ dp.message.outer_middleware(SpecificChat())
 db = Database()
 dp["db"] = db
 DATA_DIR = BASE_DIR / "data"
-start_port = 8001
-max_attempts = 15
-host = "127.0.0.1"
-
-
-def is_port_available(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind((host, port))
-            return True
-        except OSError:
-            return False
 
 
 async def load_models():
@@ -133,21 +121,9 @@ def clear_cache():
 
 
 async def main():
-    current_port = start_port
     clear_cache()
     await load_models()
     await db.connect()
-
-    logging.info("Ищем свободный порт для Pyrogram...")
-    for _ in range(max_attempts):
-        if is_port_available(host, current_port):
-            logging.info(f"Найден свободный порт: {current_port}")
-            break
-        current_port += 1
-    else:
-        raise RuntimeError(
-            f"Не нашлось свободных портов в радиусе: {start_port}-{start_port + max_attempts}"
-        )
 
     dp.include_routers(
         base_router,
@@ -175,9 +151,9 @@ async def main():
             uvicorn_exec,
             "bot.utils.pyro_tools:server",
             "--host",
-            host,
+            PYRO_HOST,
             "--port",
-            str(current_port),
+            str(PYRO_PORT),
         ],
         stdout=sys.stdout,
         stderr=sys.stderr,
