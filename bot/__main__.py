@@ -155,8 +155,6 @@ async def main():
             "--port",
             str(PYRO_PORT),
         ],
-        stdout=sys.stdout,
-        stderr=sys.stderr,
         creationflags=(
             subprocess.CREATE_NEW_PROCESS_GROUP if sys.platform == "win32" else 0
         ),
