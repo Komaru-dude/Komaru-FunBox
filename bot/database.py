@@ -1,7 +1,8 @@
-import asyncio, asyncpg, os, time, random, json, logging, time
+import asyncio, asyncpg, os, time, random, json, time
 from pathlib import Path
 from dotenv import load_dotenv
 from datetime import date, timedelta
+from bot import logger
 
 load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -109,14 +110,14 @@ class Database:
     async def connect(self):
         async with self._lock:
             if self.is_connected and self.pool and not self.pool.is_closing():
-                logging.info("Уже подключены к БД.")
+                logger.info("Уже подключены к БД.")
                 return
 
             try:
-                logging.info("Подключаемся к базе данных...")
+                logger.info("Подключаемся к базе данных...")
                 if self.pool and not self.pool.is_closing():
                     await self.pool.close()
-                    logging.info("Существующий пул был закрыт перед переподключением.")
+                    logger.info("Существующий пул был закрыт перед переподключением.")
 
                 self.pool = await asyncpg.create_pool(
                     host=os.getenv("DB_HOST"),
@@ -128,14 +129,14 @@ class Database:
                     max_size=20,
                 )
                 self.is_connected = True
-                logging.info("Пул соединений с БД успешно создан.")
+                logger.info("Пул соединений с БД успешно создан.")
 
                 await self.create_tables()
                 await self.sync_all()
-                logging.info("Успешное подключение и синхронизация с БД.")
+                logger.info("Успешное подключение и синхронизация с БД.")
 
             except Exception as e:
-                logging.critical(
+                logger.critical(
                     f"Не удалось подключиться к БД или выполнить начальную настройку: {e}"
                 )
                 self.is_connected = False

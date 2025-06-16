@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import os
 import subprocess
 import signal
@@ -13,7 +12,7 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
-from bot import PYRO_HOST, PYRO_PORT
+from bot import PYRO_HOST, PYRO_PORT, logger
 from bot.database import BASE_DIR, Database
 from bot.middlewares.specificchat import SpecificChat
 from bot.middlewares.chatwatcher import ChatWatcher
@@ -37,7 +36,6 @@ from .handlers.text import text_router
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
 dp = Dispatcher()
@@ -54,7 +52,7 @@ async def load_models():
 
     try:
         if not models_path.exists():
-            logging.info("Модели отсутствуют, загружаю с API...")
+            logger.info("Модели отсутствуют, загружаю с API...")
             try:
                 models = await fetch_json("https://api.onlysq.ru/ai/models")
 
@@ -68,11 +66,11 @@ async def load_models():
 
                 onlysq_models.clear()
                 onlysq_models.update(models)
-                logging.info(f"Успешно загружено {len(models['models'])} моделей")
+                logger.info(f"Успешно загружено {len(models['models'])} моделей")
                 return
 
             except Exception as e:
-                logging.error(f"Ошибка загрузки с API: {e}")
+                logger.error(f"Ошибка загрузки с API: {e}")
                 onlysq_models.update(default_models)
                 return
 
@@ -86,15 +84,15 @@ async def load_models():
 
             onlysq_models.clear()
             onlysq_models.update(cached_models)
-            logging.info(f"Загружено {len(cached_models['models'])} моделей из кэша")
+            logger.info(f"Загружено {len(cached_models['models'])} моделей из кэша")
 
     except (json.JSONDecodeError, IOError, ValueError) as e:
-        logging.error(f"Критическая ошибка загрузки: {e}")
+        logger.error(f"Критическая ошибка загрузки: {e}")
         onlysq_models.update(default_models)
         models_path.unlink(missing_ok=True)
 
     except Exception as e:
-        logging.critical(f"Непредвиденная ошибка: {e}")
+        logger.critical(f"Непредвиденная ошибка: {e}")
         onlysq_models.update(default_models)
         raise
 
@@ -105,19 +103,19 @@ def clear_cache():
         bot_dir = Path(__file__).resolve().parent
         cache_dir = bot_dir / "cache"
 
-        logging.info(f"Рассчитываем путь к кэшу: {cache_dir}")
+        logger.info(f"Рассчитываем путь к кэшу: {cache_dir}")
 
         # Если папка существует - удаляем
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
-            logging.info("Папка кэша удалена.")
+            logger.info("Папка кэша удалена.")
 
         # Создаем папку, если отсутствует
         cache_dir.mkdir(parents=True, exist_ok=True)
-        logging.info("Кэш успешно очищен!")
+        logger.info("Кэш успешно очищен!")
 
     except Exception as e:
-        logging.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
+        logger.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
 
 
 async def main():

@@ -122,10 +122,12 @@ WorkingDirectory=${INSTALL_DIR}
 EnvironmentFile=${INSTALL_DIR}/.env
 ExecStartPre=/bin/chmod +x ${INSTALL_DIR}/force-pull.sh
 ExecStartPre=/bin/bash ${INSTALL_DIR}/force-pull.sh
-ExecStart=${INSTALL_DIR}/venv/bin/python -m bot
+ExecStart=${INSTALL_DIR}/venv/bin/python -u -m bot
 KillMode=process
 Restart=always
 RestartSec=10
+StandardOutput=journal
+StandardError=journal
 User=${USER_NAME}
 Group=${GROUP_NAME}
 Environment=USER=%n

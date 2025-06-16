@@ -1,5 +1,4 @@
 import socket
-import logging
 
 start_port = 8001
 max_attempts = 15
@@ -15,10 +14,10 @@ def is_port_available(host: str, port: int) -> bool:
 
 def find_port() -> int:
     current_port = start_port
-    logging.info("Ищем свободный порт для Pyrogram...")
+    print("Ищем свободный порт для Pyrogram...")
     for _ in range(max_attempts):
         if is_port_available(host, current_port):
-            logging.info(f"Найден свободный порт: {current_port}")
+            print(f"Найден свободный порт: {current_port}")
             return current_port
         current_port += 1
     raise RuntimeError(
