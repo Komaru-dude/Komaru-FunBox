@@ -141,11 +141,12 @@ async def main():
     logging.info("Ищем свободный порт для Pyrogram...")
     for _ in range(max_attempts):
         if is_port_available(host, current_port):
+            logging.info(f"Найден свободный порт: {current_port}")
             break
         current_port += 1
     else:
         raise RuntimeError(
-            f"No free ports found in range {start_port}-{start_port + max_attempts}"
+            f"Не нашлось свободных портов в радиусе: {start_port}-{start_port + max_attempts}"
         )
 
     dp.include_routers(
