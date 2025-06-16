@@ -1,10 +1,10 @@
 import aiohttp
 import asyncio
 import json
-import logging
 import subprocess
 from .global_storage import update_cache
 from pathlib import Path
+from bot import logger
 
 
 async def check_updates():
@@ -25,7 +25,7 @@ async def check_updates():
             version_data = json.load(f)
             api_url = version_data.get("repo_api", None)
             if not api_url:
-                logging.error("repo_api не указан в version.json")
+                logger.error("repo_api не указан в version.json")
                 return
 
         api_branches_url = f"{api_url}/branches/{branch}"
@@ -36,7 +36,7 @@ async def check_updates():
         async with aiohttp.ClientSession() as session:
             async with session.get(api_branches_url, headers=headers) as resp:
                 if resp.status != 200:
-                    logging.error(f"Ошибка API (branches), статус: {resp.status}")
+                    logger.error(f"Ошибка API (branches), статус: {resp.status}")
                     return
                 data = await resp.json()
                 latest_commit = data["commit"]["sha"][:7]
@@ -47,7 +47,7 @@ async def check_updates():
             headers["Accept"] = "application/vnd.github.v3.raw"
             async with session.get(api_content_url, headers=headers) as resp:
                 if resp.status != 200:
-                    logging.error(f"Ошибка API (version.json), статус: {resp.status}")
+                    logger.error(f"Ошибка API (version.json), статус: {resp.status}")
                     return
                 text = await resp.text()
                 data = json.loads(text)
@@ -57,12 +57,12 @@ async def check_updates():
         update_cache["branch"] = branch
 
         if update_cache["has_update"]:
-            logging.info(f"Доступно обновление: {commit} -> {latest_commit}")
+            logger.info(f"Доступно обновление: {commit} -> {latest_commit}")
         else:
-            logging.info("Обновлений нет")
+            logger.info("Обновлений нет")
 
     except Exception as e:
-        logging.exception(f"Ошибка при проверке обновлений: {e}")
+        logger.exception(f"Ошибка при проверке обновлений: {e}")
 
 
 async def background_update_checker():

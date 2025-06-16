@@ -1,15 +1,14 @@
 import asyncio
 import os
-import logging
 from pyrogram import Client
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
+from bot import logger
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
 
 api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
@@ -23,9 +22,6 @@ app = (
     else Client("my_bot")
 )
 
-logging.basicConfig(level=logging.INFO)
-
-
 @server.get("/user/{username}")
 async def get_user_id(username: str):
     """Получить user_id по username"""
@@ -33,7 +29,7 @@ async def get_user_id(username: str):
         user = await app.get_users(username)
         return {"user_id": user.id}
     except Exception as e:
-        logging.error(f"Ошибка при получении user_id для {username}: {e}")
+        logger.error(f"Ошибка при получении user_id для {username}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -51,13 +47,13 @@ async def get_username_by_id(chat_id: str, user_id: int):
         ]:
             return {"username": chat_member.user.username}
         else:
-            logging.warning(f"Пользователь {user_id} в чате {chat_id} не является активным членом. Статус: {chat_member.status}")
+            logger.warning(f"Пользователь {user_id} в чате {chat_id} не является активным членом. Статус: {chat_member.status}")
             raise HTTPException(status_code=404, detail=f"User not an active participant: {chat_member.status}")
     except UserNotParticipant:
-        logging.warning(f"Пользователь {user_id} не найден в чате {chat_id} (через прямой запрос Pyrogram).")
+        logger.warning(f"Пользователь {user_id} не найден в чате {chat_id} (через прямой запрос Pyrogram).")
         raise HTTPException(status_code=404, detail="User not found in chat.")
     except Exception as e:
-        logging.error(
+        logger.error(
             f"Ошибка при получении username для {user_id} в чате {chat_id}: {e}"
         )
         raise HTTPException(status_code=400, detail=str(e))
@@ -72,7 +68,7 @@ async def get_first_name_by_id(chat_id: str, user_id: int):
                 return {"first_name": member.user.first_name}
         raise HTTPException(status_code=404, detail="User not found")
     except Exception as e:
-        logging.error(
+        logger.error(
             f"Ошибка при получении first_name для {user_id} в чате {chat_id}: {e}"
         )
         raise HTTPException(status_code=400, detail=str(e))
@@ -93,14 +89,14 @@ async def get_chat_members(chat_id: str):
             )
         return {"members": members}
     except Exception as e:
-        logging.error(f"Ошибка при получении участников чата {chat_id}: {e}")
+        logger.error(f"Ошибка при получении участников чата {chat_id}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
 async def start_pyrogram():
     """Запуск Pyrogram-бота в фоне"""
     await app.start()
-    logging.info("Pyrogram бот запущен.")
+    logger.info("Pyrogram бот запущен.")
     await asyncio.Event().wait()
 
 

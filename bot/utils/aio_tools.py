@@ -2,10 +2,9 @@ from datetime import datetime, timedelta
 import aiohttp
 import uuid
 import os
-import logging
 from aiogram import Bot
 from aiogram.types import Message
-from bot import PYRO_HOST, PYRO_PORT
+from bot import PYRO_HOST, PYRO_PORT, logger
 from bot.utils.global_storage import error_report_lock, error_report_timestamps
 
 API_HOST = f"http://{PYRO_HOST}:{PYRO_PORT}"
@@ -181,7 +180,7 @@ async def error_report(message: Message, bot: Bot, command, traceback):
             try:
                 await bot.send_message(os.getenv("OWNER_ID"), chunk)
             except Exception as e:
-                logging.error(f"Ошибка при отправке отчёта владельцу: {e}")
+                logger.error(f"Ошибка при отправке отчёта владельцу: {e}")
 
     elif send_owner_alert:
         alert_message = (
@@ -192,7 +191,7 @@ async def error_report(message: Message, bot: Bot, command, traceback):
         try:
             await bot.send_message(os.getenv("OWNER_ID"), alert_message)
         except Exception as e:
-            logging.error(f"Ошибка при отправке предупреждения: {e}")
+            logger.error(f"Ошибка при отправке предупреждения: {e}")
 
 
 def convert_seconds(seconds):

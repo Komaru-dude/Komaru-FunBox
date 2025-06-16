@@ -1,10 +1,10 @@
 import os
-import logging
 import traceback
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import Bot, BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
 from aiogram.enums import ParseMode
+from bot import logger
 from bot.database import Database
 
 
@@ -56,7 +56,7 @@ class ChatWatcher(BaseMiddleware):
                     await db.add_chat(chat_id, chat_data={"type": chat_type})
                     if chat_type != "private":
                         msg = f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
-                        logging.info(msg)
+                        logger.info(msg)
                         if owner_id := os.getenv("OWNER_ID"):
                             await bot.send_message(owner_id, msg)
 
@@ -67,7 +67,7 @@ class ChatWatcher(BaseMiddleware):
                             user_id, {"language_code": language_code}
                         )
                         msg = f'🔔 Новый пользователь бота: <a href="tg://user?id={user_id}">{user_id}</a>, имя: {user_name}'
-                        logging.info(msg)
+                        logger.info(msg)
                         if owner_id := os.getenv("OWNER_ID"):
                             await bot.send_message(
                                 owner_id, msg, parse_mode=ParseMode.HTML
@@ -75,7 +75,7 @@ class ChatWatcher(BaseMiddleware):
 
             return await handler(event, data)
         except Exception:
-            logging.error("❌ Ошибка в ChatWatcher:", exc_info=True)
+            logger.error("❌ Ошибка в ChatWatcher:", exc_info=True)
             if owner_id := os.getenv("OWNER_ID"):
                 await bot.send_message(
                     owner_id, f"❌ Ошибка в ChatWatcher:\n\n{traceback.format_exc()}"

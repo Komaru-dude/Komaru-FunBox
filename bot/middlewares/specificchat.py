@@ -1,9 +1,9 @@
 import os
-import logging
 import traceback
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import Bot, BaseMiddleware
 from aiogram.types import Message, CallbackQuery, TelegramObject
+from bot import logger
 from bot.database import Database
 
 
@@ -40,7 +40,7 @@ class SpecificChat(BaseMiddleware):
                 return await handler(event, data)
 
         except Exception:
-            logging.error("❌ Ошибка в SpecificChat:", exc_info=True)
+            logger.error("❌ Ошибка в SpecificChat:", exc_info=True)
             if self.owner_id:
                 await bot.send_message(
                     self.owner_id,
