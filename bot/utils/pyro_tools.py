@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+logging.basicConfig(level=logging.INFO)
+
 api_id = os.getenv("API_ID")
 api_hash = os.getenv("API_HASH")
 token = os.getenv("BOT_API_TOKEN")
