@@ -134,7 +134,9 @@ def get_service_name() -> str:
     else:
         return "komaru-funbox.service"
 
+
 SERVICE_NAME = get_service_name()
+
 
 @base_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot):
@@ -149,6 +151,7 @@ async def cmd_restart(message: Message, bot: Bot):
         subprocess.Popen(["sudo", "systemctl", "restart", SERVICE_NAME])
     except Exception:
         await error_report(message, bot, "restart", traceback.format_exc())
+
 
 @base_router.message(Command("update"))
 async def cmd_update(message: Message, bot: Bot):
@@ -209,6 +212,7 @@ async def cmd_update(message: Message, bot: Bot):
         subprocess.Popen(["sudo", "systemctl", "restart", SERVICE_NAME])
     except Exception:
         await error_report(message, bot, "update", traceback.format_exc())
+
 
 @base_router.message(Command("logs"))
 async def cmd_send_logs(message: Message, bot: Bot):
