@@ -61,7 +61,10 @@ async def fetch_user_data(user_id=None, username=None, first_name=None, chat_id=
         if user_id and chat_id:
             # Проверяем существование пользователя в чате
             url = f"{API_HOST}/username/{chat_id}/{user_id}"
-            username_data = await fetch_json(url)
+            try:
+                username_data = await fetch_json(url)
+            except Exception:
+                return {"error": "Не удалось проверить существование пользователя"}
             if "username" in username_data:
                 first_name_data = await fetch_json(
                     f"{API_HOST}/first_name/{chat_id}/{user_id}"
@@ -76,7 +79,10 @@ async def fetch_user_data(user_id=None, username=None, first_name=None, chat_id=
         elif username:
             # Получаем user_id по username
             url = f"{API_HOST}/user/{username}"
-            user_data = await fetch_json(url)
+            try:
+                user_data = await fetch_json(url)
+            except Exception:
+                return {"error": "Не удалось проверить существование пользователя"}
             if "user_id" in user_data:
                 if chat_id:
                     first_name_data = await fetch_json(
@@ -91,7 +97,10 @@ async def fetch_user_data(user_id=None, username=None, first_name=None, chat_id=
         elif first_name and chat_id:
             # Ищем пользователя по имени в чате
             url = f"{API_HOST}/chat_members/{chat_id}"
-            members_data = await fetch_json(url)
+            try:
+                members_data = await fetch_json(url)
+            except Exception:
+                return {"error": "Не удалось проверить существование пользователя"}
             for member in members_data.get("members", []):
                 if member.get("first_name") == first_name:
                     return {
