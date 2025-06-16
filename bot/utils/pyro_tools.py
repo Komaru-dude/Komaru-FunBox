@@ -2,6 +2,8 @@ import asyncio
 import os
 import logging
 from pyrogram import Client
+from pyrogram.enums import ChatMemberStatus
+from pyrogram.errors import UserNotParticipant
 from fastapi import FastAPI, HTTPException
 from dotenv import load_dotenv
 
@@ -39,10 +41,21 @@ async def get_user_id(username: str):
 async def get_username_by_id(chat_id: str, user_id: int):
     """Получить username по user_id и chat_id"""
     try:
-        async for member in app.get_chat_members(chat_id):
-            if member.user.id == user_id:
-                return {"username": member.user.username}
-        raise HTTPException(status_code=404, detail="User not found")
+        chat_member = await app.get_chat_member(chat_id, user_id)
+
+        if chat_member.status in [
+            ChatMemberStatus.MEMBER,
+            ChatMemberStatus.ADMINISTRATOR,
+            ChatMemberStatus.CREATOR,
+            ChatMemberStatus.RESTRICTED
+        ]:
+            return {"username": chat_member.user.username}
+        else:
+            logging.warning(f"Пользователь {user_id} в чате {chat_id} не является активным членом. Статус: {chat_member.status}")
+            raise HTTPException(status_code=404, detail=f"User not an active participant: {chat_member.status}")
+    except UserNotParticipant:
+        logging.warning(f"Пользователь {user_id} не найден в чате {chat_id} (через прямой запрос Pyrogram).")
+        raise HTTPException(status_code=404, detail="User not found in chat.")
     except Exception as e:
         logging.error(
             f"Ошибка при получении username для {user_id} в чате {chat_id}: {e}"
