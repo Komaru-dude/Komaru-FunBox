@@ -11,7 +11,8 @@ def setup_logger():
     handler.setFormatter(formatter)
 
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    root_logger.setLevel(logging.INFO)
+    logging.getLogger("pyrogram").setLevel(logging.WARNING)
     root_logger.addHandler(handler)
     return root_logger
 
