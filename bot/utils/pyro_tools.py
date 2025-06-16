@@ -46,7 +46,7 @@ async def get_username_by_id(chat_id: str, user_id: int):
         if chat_member.status in [
             ChatMemberStatus.MEMBER,
             ChatMemberStatus.ADMINISTRATOR,
-            ChatMemberStatus.CREATOR,
+            ChatMemberStatus.OWNER,
             ChatMemberStatus.RESTRICTED
         ]:
             return {"username": chat_member.user.username}
