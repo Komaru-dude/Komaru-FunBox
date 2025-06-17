@@ -7,12 +7,11 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
-from bot import database
+from bot.database import Database
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import update_cache
 
 base_router = Router()
-db = database.Database()
 # Списки хранения данных для /status
 cpu_loads = []
 memory_loads = []
@@ -35,7 +34,7 @@ async def cmd_start(message: Message):
 
 
 @base_router.message(Command("status"))
-async def cmd_status(message: Message, bot: Bot):
+async def cmd_status(message: Message, bot: Bot, db: Database):
     try:
         global start_time
 

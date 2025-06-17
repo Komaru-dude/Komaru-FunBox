@@ -222,7 +222,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             parsed_url = urlparse(message.text)
             domain = parsed_url.netloc.lower().replace("www.", "")
             if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
-                await cmd_video(message, bot, url=message.text)
+                await cmd_video(message, bot, url=message.text, db=db)
                 return
         elif command in commands:
             if not message.reply_to_message and len(split_text) < 2:

@@ -22,12 +22,11 @@ from bot.utils.global_storage import (
     active_chats_lock,
     onlysq_models,
 )
-from bot import database
+from bot.database import Database
 
 ai_router = Router()
 url = os.getenv("API_URL")
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
-db = database.Database()
 
 SUPPORTED_LANGUAGES = {
     "zh": "Китайский",
@@ -125,6 +124,7 @@ async def cmd_ai(
     model: str = None,
     messages: list = None,
     cli_mode: bool = False,
+    db: Database = None
 ):
     try:
         default_model = "gemini-2.5-flash-preview-04-17"
@@ -357,7 +357,7 @@ async def cmd_aggemini(message: Message, bot: Bot):
 
 
 @ai_router.message(Command("image"))
-async def cmd_image(message: Message, bot: Bot):
+async def cmd_image(message: Message, bot: Bot, db: Database):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
@@ -509,6 +509,7 @@ async def cmd_translate(
     cli_mode: bool = False,
     request: str = None,
     target_lang: str = None,
+    db: Database = None
 ):
     try:
         if not cli_mode and (message is None or bot is None):
@@ -677,7 +678,7 @@ async def cmd_ocr(message: Message, bot: Bot):
 
 
 @ai_router.message(Command("chat"))
-async def cmd_chat(message: Message, bot: Bot, state: FSMContext):
+async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
         split_text = message.text.split() if message.text else [""]
@@ -804,7 +805,7 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
 
 
 @ai_router.message(Command("chat_stop"))
-async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext):
+async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -835,7 +836,7 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext):
 
 
 @ai_router.message(Command("set_def_model"))
-async def cmd_set_default_model(message: Message, bot: Bot):
+async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id

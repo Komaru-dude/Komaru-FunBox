@@ -5,10 +5,9 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from bot.utils.aio_tools import error_report
-from bot import database
+from bot.database import Database
 
 image_router = Router()
-db = database.Database()
 CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 
 
@@ -23,7 +22,7 @@ async def get_last_profile_photo(user_id, bot):
 
 
 @image_router.message(Command("jpeg"))
-async def cmd_jpeg(message: Message, bot: Bot):
+async def cmd_jpeg(message: Message, bot: Bot, db: Database):
     command = "jpeg"
     input_path = output_path = processing_msg = image = None
     try:

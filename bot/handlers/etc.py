@@ -11,11 +11,10 @@ from aiogram.filters import Command
 from aiogram.types import Message, URLInputFile
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from bot import database
+from bot.database import Database
 from bot.utils.aio_tools import error_report
 
 etc_router = Router()
-db = database.Database()
 current_dir = os.path.dirname(os.path.abspath(__file__))
 media_folder = os.path.join(current_dir, "..", "media")
 sticker_extensions = {".webp", ".tgs", ".webm"}
@@ -32,7 +31,7 @@ dog_http_codes = load_http_codes("dog_http_codes.json")
 
 
 @etc_router.message(Command("coffee"))
-async def cmd_tea(message: Message, bot: Bot):
+async def cmd_tea(message: Message, bot: Bot, db: Database):
     try:
         if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
@@ -56,7 +55,7 @@ async def cmd_tea(message: Message, bot: Bot):
 
 
 @etc_router.message(Command("http_cat"))
-async def cmd_http_cat(message: Message, bot: Bot):
+async def cmd_http_cat(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
         code = None
@@ -87,7 +86,7 @@ async def cmd_http_cat(message: Message, bot: Bot):
 
 
 @etc_router.message(Command("http_dog"))
-async def cmd_http_dog(message: Message, bot: Bot):
+async def cmd_http_dog(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
         code = None
@@ -118,7 +117,7 @@ async def cmd_http_dog(message: Message, bot: Bot):
 
 
 @etc_router.message(Command("cat"))
-async def cmd_cat(message: Message, bot: Bot):
+async def cmd_cat(message: Message, bot: Bot, db: Database):
     try:
         if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")
@@ -132,7 +131,7 @@ async def cmd_cat(message: Message, bot: Bot):
 
 
 @etc_router.message(Command("cat_gif"))
-async def cmd_cat_gif(message: Message, bot: Bot):
+async def cmd_cat_gif(message: Message, bot: Bot, db: Database):
     try:
         if await db.is_user_mediabanned(message.from_user.id):
             await message.reply("❌ Вы заблокированы, это действие вам запрещено")

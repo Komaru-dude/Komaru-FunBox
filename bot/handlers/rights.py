@@ -7,12 +7,11 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot import database
+from bot.database import Database
 from bot.database import RANK_TO_LEVEL
 from bot.utils import aio_tools
 
 rights_router = Router()
-db = database.Database()
 
 
 class SetRankStates(StatesGroup):
@@ -21,7 +20,7 @@ class SetRankStates(StatesGroup):
 
 
 @rights_router.message(Command("set_rank"))
-async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
+async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -51,7 +50,7 @@ async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot):
 
 
 @rights_router.message(SetRankStates.waiting_for_username)
-async def process_username(message: Message, state: FSMContext):
+async def process_username(message: Message, state: FSMContext, db: Database):
     chat_id = message.chat.id
     text = message.text
     user_id = None
@@ -134,7 +133,7 @@ async def process_username(message: Message, state: FSMContext):
 
 
 @rights_router.callback_query(SetRankStates.waiting_for_rank)
-async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot: Bot):
+async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot: Bot, db: Database):
     data = await state.get_data()
     target_user_id = data["target_user_id"]
     first_name = data["first_name"]

@@ -7,7 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
-from bot import database
+from bot.database import Database
 from bot.utils.aio_tools import (
     fetch_user_data,
     error_report,
@@ -15,7 +15,6 @@ from bot.utils.aio_tools import (
 )
 
 mods_router = Router()
-db = database.Database()
 
 
 def parse_time(time_str: str) -> timedelta:
@@ -29,7 +28,7 @@ def parse_time(time_str: str) -> timedelta:
 
 
 @mods_router.message(Command("enable"))
-async def cmd_enable_func(message: Message, bot: Bot):
+async def cmd_enable_func(message: Message, bot: Bot, db: Database):
     chat_id = message.chat.id
     user_id = message.from_user.id
     if message.chat.type in ["private", "channel"]:
@@ -62,7 +61,7 @@ async def cmd_enable_func(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("disable"))
-async def cmd_disable_func(message: Message, bot: Bot):
+async def cmd_disable_func(message: Message, bot: Bot, db: Database):
     chat_id = message.chat.id
     user_id = message.from_user.id
     if message.chat.type in ["private", "channel"]:
@@ -95,7 +94,7 @@ async def cmd_disable_func(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("history"))
-async def cmd_history(message: Message, bot: Bot):
+async def cmd_history(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.strip().split()
         chat_id = message.chat.id
@@ -160,7 +159,7 @@ async def cmd_history(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("warn"))
-async def cmd_warn(message: Message, bot: Bot):
+async def cmd_warn(message: Message, bot: Bot, db: Database):
     command = "warn"
     try:
         chat_id = message.chat.id
@@ -273,7 +272,7 @@ async def cmd_warn(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("info"))
-async def cmd_info(message: Message, bot: Bot):
+async def cmd_info(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
         split_text = message.text.split()
@@ -327,7 +326,7 @@ async def cmd_info(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("mute"))
-async def cmd_mute(message: Message, bot: Bot):
+async def cmd_mute(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -413,7 +412,7 @@ async def cmd_mute(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("ban"))
-async def cmd_ban(message: Message, bot: Bot):
+async def cmd_ban(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -494,7 +493,7 @@ async def cmd_ban(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("unmute"))
-async def cmd_unmute(message: Message, bot: Bot):
+async def cmd_unmute(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -552,7 +551,7 @@ async def cmd_unmute(message: Message, bot: Bot):
 
 
 @mods_router.message(Command("unban"))
-async def cmd_unban(message: Message, bot: Bot):
+async def cmd_unban(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id

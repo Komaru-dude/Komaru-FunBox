@@ -7,12 +7,11 @@ from aiogram.enums import ParseMode
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from bot import database
+from bot.database import Database
 from bot.utils.aio_tools import error_report
 from pathlib import Path
 
 rp_router = Router()
-db = database.Database()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
@@ -43,7 +42,7 @@ def get_chat_commands(chat_id: int):
 
 
 @rp_router.message(Command("rp_setup"))
-async def cmd_rp_setup(message: Message, bot: Bot):
+async def cmd_rp_setup(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         msg_id = message.message_id
@@ -150,7 +149,7 @@ class AddRpCommandStates(StatesGroup):
 
 
 @rp_router.message(Command("rp_add"))
-async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext):
+async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
@@ -270,7 +269,7 @@ async def process_messages(message: Message, state: FSMContext):
 
 
 @rp_router.message(Command("rp_remove"))
-async def cmd_rp_remove(message: Message, bot: Bot):
+async def cmd_rp_remove(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
         user_id = message.from_user.id
@@ -312,7 +311,7 @@ async def cmd_rp_remove(message: Message, bot: Bot):
 
 
 @rp_router.message(Command("rp_wipe"))
-async def cmd_rp_wipe(message: Message, bot: Bot):
+async def cmd_rp_wipe(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
         user_id = message.from_user.id

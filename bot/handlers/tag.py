@@ -3,15 +3,14 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
-from bot import database
+from bot.database import Database
 from bot.utils.aio_tools import fetch_json, error_report
 
 tag_router = Router()
-db = database.Database()
 
 
 @tag_router.message(Command("tag"))
-async def cmd_tag(message: Message, bot: Bot):
+async def cmd_tag(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
         split_text = message.text.split(maxsplit=2)
@@ -51,7 +50,7 @@ async def cmd_tag(message: Message, bot: Bot):
 
 
 @tag_router.message(Command("tagall"))
-async def cmd_tagall(message: Message, bot: Bot):
+async def cmd_tagall(message: Message, bot: Bot, db: Database):
     try:
         if message.chat.type not in ["group", "supergroup"]:
             await message.reply(

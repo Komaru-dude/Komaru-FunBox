@@ -6,12 +6,12 @@ from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
-from bot import database, logger
+from bot import logger
+from bot.database import Database
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import CACHE_DIR
 
 video_router = Router()
-db = database.Database()
 
 
 async def download_video(url: str) -> dict:
@@ -41,7 +41,7 @@ async def download_video(url: str) -> dict:
 
 
 @video_router.message(Command("video"))
-async def cmd_video(message: Message, bot: Bot, url=None):
+async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
     command = "video"
     file_path = None
     processing_msg = None
@@ -82,7 +82,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
 
 
 @video_router.message(Command("gif"))
-async def cmd_gif(message: Message, bot: Bot):
+async def cmd_gif(message: Message, bot: Bot, db: Database):
     command = "gif"
     input_path = None
     frames_dir = None
