@@ -20,6 +20,7 @@ from bot.utils.global_storage import onlysq_models
 from bot.utils.aio_tools import fetch_json
 from bot.utils.update_checker import background_update_checker
 
+from .handlers.administration import admin_router
 from .handlers.basic import base_router
 from .handlers.etc import etc_router
 from .handlers.time import time_router
@@ -124,6 +125,7 @@ async def main():
     await db.connect()
 
     dp.include_routers(
+        admin_router,
         base_router,
         etc_router,
         time_router,

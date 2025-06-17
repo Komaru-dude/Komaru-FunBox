@@ -15,7 +15,6 @@ from bot import database
 from bot.utils.aio_tools import error_report
 
 etc_router = Router()
-API_URL = "http://127.0.0.1:8001"
 db = database.Database()
 current_dir = os.path.dirname(os.path.abspath(__file__))
 media_folder = os.path.join(current_dir, "..", "media")

@@ -4,7 +4,6 @@ from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
-from bot.utils.image_tools import replace_green_screen
 from bot.utils.aio_tools import error_report
 from bot import database
 

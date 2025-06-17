@@ -16,7 +16,6 @@ from bot.utils.aio_tools import (
 
 mods_router = Router()
 db = database.Database()
-API_URL = "http://127.0.0.1:8001"
 
 
 def parse_time(time_str: str) -> timedelta:
