@@ -129,7 +129,9 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         fail_percent = eco_data["rob_fail_percent"]
         if random.randint(1, 100) <= fail_percent:
             new_bal = user_bal / 2
-            await message.reply(f"😔 Вам не повезло.\n🧨 Ваш новый баланс: {new_bal}")
+            await message.reply(
+                f"😔 Вам не повезло.\n🧨 Вы потеряли: {user_bal / 2}\n{eco_data["currency_sign"]} Ваш новый баланс: {new_bal}"
+            )
         else:
             target_penalty = target_user_bal * (succeed_percent / 100)
             target_new_bal = target_user_bal - target_penalty
