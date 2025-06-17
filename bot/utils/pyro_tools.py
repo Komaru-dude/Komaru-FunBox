@@ -22,6 +22,7 @@ app = (
     else Client("my_bot")
 )
 
+
 @server.get("/user/{username}")
 async def get_user_id(username: str):
     """Получить user_id по username"""
@@ -43,14 +44,21 @@ async def get_username_by_id(chat_id: str, user_id: int):
             ChatMemberStatus.MEMBER,
             ChatMemberStatus.ADMINISTRATOR,
             ChatMemberStatus.OWNER,
-            ChatMemberStatus.RESTRICTED
+            ChatMemberStatus.RESTRICTED,
         ]:
             return {"username": chat_member.user.username}
         else:
-            logger.warning(f"Пользователь {user_id} в чате {chat_id} не является активным членом. Статус: {chat_member.status}")
-            raise HTTPException(status_code=404, detail=f"User not an active participant: {chat_member.status}")
+            logger.warning(
+                f"Пользователь {user_id} в чате {chat_id} не является активным членом. Статус: {chat_member.status}"
+            )
+            raise HTTPException(
+                status_code=404,
+                detail=f"User not an active participant: {chat_member.status}",
+            )
     except UserNotParticipant:
-        logger.warning(f"Пользователь {user_id} не найден в чате {chat_id} (через прямой запрос Pyrogram).")
+        logger.warning(
+            f"Пользователь {user_id} не найден в чате {chat_id} (через прямой запрос Pyrogram)."
+        )
         raise HTTPException(status_code=404, detail="User not found in chat.")
     except Exception as e:
         logger.error(

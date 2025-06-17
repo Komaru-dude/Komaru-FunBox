@@ -4,6 +4,7 @@ start_port = 8001
 max_attempts = 15
 host = "127.0.0.1"
 
+
 def is_port_available(host: str, port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
@@ -11,6 +12,7 @@ def is_port_available(host: str, port: int) -> bool:
             return True
         except OSError:
             return False
+
 
 def find_port() -> int:
     current_port = start_port
