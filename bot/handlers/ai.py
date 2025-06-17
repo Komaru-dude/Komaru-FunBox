@@ -124,7 +124,7 @@ async def cmd_ai(
     model: str = None,
     messages: list = None,
     cli_mode: bool = False,
-    db: Database = None
+    db: Database = None,
 ):
     try:
         default_model = "gemini-2.5-flash-preview-04-17"
@@ -509,7 +509,7 @@ async def cmd_translate(
     cli_mode: bool = False,
     request: str = None,
     target_lang: str = None,
-    db: Database = None
+    db: Database = None,
 ):
     try:
         if not cli_mode and (message is None or bot is None):

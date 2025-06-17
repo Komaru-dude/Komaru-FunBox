@@ -133,7 +133,9 @@ async def process_username(message: Message, state: FSMContext, db: Database):
 
 
 @rights_router.callback_query(SetRankStates.waiting_for_rank)
-async def process_rank_selection(callback: CallbackQuery, state: FSMContext, bot: Bot, db: Database):
+async def process_rank_selection(
+    callback: CallbackQuery, state: FSMContext, bot: Bot, db: Database
+):
     data = await state.get_data()
     target_user_id = data["target_user_id"]
     first_name = data["first_name"]

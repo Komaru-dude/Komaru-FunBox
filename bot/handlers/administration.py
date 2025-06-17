@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 admin_router = Router()
 models_path = database.BASE_DIR / "data" / "models.json"
 
+
 def get_service_name() -> str:
     folder_name = Path(__file__).parent.parent.parent.name
     if "test" in folder_name:
@@ -212,9 +213,7 @@ async def cmd_ban_user(message: Message, bot: Bot, db: Database):
                     return
 
             except Exception:
-                await error_report(
-                    message, bot, "ban_media", traceback.format_exc()
-                )
+                await error_report(message, bot, "ban_media", traceback.format_exc())
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = int(split_text[1])
@@ -279,9 +278,7 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
                     return
 
             except Exception:
-                await error_report(
-                    message, bot, "unban_media", traceback.format_exc()
-                )
+                await error_report(message, bot, "unban_media", traceback.format_exc())
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = int(split_text[1])
@@ -307,7 +304,4 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
         await db.mediaunban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception as e:
-        await error_report(
-            message, bot, "unban_media", traceback.format_exc()
-        )
-
+        await error_report(message, bot, "unban_media", traceback.format_exc())
