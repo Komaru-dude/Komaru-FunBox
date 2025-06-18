@@ -328,7 +328,7 @@ async def cmd_ai(
 
 
 @ai_router.message(Command("agai"))
-async def cmd_aggemini(message: Message, bot: Bot):
+async def cmd_aggemini(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split(maxsplit=1)
 
@@ -351,7 +351,7 @@ async def cmd_aggemini(message: Message, bot: Bot):
             {"role": "user", "content": request},
         ]
 
-        await cmd_ai(message, bot, messages=messages)
+        await cmd_ai(message, bot, messages=messages, db=db)
     except Exception:
         await error_report(message, bot, "agai", traceback.format_exc())
 
