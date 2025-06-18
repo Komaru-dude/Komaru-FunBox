@@ -129,8 +129,8 @@ async def cmd_ai(
     try:
         default_model = "gemini-2.5-flash"
 
-        if not cli_mode and (message is None or bot is None):
-            raise TypeError("Вне cli_mode обязателен message и bot")
+        if not cli_mode and (message is None or bot is None or db is None):
+            raise TypeError("Вне cli_mode обязателен message, bot и db")
 
         request = ""
         base_msg = None
