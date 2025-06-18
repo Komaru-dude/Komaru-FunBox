@@ -127,7 +127,7 @@ async def cmd_ai(
     db: Database = None,
 ):
     try:
-        default_model = "gemini-2.5-flash-preview-04-17"
+        default_model = "gemini-2.5-flash"
 
         if not cli_mode and (message is None or bot is None):
             raise TypeError("Вне cli_mode обязателен message и bot")
@@ -277,7 +277,7 @@ async def cmd_ai(
                 answer = re.sub(
                     r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
                 ).strip()
-            elif model == "gemini-2.5-pro-exp-03-25":
+            elif model == "gemini-2.5-flash":
                 answer = re.sub(
                     r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
                 ).strip()
@@ -686,7 +686,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         args_text = " ".join(args)
         argue_mode = "-argue" in split_text[1:]
         aggressive_mode = "-aggressive" in split_text[1:] and not argue_mode
-        default_model = "gemini-2.5-flash-preview-04-17"
+        default_model = "gemini-2.5-flash"
         model_name = None
         model = None
 

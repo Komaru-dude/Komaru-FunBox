@@ -146,7 +146,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     answer = re.sub(
                         r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
                     ).strip()
-                elif model == "gemini-2.5-pro-exp-03-25":
+                elif model == "gemini-2.5-flash":
                     answer = re.sub(
                         r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
                     ).strip()
