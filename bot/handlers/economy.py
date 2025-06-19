@@ -235,18 +235,22 @@ async def handle_dice_throw(
         user_bal = await db.get_global_user_param(user_id, "money")
         currency_sign = await db.get_eco_param("currency_sign")
 
-        if value >= 5:
+        if value > 4:
             new_bal = user_bal + bet
             await callback.message.answer(
                 f"🎉 Победа! +{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
             )
-            await db.set_global_user_param(user_id, "money")
+            await db.set_global_user_param(user_id, "money", new_bal)
+        elif value == 3:
+            await callback.message.answer(
+                f"🎲 Ничья. Ваша ставка возвращена.\n{currency_sign} Ваш текущий баланс: {user_bal}"
+            )
         else:
             new_bal = user_bal - bet
             await callback.message.answer(
                 f"💸 Проигрыш. -{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
             )
-            await db.set_global_user_param(user_id, "money")
+            await db.set_global_user_param(user_id, "money", new_bal)
 
         await state.clear()
 
