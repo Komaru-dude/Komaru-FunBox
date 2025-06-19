@@ -1,10 +1,13 @@
 import os
 import random
 import traceback
-from aiogram import Router, Bot
-from aiogram.types import Message
+from aiogram import Router, Bot, F
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
@@ -152,3 +155,97 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
     except Exception:
         await db.reset_cooldown(user_id, "rob")
         await error_report(message, bot, "rob", traceback.format_exc())
+
+
+class Dice(StatesGroup):
+    choose_bet = State()
+    choose_dice = State()
+
+
+@eco_router.message(
+    Command("dice"),
+    FuncEnabled("economy"),
+    CooldownFilter(command="dice", cooldown=5),
+)
+async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        currency_sign = await db.get_eco_param("currency_sign")
+        await message.reply(f"💸 Выберите ставку.\nОт {currency_sign} 50")
+        await state.set_state(Dice.choose_bet)
+    except Exception:
+        await error_report(message, bot, "dice", traceback.format_exc())
+
+
+@eco_router.message(Dice.choose_bet)
+async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext):
+    currency_sign = await db.get_eco_param("currency_sign")
+    user_id = message.from_user.id
+    try:
+        number = float(message.text)
+        if number < 50:
+            await message.reply(f"❌ Минимальная ставка - {currency_sign} 50")
+            return
+
+        await state.update_data(bet=number)
+
+        builder = InlineKeyboardBuilder()
+        builder.add(
+            *[
+                (
+                    InlineKeyboardBuilder().button(
+                        text=emoji, callback_data=f"{user_id}|{emoji}"
+                    )
+                )
+                for emoji in ("🎯", "🎯", "🎲")
+            ]
+        )
+        await message.reply(
+            '⚽️ Хорошо, выберите, что "бросите":',
+            reply_markup=builder.as_markup(resize_keyboard=True),
+        )
+        await state.set_state(Dice.choose_dice)
+
+    except ValueError:
+        await message.reply("❌ Это не число. Пожалуйста, отправьте число.")
+    except Exception:
+        await error_report(message, bot, "bet_chosen", traceback.format_exc())
+
+
+@eco_router.callback_query(Dice.choose_dice, F.data.regexp(r"^(\d+)\|(.+)$"))
+async def handle_dice_throw(
+    callback: CallbackQuery, state: FSMContext, db: Database, bot: Bot
+):
+    try:
+        user_id_str, emoji = callback.data.split("|")
+        user_id = callback.from_user.id
+        if int(user_id_str) != user_id:
+            await callback.answer("📛 А комару запретила!", show_alert=True)
+            return
+
+        await callback.message.answer(f"🎲 Бросаем {emoji}...")
+
+        dice_message = await callback.message.answer_dice(emoji=emoji)
+
+        value = dice_message.dice.value
+        data = await state.get_data()
+        bet = data.get("bet")
+        user_bal = await db.get_global_user_param(user_id, "money")
+        currency_sign = await db.get_eco_param("currency_sign")
+
+        if value >= 5:
+            new_bal = user_bal + bet
+            await callback.message.answer(
+                f"🎉 Победа! +{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
+            )
+            await db.set_global_user_param(user_id, "money")
+        else:
+            new_bal = user_bal - bet
+            await callback.message.answer(
+                f"💸 Проигрыш. -{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
+            )
+            await db.set_global_user_param(user_id, "money")
+
+        await state.clear()
+
+    except Exception:
+        await error_report(callback, bot, "handle_dice_throw", traceback.format_exc())
