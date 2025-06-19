@@ -2,7 +2,7 @@ import os
 import random
 import traceback
 from aiogram import Router, Bot, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
@@ -185,10 +185,12 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         if number < 50:
             await message.reply(f"❌ Минимальная ставка - {currency_sign} 50")
             return
-        
+
         user_bal = await db.get_global_user_param(user_id, "money")
         if user_bal < number:
-            await message.reply(f"❌ У вас недостаточно средств для ставки {currency_sign} {number}. Ваш баланс: {currency_sign} {user_bal}")
+            await message.reply(
+                f"❌ У вас недостаточно средств для ставки {currency_sign} {number}. Ваш баланс: {currency_sign} {user_bal}"
+            )
             return
 
         await state.update_data(bet=number)
@@ -196,11 +198,7 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         builder = InlineKeyboardBuilder()
         builder.add(
             *[
-                (
-                    InlineKeyboardBuilder().button(
-                        text=emoji, callback_data=f"{user_id}|{emoji}"
-                    )
-                )
+                (InlineKeyboardButton(text=emoji, callback_data=f"{user_id}|{emoji}"))
                 for emoji in ("🎯", "🎯", "🎲")
             ]
         )
@@ -211,7 +209,7 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         await state.set_state(Dice.choose_dice)
 
     # except ValueError:
-        # await message.reply("❌ Это не число. Пожалуйста, отправьте число.")
+    # await message.reply("❌ Это не число. Пожалуйста, отправьте число.")
     except Exception:
         await error_report(message, bot, "bet_chosen", traceback.format_exc())
 
