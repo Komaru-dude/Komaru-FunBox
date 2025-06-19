@@ -101,6 +101,10 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         eco_data = await db.get_eco_settings()
         target_id, get_id_error = await get_user_id(message)
 
+        if user_id == target_id:
+            await message.reply("❌ Нельзя ограбить самого себя")
+            return
+
         if len(split_text) < 2 and not message.reply_to_message:
             await message.reply(
                 "❌ Требуется упоминание/ответ на сообщение пользователя."
