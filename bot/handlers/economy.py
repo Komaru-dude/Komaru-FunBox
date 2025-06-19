@@ -185,6 +185,11 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         if number < 50:
             await message.reply(f"❌ Минимальная ставка - {currency_sign} 50")
             return
+        
+        user_bal = await db.get_global_user_param(user_id, "money")
+        if user_bal < number:
+            await message.reply(f"❌ У вас недостаточно средств для ставки {currency_sign} {number}. Ваш баланс: {currency_sign} {user_bal}")
+            return
 
         await state.update_data(bet=number)
 
