@@ -208,8 +208,8 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         )
         await state.set_state(Dice.choose_dice)
 
-    # except ValueError:
-    # await message.reply("❌ Это не число. Пожалуйста, отправьте число.")
+    except ValueError:
+        await message.reply("❌ Это не число. Пожалуйста, отправьте число.")
     except Exception:
         await error_report(message, bot, "bet_chosen", traceback.format_exc())
 
