@@ -199,7 +199,7 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         builder.add(
             *[
                 (InlineKeyboardButton(text=emoji, callback_data=f"{user_id}|{emoji}"))
-                for emoji in ("🎯", "🎯", "🎲")
+                for emoji in ("🎲", "🎯", "🎳")
             ]
         )
         await message.reply(
