@@ -87,6 +87,8 @@ ECONOMY_COLUMNS = {
     "steal_timeout": "INTEGER DEFAULT 21600",  # 6 часов
     "rob_min_percent": "INTEGER DEFAULT 5",
     "rob_max_percent": "INTEGER DEFAULT 15",
+    "min_rob_penalty": "INTEGER DEFAULT 500",
+    "max_rob_penalty": "INTEGER DEFAULT 1500",
     "rob_fail_percent": "INTEGER DEFAULT 55",
     "rob_timeout": "INTEGER DEFAULT 28800",  # 8 часов
 }
