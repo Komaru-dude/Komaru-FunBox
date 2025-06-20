@@ -287,3 +287,107 @@ async def handle_dice_throw(
 
     except Exception:
         await error_report(callback, bot, "handle_dice_throw", traceback.format_exc())
+
+
+@eco_router.message(Command("deposit"))
+async def cmd_deposit(message: Message, bot: Bot, db: Database):
+    try:
+        split_text = message.text.split()
+        user_id = message.from_user.id
+        currency_sign = await db.get_eco_param("currency_sign")
+
+        if len(split_text) != 2:
+            await message.reply(
+                "❌ Укажите сумму которую вы хотите положить на банковский счёт.\nНапример: <code>/deposit 150</code>",
+                parse_mode=ParseMode.HTML,
+            )
+            return
+
+        to_deposit = float(split_text[1])
+        user_bal = await db.get_global_user_param(user_id, "money")
+        if to_deposit <= 0:
+            await message.reply("❌ Сумма для пополнения должна быть положительной.")
+            return
+        if to_deposit > user_bal:
+            await message.reply(
+                f"❌ Слишком большая сумма.\nВы пытаетесь перевести: {to_deposit}{currency_sign}\nУ вас есть: {user_bal}{currency_sign}"
+            )
+            return
+
+        commission = round(to_deposit * 0.02, 2)
+        new_to_deposit = round(to_deposit - commission, 2)
+        new_user_bal = round(user_bal - to_deposit, 2)
+
+        user_bank = await db.get_global_user_param(user_id, "bank")
+        new_bank = round(user_bank + new_to_deposit, 2)
+
+        await message.reply(
+            f"✅ Вы успешно пополнили банковский счёт!\n"
+            f"🔥 Комиссия составила: {commission}{currency_sign}\n"
+            f"💳 На счёт зачислено: {new_to_deposit}{currency_sign}\n"
+            f"💰 Ваш текущий счёт: {new_bank}{currency_sign}\n"
+            f"🪙 На руках осталось: {new_user_bal}{currency_sign}"
+        )
+        await db.set_global_user_param(user_id, "money", new_user_bal)
+        await db.set_global_user_param(user_id, "bank", new_bank)
+
+    except ValueError:
+        await message.reply("❌ Это не число.")
+    except TypeError:
+        await message.reply("❌ Это не число.")
+    except Exception:
+        await error_report(message, bot, "deposit", traceback.format_exc())
+
+
+@eco_router.message(Command("withdraw"))
+async def cmd_withdraw(message: Message, bot: Bot, db: Database):
+    try:
+        split_text = message.text.split()
+        user_id = message.from_user.id
+        currency_sign = await db.get_eco_param("currency_sign")
+
+        if len(split_text) != 2:
+            await message.reply(
+                "❌ Укажите сумму, которую вы хотите снять с банковского счёта.\n"
+                "Например: <code>/withdraw 150</code>",
+                parse_mode=ParseMode.HTML,
+            )
+            return
+
+        to_withdraw = float(split_text[1])
+        user_bank = await db.get_global_user_param(user_id, "bank")
+
+        if to_withdraw <= 0:
+            await message.reply("❌ Сумма для снятия должна быть положительной.")
+            return
+        if to_withdraw > user_bank:
+            await message.reply(
+                f"❌ Слишком большая сумма.\n"
+                f"Вы пытаетесь снять: {to_withdraw}{currency_sign}\n"
+                f"На счету: {user_bank}{currency_sign}"
+            )
+            return
+
+        commission = round(to_withdraw * 0.02, 2)
+        new_to_withdraw = round(to_withdraw - commission, 2)
+        new_bank = round(user_bank - to_withdraw, 2)
+
+        user_money = await db.get_global_user_param(user_id, "money")
+        new_user_money = round(user_money + new_to_withdraw, 2)
+
+        await message.reply(
+            f"✅ Вы успешно сняли деньги с банковского счёта!\n"
+            f"🔥 Комиссия составила: {commission}{currency_sign}\n"
+            f"🪙 На руки получено: {new_to_withdraw}{currency_sign}\n"
+            f"💳 Остаток на счёте: {new_bank}{currency_sign}\n"
+            f"💰 Всего у вас на руках: {new_user_money}{currency_sign}"
+        )
+        await db.set_global_user_param(user_id, "money", new_user_money)
+        await db.set_global_user_param(user_id, "bank", new_bank)
+
+    except ValueError:
+        await message.reply("❌ Это не число.")
+    except TypeError:
+        await message.reply("❌ Это не число.")
+    except Exception:
+        await error_report(message, bot, "withdraw", traceback.format_exc())
