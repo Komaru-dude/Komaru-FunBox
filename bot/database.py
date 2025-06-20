@@ -76,19 +76,19 @@ USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
 
 ECONOMY_COLUMNS = {
     "currency_sign": "TEXT DEFAULT '🪙'",
-    "min_work_income": "INTEGER DEFAULT 20",
-    "max_work_income": "INTEGER DEFAULT 250",
+    "min_work_income": "INTEGER DEFAULT 50",
+    "max_work_income": "INTEGER DEFAULT 450",
     "work_timeout": "INTEGER DEFAULT 14400",  # 4 часа
-    "min_steal_income": "INTEGER DEFAULT 50",
-    "max_steal_income": "INTEGER DEFAULT 400",
-    "min_steal_penalty": "INTEGER DEFAULT 100",
-    "max_steal_penalty": "INTEGER DEFAULT 600",
+    "min_steal_income": "INTEGER DEFAULT 70",
+    "max_steal_income": "INTEGER DEFAULT 650",
+    "min_steal_penalty": "INTEGER DEFAULT 200",
+    "max_steal_penalty": "INTEGER DEFAULT 800",
     "steal_fail_percent": "INTEGER DEFAULT 30",
     "steal_timeout": "INTEGER DEFAULT 21600",  # 6 часов
-    "rob_min_percent": "INTEGER DEFAULT 5",
-    "rob_max_percent": "INTEGER DEFAULT 15",
-    "min_rob_penalty": "INTEGER DEFAULT 500",
-    "max_rob_penalty": "INTEGER DEFAULT 1500",
+    "rob_min_percent": "INTEGER DEFAULT 7",
+    "rob_max_percent": "INTEGER DEFAULT 25",
+    "min_rob_penalty": "INTEGER DEFAULT 700",
+    "max_rob_penalty": "INTEGER DEFAULT 2500",
     "rob_fail_percent": "INTEGER DEFAULT 55",
     "rob_timeout": "INTEGER DEFAULT 28800",  # 8 часов
 }

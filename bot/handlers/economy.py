@@ -177,7 +177,7 @@ class Dice(StatesGroup):
 @eco_router.message(
     Command("dice"),
     FuncEnabled("economy"),
-    CooldownFilter(command="dice", cooldown=5),
+    CooldownFilter(command="dice", cooldown=300),
 )
 async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
@@ -250,10 +250,21 @@ async def handle_dice_throw(
         currency_sign = await db.get_eco_param("currency_sign")
 
         if value > 4:
-            new_bal = user_bal + bet
+            if value == 6:
+                multiplier = 1.45
+                message_text = f"🎉🎉 Мега-победа! +{bet} (x1.45)\n"
+            elif value == 5:
+                multiplier = 1.3
+                message_text = f"🎉 Большая победа! +{bet} (x1.3)\n"
+            else:
+                multiplier = 1.15
+                message_text = f"🎉 Победа! +{bet} (x1.15)\n"
+
+            win_amount = bet * multiplier
+            new_bal = user_bal + win_amount
             new_bal = round(new_bal, 2)
             await callback.message.answer(
-                f"🎉 Победа! +{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
+                f"{message_text}{currency_sign} Ваш текущий баланс: {new_bal}"
             )
             await db.set_global_user_param(user_id, "money", new_bal)
         elif value == 3:
