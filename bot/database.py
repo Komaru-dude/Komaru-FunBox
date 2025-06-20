@@ -232,29 +232,6 @@ class Database:
                     )"""
                 )
 
-                # Парсим дефолтные значения из ECONOMY_COLUMNS
-                defaults = [
-                    (v.split("DEFAULT ")[1].strip("'") if "DEFAULT" in v else None)
-                    for v in ECONOMY_COLUMNS.values()
-                ]
-
-                # Формируем значения для SQL
-                values = ", ".join(
-                    f"'{d}'" if isinstance(d, str) and not d.isdigit() else d
-                    for d in defaults
-                )
-
-                # Выполняем запрос
-                await conn.execute(
-                    f"""
-                    INSERT INTO economy
-                    SELECT * FROM (
-                        VALUES ({values})
-                    ) AS tmp
-                    WHERE NOT EXISTS (SELECT 1 FROM economy)
-                """
-                )
-
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
                     """
