@@ -34,6 +34,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         current_income = random.randint(min_income, max_income)
 
         new_bal = current_bal + current_income
+        new_bal = round(new_bal, 2)
         await db.set_global_user_param(user_id, "money", new_bal)
         await message.reply(
             f"👨‍💻 Вы заработали: {current_income}\n{eco_data["currency_sign"]} Ваш новый баланс: {new_bal}"
@@ -72,11 +73,13 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         fail_percent = eco_data["steal_fail_percent"]
         if random.randint(1, 100) <= fail_percent:
             new_bal = current_bal - current_penalty
+            new_bal = round(new_bal, 2)
             await message.reply(
                 f"😔 Вам не повезло.\n🧨 Вы потеряли: {current_penalty}\n{eco_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
         else:
             new_bal = current_bal + current_income
+            new_bal = round(new_bal, 2)
             await message.reply(
                 f"🤑 Повезло!\n💡 Вы заработали: {current_income}\n{eco_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
@@ -136,6 +139,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         fail_percent = eco_data["rob_fail_percent"]
         if random.randint(1, 100) <= fail_percent:
             new_bal = user_bal / 2
+            new_bal = round(new_bal, 2)
             await message.reply(
                 f"😔 Вам не повезло.\n🧨 Вы потеряли: {user_bal / 2}\n{eco_data["currency_sign"]} Ваш новый баланс: {new_bal}"
             )
@@ -143,6 +147,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             target_penalty = target_user_bal * (succeed_percent / 100)
             target_new_bal = target_user_bal - target_penalty
             new_bal = user_bal + target_penalty
+            new_bal = round(new_bal, 2)
             await message.reply(
                 f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{eco_data["currency_sign"]}Новый баланс цели {target_new_bal}\n{eco_data["currency_sign"]}Ваш новый баланс: {new_bal}"
             )
@@ -243,6 +248,7 @@ async def handle_dice_throw(
 
         if value > 4:
             new_bal = user_bal + bet
+            new_bal = round(new_bal, 2)
             await callback.message.answer(
                 f"🎉 Победа! +{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
             )
@@ -253,6 +259,7 @@ async def handle_dice_throw(
             )
         else:
             new_bal = user_bal - bet
+            new_bal = round(new_bal, 2)
             await callback.message.answer(
                 f"💸 Проигрыш. -{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
             )
