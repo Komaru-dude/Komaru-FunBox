@@ -76,10 +76,10 @@ USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
 
 ECONOMY_COLUMNS = {
     "currency_sign": "TEXT DEFAULT '🪙'",
-    "min_work_income": "INTEGER DEFAULT 50",
+    "min_work_income": "INTEGER DEFAULT 70",
     "max_work_income": "INTEGER DEFAULT 450",
     "work_timeout": "INTEGER DEFAULT 14400",  # 4 часа
-    "min_steal_income": "INTEGER DEFAULT 70",
+    "min_steal_income": "INTEGER DEFAULT 90",
     "max_steal_income": "INTEGER DEFAULT 650",
     "min_steal_penalty": "INTEGER DEFAULT 200",
     "max_steal_penalty": "INTEGER DEFAULT 800",
