@@ -136,8 +136,6 @@ async def cmd_set_name(message: Message, bot: Bot, db: Database):
             return
 
         await db.set_global_user_param(user.id, "name", new_name)
-        await message.reply(
-            f"✅ Ваше имя в боте изменено на {new_name}"
-        )
+        await message.reply(f"✅ Ваше имя в боте изменено на {new_name}")
     except Exception:
         await error_report(message, bot, "set_name", traceback.format_exc())
