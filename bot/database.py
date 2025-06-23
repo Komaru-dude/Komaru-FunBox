@@ -75,25 +75,6 @@ COMMAND_COOLDOWNS_COLUMNS = {
 
 USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
 
-ECONOMY_COLUMNS = {
-    "currency_sign": "TEXT DEFAULT '🪙'",
-    "min_work_income": "INTEGER DEFAULT 70",
-    "max_work_income": "INTEGER DEFAULT 450",
-    "work_timeout": "INTEGER DEFAULT 14400",  # 4 часа
-    "min_steal_income": "INTEGER DEFAULT 90",
-    "max_steal_income": "INTEGER DEFAULT 650",
-    "min_steal_penalty": "INTEGER DEFAULT 200",
-    "max_steal_penalty": "INTEGER DEFAULT 800",
-    "steal_fail_percent": "INTEGER DEFAULT 30",
-    "steal_timeout": "INTEGER DEFAULT 21600",  # 6 часов
-    "rob_min_percent": "INTEGER DEFAULT 7",
-    "rob_max_percent": "INTEGER DEFAULT 25",
-    "min_rob_penalty": "INTEGER DEFAULT 350",
-    "max_rob_penalty": "INTEGER DEFAULT 1225",
-    "rob_fail_percent": "INTEGER DEFAULT 55",
-    "rob_timeout": "INTEGER DEFAULT 28800",  # 8 часов
-}
-
 
 class Database:
     def __init__(self):
@@ -136,7 +117,6 @@ class Database:
 
                 await self.create_tables()
                 await self.sync_all()
-                await self.sync_table_columns("economy", ECONOMY_COLUMNS)
                 logger.info("Успешное подключение и синхронизация с БД.")
 
             except Exception as e:
@@ -227,13 +207,6 @@ class Database:
                     )"""
                 )
 
-                # Таблица economy
-                await conn.execute(
-                    f"""CREATE TABLE IF NOT EXISTS economy (
-                        {", ".join([f"{k} {v}" for k, v in ECONOMY_COLUMNS.items()])}
-                    )"""
-                )
-
                 # Добавляем недостающие столбцы в users
                 users_existing_cols = await conn.fetch(
                     """
@@ -297,20 +270,6 @@ class Database:
                             f"""ALTER TABLE uses ADD COLUMN {col} {definition}"""
                         )
 
-                # Добавляем недостающие столбцы в economy
-                eco_existing_cols = await conn.fetch(
-                    """SELECT column_name FROM information_schema.columns 
-                    WHERE table_name = 'economy'
-                    """
-                )
-                eco_existing_col_names = {r["column_name"] for r in eco_existing_cols}
-
-                for col, definition in ECONOMY_COLUMNS.items():
-                    if col not in eco_existing_col_names:
-                        await conn.execute(
-                            f"""ALTER TABLE economy ADD COLUMN {col} {definition}"""
-                        )
-
     async def sync_all(self):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
@@ -345,56 +304,6 @@ class Database:
                         chat_id_val,
                         feature_names,
                     )
-
-    async def sync_table_columns(self, table_name: str, columns: dict):
-        async with self.pool.acquire() as conn:
-            existing = await conn.fetch(
-                """
-                SELECT column_name, data_type, column_default
-                FROM information_schema.columns
-                WHERE table_name = $1
-                """,
-                table_name,
-            )
-            existing_cols = {r["column_name"]: r for r in existing}
-
-            for col, definition in columns.items():
-                if col not in existing_cols:
-                    await conn.execute(
-                        f"ALTER TABLE {table_name} ADD COLUMN {col} {definition}"
-                    )
-
-            for col in existing_cols:
-                if col not in columns:
-                    await conn.execute(f"ALTER TABLE {table_name} DROP COLUMN {col}")
-
-            for col, definition in columns.items():
-                if col in existing_cols:
-                    def_parts = definition.split("DEFAULT")
-                    new_type = def_parts[0].strip()
-                    new_default = def_parts[1].strip() if len(def_parts) > 1 else None
-
-                    old_type = existing_cols[col]["data_type"].upper()
-                    type_map = {
-                        "INTEGER": "integer",
-                        "BIGINT": "bigint",
-                        "TEXT": "text",
-                        "BOOLEAN": "boolean",
-                        "TIMESTAMP": "timestamp",
-                        "JSONB": "jsonb",
-                    }
-                    mapped_type = type_map.get(new_type.upper(), new_type.lower())
-                    if mapped_type != old_type:
-                        await conn.execute(
-                            f"ALTER TABLE {table_name} ALTER COLUMN {col} TYPE {new_type}"
-                        )
-
-                    if new_default is not None:
-                        old_default = existing_cols[col]["column_default"]
-                        if old_default is None or new_default not in str(old_default):
-                            await conn.execute(
-                                f"ALTER TABLE {table_name} ALTER COLUMN {col} SET DEFAULT {new_default}"
-                            )
 
     async def has_permission(
         self, user_id: int, chat_id: int, required_level: int
@@ -980,23 +889,6 @@ class Database:
             )
 
             return day_count, week_count
-
-    async def get_eco_settings(self):
-        await self.ensure_connection()
-        async with self.pool.acquire() as conn:
-            row = await conn.fetchrow("SELECT * FROM economy")
-            return dict(row) if row else None
-
-    async def get_eco_param(self, param: str):
-        await self.ensure_connection()
-        async with self.pool.acquire() as conn:
-            row = await conn.fetchrow(f"SELECT {param} FROM economy")
-            return row[param] if row else None
-
-    async def set_eco_param(self, param: str, value):
-        await self.ensure_connection()
-        async with self.pool.acquire() as conn:
-            await conn.execute(f"UPDATE economy SET {param} = $1", value)
 
     async def get_eco_top(self, limit: int = 10) -> list[dict]:
         await self.ensure_connection()
