@@ -64,6 +64,7 @@ GLOBAL_USERS_COLUMNS = {
     "registered_at": "TIMESTAMP DEFAULT NOW()",
     "money": "BIGINT DEFAULT 0",
     "bank": "BIGINT DEFAULT 0",
+    "name": "TEXT DEFAULT 'Unknown'",
 }
 
 COMMAND_COOLDOWNS_COLUMNS = {
@@ -945,3 +946,18 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(f"UPDATE economy SET {param} = $1", value)
+
+    async def get_eco_top(self, limit: int = 10) -> list[dict]:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT user_id, money, bank,
+                    (money + bank) AS total
+                FROM global_users
+                ORDER BY total DESC
+                LIMIT $1
+                """,
+                limit
+            )
+        return [dict(row) for row in rows]

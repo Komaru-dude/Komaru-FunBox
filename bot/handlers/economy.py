@@ -391,3 +391,30 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
         await message.reply("❌ Это не число.")
     except Exception:
         await error_report(message, bot, "withdraw", traceback.format_exc())
+
+@eco_router.message(Command("top"))
+async def cmd_top(message: Message, bot: Bot, db: Database):
+    try:
+        top_users = await db.get_eco_top(limit=10)
+        if not top_users:
+            await message.reply("📉 Топ пользователей пуст.")
+            return
+
+        currency_sign = await db.get_eco_param("currency_sign")
+        top_message = "🏆 Топ 10 пользователей по балансу:\n"
+
+        for idx, user in enumerate(top_users, start=1):
+            user_id = user["user_id"]
+            total = user["total"]
+            try:
+                user_info = await db.get_global_user(user_id)
+                username = f"@{user_info.get('name')}".strip()
+            except Exception:
+                username = f"ID {user_id}"
+
+            top_message += f"{idx}. {username} — {total} {currency_sign}\n"
+
+        await message.reply(top_message)
+
+    except Exception:
+        await error_report(message, bot, "top", traceback.format_exc())
