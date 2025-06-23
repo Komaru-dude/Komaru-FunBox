@@ -66,7 +66,7 @@ class ChatWatcher(BaseMiddleware):
                         await db.add_user(user_id, chat_id)
                     if not await db.get_global_user(user_id):
                         await db.add_global_user(
-                            user_id, {"language_code": language_code}
+                            user_id, {"language_code": language_code, "name": user_name}
                         )
                         msg = f'🔔 Новый пользователь бота: <a href="tg://user?id={user_id}">{user_id}</a>, имя: {user_name}'
                         logger.info(msg)
