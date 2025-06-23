@@ -958,6 +958,6 @@ class Database:
                 ORDER BY total DESC
                 LIMIT $1
                 """,
-                limit
+                limit,
             )
         return [dict(row) for row in rows]

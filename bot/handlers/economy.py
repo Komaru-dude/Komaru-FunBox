@@ -392,6 +392,7 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "withdraw", traceback.format_exc())
 
+
 @eco_router.message(Command("top"))
 async def cmd_top(message: Message, bot: Bot, db: Database):
     try:

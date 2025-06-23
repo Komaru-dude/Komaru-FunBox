@@ -117,20 +117,27 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
     except Exception:
         await error_report(message, bot, "cancel", traceback.format_exc())
 
+
 @base_router.message(Command("set_name"))
 async def cmd_set_name(message: Message, bot: Bot, db: Database):
     try:
         if message.reply_to_message:
-            await message.reply("📛 Эта команда предназначена для изменения своего имени.")
+            await message.reply(
+                "📛 Эта команда предназначена для изменения своего имени."
+            )
 
         user = message.from_user
-        new_name = message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
+        new_name = (
+            message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
+        )
 
         if not new_name:
             await message.reply("📛 Укажите новое имя после команды /set_name")
             return
 
         await db.set_global_user_param(user.id, "name", new_name)
-        await message.reply(f"✅ Ваше имя в боте изменено на {user.full_name} изменено на {new_name}")
+        await message.reply(
+            f"✅ Ваше имя в боте изменено на {user.full_name} изменено на {new_name}"
+        )
     except Exception:
         await error_report(message, bot, "set_name", traceback.format_exc())
