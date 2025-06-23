@@ -408,7 +408,7 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
             total = user["total"]
             try:
                 user_info = await db.get_global_user(user_id)
-                username = f"@{user_info.get('name')}".strip()
+                username = f"{user_info.get('name')}".strip()
             except Exception:
                 username = f"ID {user_id}"
 
