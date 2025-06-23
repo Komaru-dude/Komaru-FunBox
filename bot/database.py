@@ -136,6 +136,7 @@ class Database:
 
                 await self.create_tables()
                 await self.sync_all()
+                await self.sync_table_columns("economy", ECONOMY_COLUMNS)
                 logger.info("Успешное подключение и синхронизация с БД.")
 
             except Exception as e:
@@ -344,6 +345,56 @@ class Database:
                         chat_id_val,
                         feature_names,
                     )
+
+    async def sync_table_columns(self, table_name: str, columns: dict):
+        async with self.pool.acquire() as conn:
+            existing = await conn.fetch(
+                """
+                SELECT column_name, data_type, column_default
+                FROM information_schema.columns
+                WHERE table_name = $1
+                """,
+                table_name,
+            )
+            existing_cols = {r["column_name"]: r for r in existing}
+
+            for col, definition in columns.items():
+                if col not in existing_cols:
+                    await conn.execute(
+                        f"ALTER TABLE {table_name} ADD COLUMN {col} {definition}"
+                    )
+
+            for col in existing_cols:
+                if col not in columns:
+                    await conn.execute(f"ALTER TABLE {table_name} DROP COLUMN {col}")
+
+            for col, definition in columns.items():
+                if col in existing_cols:
+                    def_parts = definition.split("DEFAULT")
+                    new_type = def_parts[0].strip()
+                    new_default = def_parts[1].strip() if len(def_parts) > 1 else None
+
+                    old_type = existing_cols[col]["data_type"].upper()
+                    type_map = {
+                        "INTEGER": "integer",
+                        "BIGINT": "bigint",
+                        "TEXT": "text",
+                        "BOOLEAN": "boolean",
+                        "TIMESTAMP": "timestamp",
+                        "JSONB": "jsonb",
+                    }
+                    mapped_type = type_map.get(new_type.upper(), new_type.lower())
+                    if mapped_type != old_type:
+                        await conn.execute(
+                            f"ALTER TABLE {table_name} ALTER COLUMN {col} TYPE {new_type}"
+                        )
+
+                    if new_default is not None:
+                        old_default = existing_cols[col]["column_default"]
+                        if old_default is None or new_default not in str(old_default):
+                            await conn.execute(
+                                f"ALTER TABLE {table_name} ALTER COLUMN {col} SET DEFAULT {new_default}"
+                            )
 
     async def has_permission(
         self, user_id: int, chat_id: int, required_level: int
