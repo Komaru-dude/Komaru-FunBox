@@ -62,6 +62,8 @@ class ChatWatcher(BaseMiddleware):
 
                 if chat_type == "private" or is_bot_command:
                     await db.log_command()
+                    if not await db.user_exists(user_id, chat_id):
+                        await db.add_user(user_id, chat_id)
                     if not await db.get_global_user(user_id):
                         await db.add_global_user(
                             user_id, {"language_code": language_code}
