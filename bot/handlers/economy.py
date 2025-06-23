@@ -53,7 +53,6 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
 async def cmd_steal(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
-        eco_config = await db.get_eco_settings()
         current_bal = await db.get_global_user_param(user_id, "money")
         if current_bal < eco_config["max_steal_penalty"] / 2:
             await message.reply(
@@ -101,7 +100,6 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         split_text = message.text.split()
-        eco_config = await db.get_eco_settings()
         target_id, get_id_error = await get_user_id(message)
 
         if user_id == target_id:
@@ -181,7 +179,7 @@ class Dice(StatesGroup):
 )
 async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
-        currency_sign = await db.get_eco_param("currency_sign")
+        currency_sign = eco_config["currency_sign"]
         await message.reply(f"💸 Выберите ставку.\nОт {currency_sign} 50")
         await state.set_state(Dice.choose_bet)
     except Exception:
@@ -190,7 +188,7 @@ async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
 
 @eco_router.message(Dice.choose_bet)
 async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext):
-    currency_sign = await db.get_eco_param("currency_sign")
+    currency_sign = eco_config["currency_sign"]
     user_id = message.from_user.id
     try:
         number = float(message.text)
@@ -251,7 +249,7 @@ async def handle_dice_throw(
         data = await state.get_data()
         bet = data.get("bet")
         user_bal = await db.get_global_user_param(user_id, "money")
-        currency_sign = await db.get_eco_param("currency_sign")
+        currency_sign = eco_config["currency_sign"]
 
         if value > 4:
             if value == 6:
@@ -294,7 +292,7 @@ async def cmd_deposit(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
         user_id = message.from_user.id
-        currency_sign = await db.get_eco_param("currency_sign")
+        currency_sign = eco_config["currency_sign"]
 
         if len(split_text) != 2:
             await message.reply(
@@ -344,7 +342,7 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
         user_id = message.from_user.id
-        currency_sign = await db.get_eco_param("currency_sign")
+        currency_sign = eco_config["currency_sign"]
 
         if len(split_text) != 2:
             await message.reply(
@@ -401,7 +399,7 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
             await message.reply("📉 Топ пользователей пуст.")
             return
 
-        currency_sign = await db.get_eco_param("currency_sign")
+        currency_sign = eco_config["currency_sign"]
         top_message = "🏆 Топ 10 пользователей по балансу:\n"
 
         for idx, user in enumerate(top_users, start=1):
