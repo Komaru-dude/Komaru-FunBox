@@ -22,7 +22,7 @@ eco_router = Router()
     Command("work"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
     FuncEnabled("economy"),
-    CooldownFilter(command="work", cooldown=14400),
+    CooldownFilter(command="work", cooldown=eco_config["work_timeout"]),
 )
 async def cmd_work(message: Message, bot: Bot, db: Database):
     try:
@@ -48,7 +48,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
     Command("steal"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
     FuncEnabled("economy"),
-    CooldownFilter(command="steal", cooldown=14400),
+    CooldownFilter(command="steal", cooldown=eco_config["steal_timeout"]),
 )
 async def cmd_steal(message: Message, bot: Bot, db: Database):
     try:
@@ -94,7 +94,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
     Command("rob"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
     FuncEnabled("economy"),
-    CooldownFilter(command="rob", cooldown=28800),
+    CooldownFilter(command="rob", cooldown=eco_config["rob_timeout"]),
 )
 async def cmd_rob(message: Message, bot: Bot, db: Database):
     try:
@@ -175,12 +175,12 @@ class Dice(StatesGroup):
 @eco_router.message(
     Command("dice"),
     FuncEnabled("economy"),
-    CooldownFilter(command="dice", cooldown=300),
+    CooldownFilter(command="dice", cooldown=eco_config["dice_timeout"]),
 )
 async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
         currency_sign = eco_config["currency_sign"]
-        await message.reply(f"💸 Выберите ставку.\nОт {currency_sign} 50")
+        await message.reply(f"💸 Выберите ставку.\nОт {currency_sign} {eco_config["dice_min_bet"]} до {currency_sign} {eco_config["dice_max_bet"]}")
         await state.set_state(Dice.choose_bet)
     except Exception:
         await error_report(message, bot, "dice", traceback.format_exc())
@@ -192,9 +192,12 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
     user_id = message.from_user.id
     try:
         number = float(message.text)
-        if number < 50:
-            await message.reply(f"❌ Минимальная ставка - {currency_sign} 50")
+        if number < eco_config["dice_min_bet"]:
+            await message.reply(f"❌ Минимальная ставка - {currency_sign} {eco_config['dice_min_bet']}")
             return
+        if number > eco_config["dice_max_bet"]:
+            await message.reply(f"❌ Максимальная ставка - {currency_sign} {eco_config['dice_max_bet']}")
+            return 
 
         user_bal = await db.get_global_user_param(user_id, "money")
         if user_bal < number:
