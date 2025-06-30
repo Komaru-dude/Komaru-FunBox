@@ -180,7 +180,9 @@ class Dice(StatesGroup):
 async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
         currency_sign = eco_config["currency_sign"]
-        await message.reply(f"💸 Выберите ставку.\nОт {currency_sign} {eco_config["dice_min_bet"]} до {currency_sign} {eco_config["dice_max_bet"]}")
+        await message.reply(
+            f"💸 Выберите ставку.\nОт {currency_sign} {eco_config["dice_min_bet"]} до {currency_sign} {eco_config["dice_max_bet"]}"
+        )
         await state.set_state(Dice.choose_bet)
     except Exception:
         await error_report(message, bot, "dice", traceback.format_exc())
@@ -193,11 +195,15 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
     try:
         number = float(message.text)
         if number < eco_config["dice_min_bet"]:
-            await message.reply(f"❌ Минимальная ставка - {currency_sign} {eco_config['dice_min_bet']}")
+            await message.reply(
+                f"❌ Минимальная ставка - {currency_sign} {eco_config['dice_min_bet']}"
+            )
             return
         if number > eco_config["dice_max_bet"]:
-            await message.reply(f"❌ Максимальная ставка - {currency_sign} {eco_config['dice_max_bet']}")
-            return 
+            await message.reply(
+                f"❌ Максимальная ставка - {currency_sign} {eco_config['dice_max_bet']}"
+            )
+            return
 
         user_bal = await db.get_global_user_param(user_id, "money")
         if user_bal < number:
@@ -430,7 +436,9 @@ async def cmd_transfer(message: Message, bot: Bot, db: Database):
 
         user_balance = await db.get_global_user_param(user_id, "bank")
         if user_balance < amount:
-            await message.reply(f"❌ Недостаточно средств. Банковский баланс: {user_balance}{currency_sign}")
+            await message.reply(
+                f"❌ Недостаточно средств. Банковский баланс: {user_balance}{currency_sign}"
+            )
             return
 
         target_balance = await db.get_global_user_param(target_id, "bank")
