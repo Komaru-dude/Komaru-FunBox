@@ -394,6 +394,58 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "withdraw", traceback.format_exc())
 
 
+@eco_router.message(Command("transfer"))
+async def cmd_transfer(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+        currency_sign = eco_config["currency_sign"]
+        args = message.text.strip().split()
+
+        amount_str = None
+        if message.reply_to_message and len(args) >= 2:
+            amount_str = args[1]
+        elif len(args) >= 3:
+            amount_str = args[2]
+        else:
+            await message.reply(
+                "❌ Укажите пользователя и сумму.\n"
+                "Пример: <code>/transfer @user 150</code>\n"
+                "Или ответьте на сообщение: <code>/transfer 150</code>",
+                parse_mode=ParseMode.HTML,
+            )
+            return
+
+        if not amount_str.isdigit() or int(amount_str) <= 0:
+            await message.reply("❌ Сумма должна быть положительным числом.")
+            return
+        amount = round(float(amount_str), 2)
+
+        target_id, error = await get_user_id(message)
+        if error or not target_id:
+            await message.reply(f"❌ {error or 'Не удалось определить получателя.'}")
+            return
+        if target_id == user_id:
+            await message.reply("❌ Нельзя переводить валюту самому себе.")
+            return
+
+        user_balance = await db.get_global_user_param(user_id, "bank")
+        if user_balance < amount:
+            await message.reply(f"❌ Недостаточно средств. Банковский баланс: {user_balance}{currency_sign}")
+            return
+
+        target_balance = await db.get_global_user_param(target_id, "bank")
+        new_user_balance = round(user_balance - amount, 2)
+        new_target_balance = round(target_balance + amount, 2)
+        await db.set_global_user_param(user_id, "bank", new_user_balance)
+        await db.set_global_user_param(target_id, "bank", new_target_balance)
+        await message.reply(
+            f"✅ Перевод {amount}{currency_sign} пользователю <code>{target_id}</code> выполнен.\n{currency_sign} Ваш новый баланс: {new_user_balance}",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception:
+        await error_report(message, bot, "transfer", traceback.format_exc())
+
+
 @eco_router.message(Command("top"))
 async def cmd_top(message: Message, bot: Bot, db: Database):
     try:
