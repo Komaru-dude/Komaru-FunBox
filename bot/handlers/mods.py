@@ -231,7 +231,7 @@ async def cmd_warn(message: Message, bot: Bot, db: Database):
             await message.reply("❌ Зачем предупреждать самого себя?")
             return
 
-        await db.update_user_warns(target_id, chat_id, reason)
+        await db.update_user_history(target_id, chat_id, "warn", reason)
         user_data = await db.get_user_data(target_id, chat_id)
         current_warns = user_data["warns"]
         warn_limit = user_data["warn_limit"]
@@ -252,7 +252,7 @@ async def cmd_warn(message: Message, bot: Bot, db: Database):
                 f"👤 Модератор: Авто-мод\n📝 Причина: Превышение лимита предупреждений",
                 parse_mode=ParseMode.HTML,
             )
-            await db.update_user_warn_limit(target_id, chat_id, 3)
+            await db.set_user_param(target_id, chat_id, "warn_limit", warn_limit)
             await bot.restrict_chat_member(
                 chat_id,
                 target_id,
@@ -392,7 +392,7 @@ async def cmd_mute(message: Message, bot: Bot, db: Database):
         )
 
         await db.add_user(target_user_id, chat_id)
-        await db.update_user_mutes(target_user_id, chat_id, reason)
+        await db.update_user_history(target_user_id, chat_id, "mute", reason)
         await db.update_reputation(target_user_id, chat_id, "manual_rem", 10)
 
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
@@ -473,7 +473,7 @@ async def cmd_ban(message: Message, bot: Bot, db: Database):
         await bot.ban_chat_member(chat_id, target_user_id, until_date=until_date)
 
         await db.add_user(target_user_id, chat_id)
-        await db.update_user_bans(target_user_id, chat_id, reason)
+        await db.update_user_history(target_user_id, chat_id, "ban", reason)
         await db.update_reputation(target_user_id, chat_id, "manual_rem", 15)
 
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"

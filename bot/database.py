@@ -65,6 +65,7 @@ GLOBAL_USERS_COLUMNS = {
     "money": "BIGINT DEFAULT 0",
     "bank": "BIGINT DEFAULT 0",
     "name": "TEXT DEFAULT 'Unknown'",
+    "items": "JSONB DEFAULT '[]'::JSONB",
 }
 
 COMMAND_COOLDOWNS_COLUMNS = {
@@ -632,19 +633,6 @@ class Database:
                     user_id,
                     chat_id,
                 )
-
-    # Функции для совместимости, в будущем будут убраны
-    async def update_user_warns(self, user_id: int, chat_id: int, reason: str):
-        await self.update_user_history(user_id, chat_id, "warn", reason)
-
-    async def update_user_mutes(self, user_id: int, chat_id: int, reason: str):
-        await self.update_user_history(user_id, chat_id, "mute", reason)
-
-    async def update_user_bans(self, user_id: int, chat_id: int, reason: str):
-        await self.update_user_history(user_id, chat_id, "ban", reason)
-
-    async def update_user_warn_limit(self, user_id: int, chat_id: int, warn_limit: int):
-        await self.set_user_param(user_id, chat_id, "warn_limit", warn_limit)
 
     async def add_chat(self, chat_id: int, chat_data: dict):
         await self.ensure_connection()
