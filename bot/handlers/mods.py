@@ -315,7 +315,7 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
             f"🔨 Баны: {user_data['bans']}\n"
             f"💎 Репутация: {user_data['reputation']}\n"
             f"🪙 Монет: {await db.get_global_user_param(user_info['user_id'], "money")}\n"
-            f"🏦 Банковский счёт: {await db.get_global_user_param(user_info["user_id"], "money")}"
+            f"🏦 Банковский счёт: {await db.get_global_user_param(user_info["user_id"], "bank")}\n"
             f"📨 Сообщений: {user_data['message_count']}\n"
             f"🏅 Ранг: {user_data['rank']}\n"
         )
