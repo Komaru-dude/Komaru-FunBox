@@ -439,7 +439,7 @@ async def cmd_transfer(message: Message, bot: Bot, db: Database):
         await db.set_global_user_param(user_id, "bank", new_user_balance)
         await db.set_global_user_param(target_id, "bank", new_target_balance)
         await message.reply(
-            f"✅ Перевод {amount}{currency_sign} пользователю <code>{target_id}</code> выполнен.\n{currency_sign} Ваш новый баланс: {new_user_balance}",
+            f"✅ Перевод {amount}{currency_sign} пользователю <code>{target_id}</code> выполнен.\n{currency_sign} Ваш новый баланс: {new_user_balance}\n{currency_sign} Новый баланс цели: {new_target_balance}",
             parse_mode=ParseMode.HTML,
         )
     except Exception:
