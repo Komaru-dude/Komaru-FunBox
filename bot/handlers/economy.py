@@ -296,7 +296,7 @@ async def handle_dice_throw(
         await error_report(callback, bot, "handle_dice_throw", traceback.format_exc())
 
 
-@eco_router.message(Command("deposit"))
+@eco_router.message(Command("deposit"), FuncEnabled("economy"))
 async def cmd_deposit(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
@@ -346,7 +346,7 @@ async def cmd_deposit(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "deposit", traceback.format_exc())
 
 
-@eco_router.message(Command("withdraw"))
+@eco_router.message(Command("withdraw"), FuncEnabled("economy"))
 async def cmd_withdraw(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
@@ -400,7 +400,7 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "withdraw", traceback.format_exc())
 
 
-@eco_router.message(Command("transfer"))
+@eco_router.message(Command("transfer"), FuncEnabled("economy"))
 async def cmd_transfer(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -454,7 +454,7 @@ async def cmd_transfer(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "transfer", traceback.format_exc())
 
 
-@eco_router.message(Command("top"))
+@eco_router.message(Command("top"), FuncEnabled("economy"))
 async def cmd_top(message: Message, bot: Bot, db: Database):
     try:
         top_users = await db.get_eco_top(limit=10)
