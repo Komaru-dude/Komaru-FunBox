@@ -65,7 +65,7 @@ async def check_updates():
         logger.exception(f"Ошибка при проверке обновлений: {e}")
 
 
-async def background_update_checker():
+async def background_checker():
     while True:
         await check_updates()
         await asyncio.sleep(1200)  # 20 минут

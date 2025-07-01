@@ -18,7 +18,7 @@ from bot.middlewares.specificchat import SpecificChat
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.utils.global_storage import onlysq_models
 from bot.utils.aio_tools import fetch_json
-from bot.utils.update_checker import background_update_checker
+from bot.utils.timers import background_checker
 
 from .handlers.administration import admin_router
 from .handlers.basic import base_router
@@ -161,7 +161,7 @@ async def main():
     )
 
     try:
-        asyncio.create_task(background_update_checker())
+        asyncio.create_task(background_checker())
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     finally:
