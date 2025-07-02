@@ -135,6 +135,11 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await db.reset_cooldown(user_id, "rob")
             return
 
+        if await db.has_valid_item(target_id, "rob_protection"):
+            await db.use_item(target_id, "rob_protection")
+            await message.reply(f"🧨 Упс!\n🛡 У пользователя была защита от краж\n📉 Вы потеряли: {eco_config["rob_protection_penalty"]} {eco_config["currency_sign"]}")
+            new_bal = user_bal - int(eco_config["rob_protection_penalty"])
+
         fail_percent = eco_config["rob_fail_percent"]
         if random.randint(1, 100) <= fail_percent:
             min_penalty = eco_config["min_rob_penalty"]

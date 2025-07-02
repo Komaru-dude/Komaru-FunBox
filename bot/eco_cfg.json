@@ -13,6 +13,7 @@
   "rob_max_percent": 20,
   "min_rob_penalty": 400,
   "max_rob_penalty": 1000,
+  "rob_protection_penalty": 650,
   "rob_fail_percent": 60,
   "rob_timeout": 25200,
   "dice_timeout": 300,
