@@ -502,12 +502,13 @@ async def shop_buy_callback(
     item = next((i for i in shop_config if i["id"] == item_id), None)
     if item:
         user_bal = await db.get_global_user_param(user_id, "money")
-        price = item["price"]
-        if int(price) > user_bal:
+        price = int(item["price"])
+        if price > user_bal:
             await callback.answer(
                 "❌ У вас недостаточно наличных для покупки предмета", show_alert=True
             )
             return
+        await db.set_global_user_param(user_id, "money", user_bal - price)
         await db.add_item_to_user(user_id, item)
     else:
         await callback.answer("❌ Такого предмета не существует!", show_alert=True)
