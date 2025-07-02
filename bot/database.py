@@ -725,7 +725,7 @@ class Database:
                 if filtered != items:
                     await conn.execute(
                         "UPDATE global_users SET items = $1 WHERE user_id = $2",
-                        filtered,
+                        json.dumps(filtered),
                         user_id,
                     )
 
