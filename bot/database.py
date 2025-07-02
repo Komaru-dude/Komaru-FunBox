@@ -718,7 +718,8 @@ class Database:
                 user_id = row["user_id"]
                 items = row["items"] or []
                 filtered = [
-                    item for item in items if item.get("expires", now + 1) > now
+                    item for item in items
+                    if isinstance(item, dict) and item.get("expires", now + 1) > now
                 ]
 
                 if filtered != items:
