@@ -77,7 +77,9 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         if has_fake_passport:
             fail_percent = max(0, fail_percent - 20)  # уменьшаем шанс неудачи на 20%
             await db.use_item(user_id, "fake_passport")
-            passport_used_msg = "🛡 Фейковый паспорт был использован, шанс неудачи снижен!"
+            passport_used_msg = (
+                "🛡 Фейковый паспорт был использован, шанс неудачи снижен!"
+            )
         else:
             passport_used_msg = ""
 
@@ -502,8 +504,16 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
 @eco_router.message(Command("shop"))
 async def cmd_shop(message: Message, bot: Bot):
     try:
+        text_lines = ["📗 Доступные товары:\n"]
+        for item in shop_config:
+            text_lines.append(
+                f"{item['name']} — {item['price']} {eco_config['currency_sign']}\n"
+                f"📝 Описание: {item.get('desc', '—')}\n"
+            )
+        text = "\n".join(text_lines)
+
         keyboard = make_shop_keyboard()
-        await message.reply("Выберите товар для покупки:", reply_markup=keyboard)
+        await message.reply(text, reply_markup=keyboard)
     except Exception:
         await error_report(message, bot, "shop", traceback.format_exc())
 
