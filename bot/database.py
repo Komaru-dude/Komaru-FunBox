@@ -718,7 +718,8 @@ class Database:
                 user_id = row["user_id"]
                 items = row["items"] or []
                 filtered = [
-                    item for item in items
+                    item
+                    for item in items
                     if isinstance(item, dict) and item.get("expires", now + 1) > now
                 ]
 
@@ -933,7 +934,12 @@ class Database:
             if not row:
                 return False
 
-            items = row["items"] or []
+            items_raw = row["items"] or "[]"
+            try:
+                items = json.loads(items_raw)
+            except Exception:
+                items = []
+
             for item in items:
                 if item.get("id") == item_id:
                     expires = item.get("expires")
@@ -980,11 +986,19 @@ class Database:
             row = await conn.fetchrow(
                 "SELECT items FROM global_users WHERE user_id = $1", user_id
             )
-            items = row["items"] or []
+            items_raw = row["items"] or "[]"
+            try:
+                items = json.loads(items_raw)
+            except Exception:
+                items = []
+
             items.append(item)
+
+            items_json = json.dumps(items)
+
             await conn.execute(
                 "UPDATE global_users SET items = $1 WHERE user_id = $2",
-                items,
+                items_json,
                 user_id,
             )
 
@@ -1003,7 +1017,12 @@ class Database:
             if not row:
                 return False
 
-            items = row["items"] or []
+            items_raw = row["items"] or "[]"
+            try:
+                items = json.loads(items_raw)
+            except Exception:
+                items = []
+
             changed = False
 
             for i, item in enumerate(items):
@@ -1024,9 +1043,10 @@ class Database:
                     break
 
             if changed:
+                items_json = json.dumps(items)
                 await conn.execute(
                     "UPDATE global_users SET items = $1 WHERE user_id = $2",
-                    items,
+                    items_json,
                     user_id,
                 )
                 return True
