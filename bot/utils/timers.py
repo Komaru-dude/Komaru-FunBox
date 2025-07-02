@@ -5,6 +5,9 @@ import subprocess
 from .global_storage import update_cache
 from pathlib import Path
 from bot import logger
+from bot.database import Database
+
+db = Database()
 
 
 async def check_updates():
@@ -65,7 +68,24 @@ async def check_updates():
         logger.exception(f"Ошибка при проверке обновлений: {e}")
 
 
-async def background_checker():
+async def check_updates_task():
+    """Задача для периодической проверки обновлений"""
     while True:
         await check_updates()
-        await asyncio.sleep(1200)  # 20 минут
+        await asyncio.sleep(1200)  # Интервал 20 минут
+
+
+async def cleanup_expired_items_task():
+    """Задача для ежедневной очистки истёкших предметов"""
+    while True:
+        await db.cleanup_all_expired_items()
+        await asyncio.sleep(86400)  # Интервал 24 часа (86400 секунд)
+
+
+async def background_checker():
+    """Главная функция для запуска фоновых задач"""
+    update_task = asyncio.create_task(check_updates_task())
+    cleanup_task = asyncio.create_task(cleanup_expired_items_task())
+
+    # Ждём того чего не случится
+    await asyncio.gather(update_task, cleanup_task)

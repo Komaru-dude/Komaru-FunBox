@@ -707,6 +707,27 @@ class Database:
                 user_id,
             )
 
+    async def cleanup_all_expired_items(self):
+        """Очищает все просроченные предметы в инвертаре"""
+        await self.ensure_connection()
+        now = int(time.time())
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT user_id, items FROM global_users")
+
+            for row in rows:
+                user_id = row["user_id"]
+                items = row["items"] or []
+                filtered = [
+                    item for item in items if item.get("expires", now + 1) > now
+                ]
+
+                if filtered != items:
+                    await conn.execute(
+                        "UPDATE global_users SET items = $1 WHERE user_id = $2",
+                        filtered,
+                        user_id,
+                    )
+
     async def chat_exists(self, chat_id: int) -> bool:
         """Проверяет существование чата в базе"""
         await self.ensure_connection()
@@ -879,6 +900,9 @@ class Database:
             return day_count, week_count
 
     async def get_eco_top(self, limit: int = 10) -> list[dict]:
+        """
+        Возвращает топ по банковским
+        """
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
@@ -892,3 +916,118 @@ class Database:
                 limit,
             )
         return [dict(row) for row in rows]
+
+    async def has_valid_item(self, user_id: int, item_id: str) -> bool:
+        """
+        Проверяет, есть ли у пользователя предмет item_id с uses > 0 и expires ещё не прошёл.
+        """
+        await self.ensure_connection()
+        now = int(time.time())
+
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT items FROM global_users WHERE user_id = $1",
+                user_id,
+            )
+            if not row:
+                return False
+
+            items = row["items"] or []
+            for item in items:
+                if item.get("id") == item_id:
+                    expires = item.get("expires")
+                    if expires is not None and expires != False and expires <= now:
+                        continue
+
+                    uses = item.get("uses")
+                    if uses is not None and int(uses) <= 0:
+                        continue
+
+                    return True
+            return False
+
+    async def add_item_to_user(self, user_id: int, shop_item: dict):
+        """
+        Добавляет предмет из shop_item пользователю.
+        Обрабатывает expires и uses, создаёт новый объект.
+        """
+        await self.ensure_connection()
+        now = int(time.time())
+
+        item = {
+            "id": shop_item["id"],
+            "name": shop_item.get("name"),
+            "desc": shop_item.get("desc"),
+        }
+
+        expires_raw = shop_item.get("expires", "False")
+        if expires_raw == "False" or expires_raw is False:
+            item["expires"] = False
+        else:
+            try:
+                duration = int(expires_raw)
+                item["expires"] = now + duration
+            except Exception:
+                item["expires"] = False
+
+        try:
+            item["uses"] = int(shop_item.get("uses", 1))
+        except Exception:
+            item["uses"] = 1
+
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT items FROM global_users WHERE user_id = $1", user_id
+            )
+            items = row["items"] or []
+            items.append(item)
+            await conn.execute(
+                "UPDATE global_users SET items = $1 WHERE user_id = $2",
+                items,
+                user_id,
+            )
+
+    async def use_item(self, user_id: int, item_id: str) -> bool:
+        """
+        Уменьшает uses у айтема на 1. Если uses стало 0 — удаляет айтем.
+        Возвращает True, если предмет найден и использован, иначе False.
+        """
+        await self.ensure_connection()
+        now = int(time.time())
+
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT items FROM global_users WHERE user_id = $1", user_id
+            )
+            if not row:
+                return False
+
+            items = row["items"] or []
+            changed = False
+
+            for i, item in enumerate(items):
+                if item.get("id") == item_id:
+                    expires = item.get("expires")
+                    if expires is not None and expires != False and expires <= now:
+                        continue
+
+                    uses = item.get("uses", 0)
+                    if int(uses) <= 0:
+                        continue
+
+                    items[i]["uses"] = int(uses) - 1
+                    changed = True
+
+                    if items[i]["uses"] <= 0:
+                        items.pop(i)
+                    break
+
+            if changed:
+                await conn.execute(
+                    "UPDATE global_users SET items = $1 WHERE user_id = $2",
+                    items,
+                    user_id,
+                )
+                return True
+
+            return False

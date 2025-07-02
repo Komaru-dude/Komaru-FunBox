@@ -12,8 +12,9 @@ from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.filters.chat_type import ChatTypeFilter
+from bot.keyboards.shop_keyboard import make_shop_keyboard, ShopCallback
 from bot.utils.aio_tools import error_report, get_user_id
-from bot.utils.global_storage import eco_config
+from bot.utils.global_storage import eco_config, shop_config
 
 eco_router = Router()
 
@@ -480,3 +481,38 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
 
     except Exception:
         await error_report(message, bot, "top", traceback.format_exc())
+
+
+@eco_router.message(Command("shop"))
+async def cmd_shop(message: Message, bot: Bot):
+    try:
+        keyboard = make_shop_keyboard()
+        await message.reply("Выберите товар для покупки:", reply_markup=keyboard)
+    except Exception:
+        await error_report(message, bot, "shop", traceback.format_exc())
+
+
+@eco_router.callback_query(ShopCallback.filter(F.action == "buy"))
+async def shop_buy_callback(
+    callback: CallbackQuery, callback_data: ShopCallback, db: Database
+):
+    user_id = callback.from_user.id
+    item_id = callback_data.item_id
+
+    item = next((i for i in shop_config if i["id"] == item_id), None)
+    if item:
+        user_bal = await db.get_global_user_param(user_id, "money")
+        price = item["price"]
+        if price > user_bal:
+            await callback.answer(
+                "❌ У вас недостаточно наличных для покупки предмета", show_alert=True
+            )
+            return
+        await db.add_item_to_user(user_id, item)
+    else:
+        await callback.answer("❌ Такого предмета не существует!", show_alert=True)
+
+    await callback.answer(
+        f"✅ Предмет {item["name"]} успешно куплен за {item["price"]} {eco_config["currency_sign"]}",
+        show_alert=True,
+    )

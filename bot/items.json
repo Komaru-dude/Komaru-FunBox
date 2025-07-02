@@ -1,0 +1,18 @@
+[
+    {
+        "id": "fake_passport", 
+        "name": "Фейковый пасспорт", 
+        "price": "250", 
+        "desc": "Уменьшает шанс неудачного steal",
+        "expires": "False",
+        "uses": "1"
+    },
+    {
+        "id": "rob_protection",
+        "name": "Защита от rob",
+        "price": "1250",
+        "desc": "2 раза или 24 часа защищает вас от rob",
+        "expires": "86400",
+        "uses": "2"
+    }
+]
