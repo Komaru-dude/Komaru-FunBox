@@ -503,7 +503,7 @@ async def shop_buy_callback(
     if item:
         user_bal = await db.get_global_user_param(user_id, "money")
         price = item["price"]
-        if price > user_bal:
+        if int(price) > user_bal:
             await callback.answer(
                 "❌ У вас недостаточно наличных для покупки предмета", show_alert=True
             )
