@@ -71,17 +71,27 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         current_penalty = random.randint(min_penalty, max_penalty)
 
         fail_percent = eco_config["steal_fail_percent"]
+
+        has_fake_passport = await db.has_valid_item(user_id, "fake_passport")
+
+        if has_fake_passport:
+            fail_percent = max(0, fail_percent - 20)  # уменьшаем шанс неудачи на 20%
+            await db.use_item(user_id, "fake_passport")
+            passport_used_msg = "🛡 Фейковый паспорт был использован, шанс неудачи снижен!"
+        else:
+            passport_used_msg = ""
+
         if random.randint(1, 100) <= fail_percent:
             new_bal = current_bal - current_penalty
             new_bal = round(new_bal, 2)
             await message.reply(
-                f"😔 Вам не повезло.\n🧨 Вы потеряли: {current_penalty}\n{eco_config["currency_sign"]} Ваш новый баланс: {new_bal}"
+                f"😔 Вам не повезло.\n🧨 Вы потеряли: {current_penalty}\n{eco_config['currency_sign']} Ваш новый баланс: {new_bal}\n{passport_used_msg}"
             )
         else:
             new_bal = current_bal + current_income
             new_bal = round(new_bal, 2)
             await message.reply(
-                f"🤑 Повезло!\n💡 Вы заработали: {current_income}\n{eco_config["currency_sign"]} Ваш новый баланс: {new_bal}"
+                f"🤑 Повезло!\n💡 Вы заработали: {current_income}\n{eco_config['currency_sign']} Ваш новый баланс: {new_bal}\n{passport_used_msg}"
             )
 
         await db.set_global_user_param(user_id, "money", new_bal)
