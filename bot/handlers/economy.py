@@ -33,12 +33,18 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         min_income = eco_config["min_work_income"]
         max_income = eco_config["max_work_income"]
         current_income = random.randint(min_income, max_income)
+        if await db.has_valid_item(user_id, "work_tools"):
+            bonus = round(current_income * 0.02, 2)
+            current_income = current_income + bonus
+            f"🧑‍🏭 Использование рабочих инструментов принесло вам: {bonus} {eco_config['currency_sign']}\n"
+        else:
+            work_tools_msg = ""
 
         new_bal = current_bal + current_income
         new_bal = round(new_bal, 2)
         await db.set_global_user_param(user_id, "money", new_bal)
         await message.reply(
-            f"👨‍💻 Вы заработали: {current_income}\n{eco_config["currency_sign"]} Ваш новый баланс: {new_bal}"
+            f"👨‍💻 Вы заработали: {current_income}\n{work_tools_msg}{eco_config["currency_sign"]} Ваш новый баланс: {new_bal}"
         )
     except Exception:
         await db.reset_cooldown(user_id, "work")
