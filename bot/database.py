@@ -921,7 +921,7 @@ class Database:
 
     async def has_valid_item(self, user_id: int, item_id: str) -> bool:
         """
-        Проверяет, есть ли у пользователя предмет item_id с uses > 0 и expires ещё не прошёл.
+        Проверяет, есть ли у пользователя предмет item_id с uses > 0 или uses == -1 и expires ещё не прошёл.
         """
         await self.ensure_connection()
         now = int(time.time())
@@ -943,11 +943,11 @@ class Database:
             for item in items:
                 if item.get("id") == item_id:
                     expires = item.get("expires")
-                    if expires is not None and expires != False and expires <= now:
+                    if expires is not None and expires is not False and expires <= now:
                         continue
 
                     uses = item.get("uses")
-                    if uses is not None and int(uses) <= 0:
+                    if uses is not None and uses != -1 and int(uses) <= 0:
                         continue
 
                     return True
@@ -1004,7 +1004,7 @@ class Database:
 
     async def use_item(self, user_id: int, item_id: str) -> bool:
         """
-        Уменьшает uses у айтема на 1. Если uses стало 0 — удаляет айтем.
+        Уменьшает uses у айтема на 1, если uses не равен -1. Если uses стало 0 — удаляет айтем.
         Возвращает True, если предмет найден и использован, иначе False.
         """
         await self.ensure_connection()
@@ -1028,11 +1028,15 @@ class Database:
             for i, item in enumerate(items):
                 if item.get("id") == item_id:
                     expires = item.get("expires")
-                    if expires is not None and expires != False and expires <= now:
+                    if expires is not None and expires is not False and expires <= now:
                         continue
 
                     uses = item.get("uses", 0)
-                    if int(uses) <= 0:
+                    if uses == -1:
+                        # Бесконечные использования — не уменьшаем, но считаем использованным
+                        changed = False
+                        return True
+                    elif int(uses) <= 0:
                         continue
 
                     items[i]["uses"] = int(uses) - 1
