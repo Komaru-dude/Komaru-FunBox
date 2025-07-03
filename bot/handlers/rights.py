@@ -7,8 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from bot.database import Database
-from bot.database import RANK_TO_LEVEL
+from bot.database import Database, RANK_TO_LEVEL
 from bot.utils import aio_tools
 
 rights_router = Router()
