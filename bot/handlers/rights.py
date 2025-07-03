@@ -7,6 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.database import Database, RANK_TO_LEVEL
 from bot.utils import aio_tools
 
@@ -18,7 +19,7 @@ class SetRankStates(StatesGroup):
     waiting_for_rank = State()
 
 
-@rights_router.message(Command("set_rank"))
+@rights_router.message(Command("set_rank"), CooldownFilter("ranks", 7))
 async def cmd_set_rank(message: Message, state: FSMContext, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id

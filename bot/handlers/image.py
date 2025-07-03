@@ -4,6 +4,7 @@ from pathlib import Path
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 from bot.database import Database
 
@@ -21,7 +22,7 @@ async def get_last_profile_photo(user_id, bot):
     return last_photo_set[-1]
 
 
-@image_router.message(Command("jpeg"))
+@image_router.message(Command("jpeg"), CooldownFilter("jpeg", 150))
 async def cmd_jpeg(message: Message, bot: Bot, db: Database):
     command = "jpeg"
     input_path = output_path = processing_msg = image = None

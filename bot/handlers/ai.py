@@ -16,6 +16,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, FSInputFile
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramRetryAfter
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import make_post_request, error_report
 from bot.utils.global_storage import (
     active_chats,
@@ -117,7 +118,7 @@ async def show_working_models(message: Message):
     )
 
 
-@ai_router.message(Command("ai"))
+@ai_router.message(Command("ai"), CooldownFilter("ai", 45))
 async def cmd_ai(
     message: Message = None,
     bot: Bot = None,
@@ -327,7 +328,7 @@ async def cmd_ai(
             raise e
 
 
-@ai_router.message(Command("agai"))
+@ai_router.message(Command("agai"), CooldownFilter("ai", 45))
 async def cmd_aggemini(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split(maxsplit=1)
@@ -356,7 +357,7 @@ async def cmd_aggemini(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "agai", traceback.format_exc())
 
 
-@ai_router.message(Command("image"))
+@ai_router.message(Command("image"), CooldownFilter("image", 30))
 async def cmd_image(message: Message, bot: Bot, db: Database):
     try:
         args = message.text.split(maxsplit=1)
@@ -502,7 +503,7 @@ async def process_image_queue():
     is_generating = False
 
 
-@ai_router.message(Command("translate"))
+@ai_router.message(Command("translate"), CooldownFilter("ai", 45))
 async def cmd_translate(
     message: Message = None,
     bot: Bot = None,
@@ -602,7 +603,7 @@ async def cmd_translate(
             raise
 
 
-@ai_router.message(Command("ocr"))
+@ai_router.message(Command("ocr"), CooldownFilter("ocr", 300))
 async def cmd_ocr(message: Message, bot: Bot):
     try:
         base_msg = await message.reply("🔄 Обработка...")
@@ -677,7 +678,7 @@ async def cmd_ocr(message: Message, bot: Bot):
         await error_report(message, bot, "ocr", traceback.format_exc())
 
 
-@ai_router.message(Command("chat"))
+@ai_router.message(Command("chat"), CooldownFilter("ai", 45))
 async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
@@ -785,7 +786,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         await error_report(message, bot, "chat", traceback.format_exc())
 
 
-@ai_router.message(Command("chat_clear"))
+@ai_router.message(Command("chat_clear"), CooldownFilter("chat_cleat", 10))
 async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
     try:
         current_state = await state.get_state()
@@ -804,7 +805,7 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "chat_clear", traceback.format_exc())
 
 
-@ai_router.message(Command("chat_stop"))
+@ai_router.message(Command("chat_stop"), CooldownFilter("chat_stop", 15))
 async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
@@ -835,7 +836,7 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Datab
         await error_report(message, bot, "chat_stop", traceback.format_exc())
 
 
-@ai_router.message(Command("set_def_model"))
+@ai_router.message(Command("set_def_model"), CooldownFilter("set_def_model", 300))
 async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id

@@ -12,6 +12,7 @@ from aiogram.types import Message, URLInputFile
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from bot.database import Database
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 
 etc_router = Router()
@@ -30,7 +31,7 @@ cat_http_codes = load_http_codes("cat_http_codes.json")
 dog_http_codes = load_http_codes("dog_http_codes.json")
 
 
-@etc_router.message(Command("coffee"))
+@etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800))
 async def cmd_tea(message: Message, bot: Bot, db: Database):
     try:
         if await db.is_user_mediabanned(message.from_user.id):
@@ -54,7 +55,7 @@ async def cmd_tea(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "coffee", traceback.format_exc())
 
 
-@etc_router.message(Command("http_cat"))
+@etc_router.message(Command("http_cat"), CooldownFilter("http_pets", 5))
 async def cmd_http_cat(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
@@ -85,7 +86,7 @@ async def cmd_http_cat(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "http_cat", traceback.format_exc())
 
 
-@etc_router.message(Command("http_dog"))
+@etc_router.message(Command("http_dog"), CooldownFilter("http_pets", 5))
 async def cmd_http_dog(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
@@ -116,7 +117,7 @@ async def cmd_http_dog(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "http_dog", traceback.format_exc())
 
 
-@etc_router.message(Command("cat"))
+@etc_router.message(Command("cat"), CooldownFilter("pets", 15))
 async def cmd_cat(message: Message, bot: Bot, db: Database):
     try:
         if await db.is_user_mediabanned(message.from_user.id):
@@ -130,7 +131,7 @@ async def cmd_cat(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "cat", traceback.format_exc())
 
 
-@etc_router.message(Command("cat_gif"))
+@etc_router.message(Command("cat_gif"), CooldownFilter("pets", 15))
 async def cmd_cat_gif(message: Message, bot: Bot, db: Database):
     try:
         if await db.is_user_mediabanned(message.from_user.id):
@@ -141,7 +142,7 @@ async def cmd_cat_gif(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "cat_gif", traceback.format_exc())
 
 
-@etc_router.message(Command("shutter"))
+@etc_router.message(Command("shutter"), CooldownFilter("shutter", 5))
 async def cmd_shutter(message: Message, bot: Bot):
     try:
 
@@ -275,7 +276,7 @@ async def cmd_shutter(message: Message, bot: Bot):
         await error_report(message, bot, "shutter", traceback.format_exc())
 
 
-@etc_router.message(Command("weather"))
+@etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def send_weather(message: Message):
     def escape_ansi(line):
         ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
@@ -304,6 +305,6 @@ async def send_weather(message: Message):
             )
 
 
-@etc_router.message(Command("nillerxs"))
+@etc_router.message(Command("nillerxs"), CooldownFilter("bradok", 15))
 async def cmd_nillerxs(message: Message):
     await message.reply("нильрекс")

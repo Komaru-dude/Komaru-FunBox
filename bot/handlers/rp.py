@@ -7,6 +7,7 @@ from aiogram.enums import ParseMode
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.database import Database
 from bot.utils.aio_tools import error_report
 from pathlib import Path
@@ -41,7 +42,7 @@ def get_chat_commands(chat_id: int):
     return {}
 
 
-@rp_router.message(Command("rp_setup"))
+@rp_router.message(Command("rp_setup"), CooldownFilter("rp", 25))
 async def cmd_rp_setup(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -120,7 +121,7 @@ async def handle_rp_confirmation(callback: CallbackQuery, bot: Bot):
         await error_report(callback, bot, "rpconfirm_", traceback.format_exc())
 
 
-@rp_router.message(Command("rp_list"))
+@rp_router.message(Command("rp_list"), CooldownFilter("rp", 5))
 async def cmd_rp_list(message: Message, bot: Bot):
     try:
         chat_id = message.chat.id
@@ -148,7 +149,7 @@ class AddRpCommandStates(StatesGroup):
     waiting_for_messages = State()
 
 
-@rp_router.message(Command("rp_add"))
+@rp_router.message(Command("rp_add"), CooldownFilter("rp", 15))
 async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
@@ -268,7 +269,7 @@ async def process_messages(message: Message, state: FSMContext):
     await state.clear()
 
 
-@rp_router.message(Command("rp_remove"))
+@rp_router.message(Command("rp_remove"), CooldownFilter("rp", 15))
 async def cmd_rp_remove(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
@@ -310,7 +311,7 @@ async def cmd_rp_remove(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "rp_remove", traceback.format_exc())
 
 
-@rp_router.message(Command("rp_wipe"))
+@rp_router.message(Command("rp_wipe"), CooldownFilter("rp", 300))
 async def cmd_rp_wipe(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id

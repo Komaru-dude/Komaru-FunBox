@@ -7,6 +7,7 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, FSInputFile
 from bot import logger
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.database import Database
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import CACHE_DIR
@@ -40,7 +41,7 @@ async def download_video(url: str) -> dict:
         return {"status": "error", "message": stderr.decode()}
 
 
-@video_router.message(Command("video"))
+@video_router.message(Command("video"), CooldownFilter("video", 150))
 async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
     command = "video"
     file_path = None
@@ -81,7 +82,7 @@ async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
             await processing_msg.delete()
 
 
-@video_router.message(Command("gif"))
+@video_router.message(Command("gif"), CooldownFilter("gif", 300))
 async def cmd_gif(message: Message, bot: Bot, db: Database):
     command = "gif"
     input_path = None

@@ -3,6 +3,7 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message
 from urllib.parse import quote
+from bot.filters.cooldown_filter import CooldownFilter
 
 help_router = Router()
 
@@ -15,7 +16,7 @@ async def check_wiki_page(url):
             return response.status == 200 or response.status == 301
 
 
-@help_router.message(Command("help"))
+@help_router.message(Command("help"), CooldownFilter("help", 10))
 async def cmd_help(message: Message, bot: Bot):
     parts = message.text.strip().split(maxsplit=1)
 

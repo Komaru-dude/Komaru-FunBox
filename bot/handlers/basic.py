@@ -8,6 +8,7 @@ from aiogram.types import Message
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from bot.database import Database
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import update_cache
 
@@ -18,7 +19,7 @@ memory_loads = []
 start_time = time.time()
 
 
-@base_router.message(Command("start"))
+@base_router.message(Command("start"), CooldownFilter("start", 5))
 async def cmd_start(message: Message):
     await message.reply(
         f"👋 Привет, {message.from_user.first_name}!\n"
@@ -33,7 +34,7 @@ async def cmd_start(message: Message):
     )
 
 
-@base_router.message(Command("status"))
+@base_router.message(Command("status"), CooldownFilter("status", 15))
 async def cmd_status(message: Message, bot: Bot, db: Database):
     try:
         global start_time
@@ -105,7 +106,7 @@ async def cmd_status(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "status", traceback.format_exc())
 
 
-@base_router.message(Command("cancel"))
+@base_router.message(Command("cancel"), CooldownFilter("cancel", 5))
 async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
     try:
         current_state = await state.get_state()
@@ -118,7 +119,7 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "cancel", traceback.format_exc())
 
 
-@base_router.message(Command("set_name"))
+@base_router.message(Command("set_name"), CooldownFilter("set_name", 1200))
 async def cmd_set_name(message: Message, bot: Bot, db: Database):
     try:
         if message.reply_to_message:

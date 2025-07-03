@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, ChatPermissions
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.database import Database
 from bot.utils.aio_tools import (
     fetch_user_data,
@@ -27,7 +28,7 @@ def parse_time(time_str: str) -> timedelta:
     return timedelta(**{units[unit]: int(value)})
 
 
-@mods_router.message(Command("enable"))
+@mods_router.message(Command("enable"), CooldownFilter("func", 5))
 async def cmd_enable_func(message: Message, bot: Bot, db: Database):
     chat_id = message.chat.id
     user_id = message.from_user.id
@@ -60,7 +61,7 @@ async def cmd_enable_func(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "enable", traceback.format_exc())
 
 
-@mods_router.message(Command("disable"))
+@mods_router.message(Command("disable"), CooldownFilter("func", 5))
 async def cmd_disable_func(message: Message, bot: Bot, db: Database):
     chat_id = message.chat.id
     user_id = message.from_user.id
@@ -93,7 +94,7 @@ async def cmd_disable_func(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "disable", traceback.format_exc())
 
 
-@mods_router.message(Command("history"))
+@mods_router.message(Command("history"), CooldownFilter("moderation", 7))
 async def cmd_history(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.strip().split()
@@ -158,7 +159,7 @@ async def cmd_history(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "history", traceback.format_exc())
 
 
-@mods_router.message(Command("warn"))
+@mods_router.message(Command("warn"), CooldownFilter("moderation", 7))
 async def cmd_warn(message: Message, bot: Bot, db: Database):
     command = "warn"
     try:
@@ -271,7 +272,7 @@ async def cmd_warn(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, command, traceback.format_exc())
 
 
-@mods_router.message(Command("info"))
+@mods_router.message(Command("info"), CooldownFilter("moderation", 7))
 async def cmd_info(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
@@ -326,7 +327,7 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "info", traceback.format_exc())
 
 
-@mods_router.message(Command("mute"))
+@mods_router.message(Command("mute"), CooldownFilter("moderation", 7))
 async def cmd_mute(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -412,7 +413,7 @@ async def cmd_mute(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "mute", str(e))
 
 
-@mods_router.message(Command("ban"))
+@mods_router.message(Command("ban"), CooldownFilter("moderation", 7))
 async def cmd_ban(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -493,7 +494,7 @@ async def cmd_ban(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "ban", str(e))
 
 
-@mods_router.message(Command("unmute"))
+@mods_router.message(Command("unmute"), CooldownFilter("moderation", 7))
 async def cmd_unmute(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -551,7 +552,7 @@ async def cmd_unmute(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "unmute", str(e))
 
 
-@mods_router.message(Command("unban"))
+@mods_router.message(Command("unban"), CooldownFilter("moderation", 7))
 async def cmd_unban(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id

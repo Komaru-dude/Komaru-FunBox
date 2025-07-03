@@ -3,13 +3,14 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message
 from aiogram.enums import ParseMode
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.database import Database
 from bot.utils.aio_tools import fetch_json, error_report
 
 tag_router = Router()
 
 
-@tag_router.message(Command("tag"))
+@tag_router.message(Command("tag"), CooldownFilter("tag", 15))
 async def cmd_tag(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id
@@ -49,7 +50,7 @@ async def cmd_tag(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "tag", traceback.format_exc())
 
 
-@tag_router.message(Command("tagall"))
+@tag_router.message(Command("tagall"), CooldownFilter("tagall", 900))
 async def cmd_tagall(message: Message, bot: Bot, db: Database):
     try:
         if message.chat.type not in ["group", "supergroup"]:

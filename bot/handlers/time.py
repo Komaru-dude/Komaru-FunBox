@@ -4,13 +4,14 @@ from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import Command
 from datetime import datetime
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 
 time_router = Router()
 moscow_tz = pytz.timezone("Europe/Moscow")
 
 
-@time_router.message(Command("new_year"))
+@time_router.message(Command("new_year"), CooldownFilter("time", 5))
 async def cmd_time_to_new_year(message: Message, bot: Bot):
     try:
         tz = moscow_tz
@@ -36,7 +37,7 @@ async def cmd_time_to_new_year(message: Message, bot: Bot):
         await error_report(message, bot, "new_year", traceback.format_exc())
 
 
-@time_router.message(Command("birthdays"))
+@time_router.message(Command("birthdays"), CooldownFilter("time", 5))
 async def cmd_cats_birthdays(message: Message, bot: Bot):
     try:
         tz = moscow_tz
@@ -85,7 +86,7 @@ async def cmd_cats_birthdays(message: Message, bot: Bot):
         await error_report(message, bot, "birthdays", traceback.format_exc())
 
 
-@time_router.message(Command("revx"))
+@time_router.message(Command("revx"), CooldownFilter("bradok", 15))
 async def cmd_time_to_revx(message: Message, bot: Bot):
     try:
         tz = moscow_tz
