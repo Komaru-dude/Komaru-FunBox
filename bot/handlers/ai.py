@@ -706,7 +706,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         if "-m" in args_text:
             model_match = re.search(r"-m\s+(\S+)", args_text)
             if not model_match:
-                await message.edit_text("❌ Укажите название модели после -m")
+                await message.reply("❌ Укажите название модели после -m")
                 return
             model_name = model_match.group(1).lower()
             args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
@@ -714,15 +714,15 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         if model_name:
             model_info = onlysq_models["models"].get(model_name)
             if not model_info:
-                await message.edit_text(f"❌ Модель {model_name} не найдена")
+                await message.reply(f"❌ Модель {model_name} не найдена")
                 return
             if model_info["status"] != "work":
-                await message.edit_text(
+                await message.reply(
                     f"❌ Модель {model_name} на данный момент не работает."
                 )
                 return
             if model_info["modality"] != "text":
-                await message.edit_text(f"❌ Модель {model_name} не текстовая.")
+                await message.reply(f"❌ Модель {model_name} не текстовая.")
                 return
             model = model_name
 
