@@ -501,7 +501,7 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "top", traceback.format_exc())
 
 
-@eco_router.message(Command("shop"))
+@eco_router.message(Command("shop"), FuncEnabled("economy"))
 async def cmd_shop(message: Message, bot: Bot):
     try:
         text_lines = ["📗 Доступные товары:\n"]
