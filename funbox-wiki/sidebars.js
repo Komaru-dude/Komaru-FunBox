@@ -33,7 +33,7 @@ const sidebars = {
         type: 'doc', 
         id: 'commands/commands'
       },
-      items: ['commands/start', 'commands/status', 'commands/update', 'commands/restart', 'commands/logs', 'commands/help', 'commands/cancel', 'commands/new_year', 'commands/birthdays', 'commands/weather', 'commands/http_cat', 'commands/http_dog', 'commands/shutter', 'commands/available_models', 'commands/cat', 'commands/cat_gif'],
+      items: ['commands/start', 'commands/status', 'commands/update', 'commands/restart', 'commands/logs', 'commands/help', 'commands/cancel', 'commands/new_year', 'commands/birthdays', 'commands/weather', 'commands/http_cat', 'commands/http_dog', 'commands/shutter', 'commands/cat', 'commands/cat_gif', 'commands/available_models', 'commands/ai', 'commands/agai'],
     },
     {
       type: 'category',
