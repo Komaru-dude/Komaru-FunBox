@@ -602,8 +602,10 @@ async def duel_choose_bet(message: Message, bot: Bot, state: FSMContext, db: Dat
         target_bal = await db.get_global_user_param(target_id, "money")
 
         try:
+            if not message.text:
+                raise ValueError("Нет текста")
             bet = round(float(message.text), 2)
-        except ValueError:
+        except (ValueError, TypeError):
             await message.reply("❌ Это не число\n💡 Отправьте число или /cancel для остановки")
             return
 
