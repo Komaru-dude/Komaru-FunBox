@@ -574,13 +574,6 @@ class Duel(StatesGroup):
 async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         chat_id = message.chat.id
-
-        async with duel_sessions_lock:
-            if chat_id in duel_sessions:
-                await message.reply("❌ В чате уже идёт дуэль")
-                await db.reset_cooldown(message.from_user.id, "duel")
-                return
-
         target_id, error = await get_user_id(message)
 
         if error:
