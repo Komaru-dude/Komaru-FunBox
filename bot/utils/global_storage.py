@@ -16,7 +16,7 @@ error_report_lock = asyncio.Lock()
 
 update_cache = {}
 
-duel_sessions = []
+duel_sessions = {}
 duel_sessions_lock = asyncio.Lock()
 
 

@@ -555,8 +555,6 @@ async def shop_buy_callback(
 
 class Duel(StatesGroup):
     choose_bet = State()
-    wait_for_accept = State()
-    fight = State()
 
 @eco_router.message(Command("duel"), CooldownFilter("duel", 30))
 async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
@@ -594,10 +592,9 @@ async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
 async def duel_choose_bet(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
-        target_id = await state.get_value("target_id")
+        data = await state.get_data()
+        target_id = data.get("target_id")
 
-        user_name = await db.get_global_user_param(user_id, "name")
-        target_name = await db.get_global_user_param(target_id, "name")
         user_bal = await db.get_global_user_param(user_id, "money")
         target_bal = await db.get_global_user_param(target_id, "money")
 
@@ -613,141 +610,164 @@ async def duel_choose_bet(message: Message, bot: Bot, state: FSMContext, db: Dat
             await message.reply("❌ Ставка не может быть отрицательной")
             return
 
-        if bet == 0:
-            await message.reply("🆗 Дуэль без ставки принята")
-        else:
+        if bet > 0:
             if bet > user_bal:
-                await message.reply("❌ У вас не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки")
+                await message.reply(
+                    "❌ У вас не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки"
+                )
                 return
             if bet > target_bal:
-                await message.reply("❌ У цели не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки")
+                await message.reply(
+                    "❌ У цели не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки"
+                )
                 return
 
         await state.update_data(bet=bet)
-        await state.set_state(Duel.wait_for_accept)
+        await state.clear()
+
+        user_name = await db.get_global_user_param(user_id, "name")
+        target_name = await db.get_global_user_param(target_id, "name")
+
+        async with duel_sessions_lock:
+            duel_sessions[message.chat.id] = {
+                "challenger_id": user_id,
+                "target_id": target_id,
+                "bet": bet,
+                "hp": {user_id: 100, target_id: 100},
+                "turn": user_id,
+                "log": [],
+                "state": "wait_for_accept",
+            }
 
         await message.reply(
             f'⚔️ <a href="tg://user?id={target_id}">{target_name}</a>, внимание!\n'
             f'🔰 <a href="tg://user?id={user_id}">{user_name}</a> вызывает вас на дуэль на {bet} {eco_config["currency_sign"]}\n\n'
             f'💡 Используйте кнопки снизу для принятия решения',
             parse_mode=ParseMode.HTML,
-            reply_markup=make_duel_keyboard()
+            reply_markup=make_duel_keyboard(),
         )
     except Exception:
         await error_report(message, bot, "duel_choose_bet", traceback.format_exc())
 
-@eco_router.callback_query(DuelCallback.filter(), Duel.wait_for_accept)
-async def duel_accept_callback(callback: CallbackQuery, callback_data: DuelCallback, state: FSMContext, db: Database, bot: Bot):
+
+@eco_router.callback_query(DuelCallback.filter())
+async def duel_accept_callback(callback: CallbackQuery, callback_data: DuelCallback, db: Database, bot: Bot):
     try:
-        data = await state.get_data()
-        user_id = callback.from_user.id
-        target_id = data.get("target_id")
-        bet = data.get("bet", 0)
-
-        if user_id != target_id:
-            await callback.answer("❌ Только вызванный игрок может принять или отклонить дуэль", show_alert=True)
-            return
-
-        if callback_data.action == "decline":
-            await callback.message.edit_text("❌ Дуэль отклонена.")
-            await state.clear()
-            return
-
-        challenger_id = callback.message.reply_to_message.from_user.id if callback.message.reply_to_message else None
-        challenger_bal = await db.get_global_user_param(challenger_id, "money")
-        target_bal = await db.get_global_user_param(target_id, "money")
-        if bet > challenger_bal or bet > target_bal:
-            await callback.message.edit_text("❌ У одного из участников недостаточно средств для дуэли.")
-            await state.clear()
-            return
-
-        duel_data = {
-            "challenger_id": challenger_id,
-            "target_id": target_id,
-            "bet": bet,
-            "hp": {challenger_id: 100, target_id: 100},
-            "turn": challenger_id,
-            "log": []
-        }
-        await state.update_data(duel_data=duel_data)
-        await state.set_state(Duel.fight)
-
-        await callback.message.edit_text(
-            "⚔️ Дуэль началась!\n"
-            f"🗡 <a href='tg://user?id={challenger_id}'>Первый ходит</a>\n"
-            "Выберите действие:",
-            parse_mode=ParseMode.HTML,
-            reply_markup=make_duel_actions_keyboard()
-        )
-    except Exception:
-        await error_report(callback, bot, "duel_accept", traceback.format_exc())
-
-@eco_router.callback_query(F.data.startswith("duel_action"), Duel.fight)
-async def duel_fight_callback(callback: CallbackQuery, state: FSMContext, db: Database, bot: Bot):
-    try:
-        data = await state.get_data()
-        duel_data = data.get("duel_data")
+        chat_id = callback.message.chat.id
         user_id = callback.from_user.id
 
-        challenger_id = duel_data["challenger_id"]
-        target_id = duel_data["target_id"]
-        bet = duel_data["bet"]
-        hp = duel_data["hp"]
-        turn = duel_data["turn"]
+        async with duel_sessions_lock:
+            duel = duel_sessions.get(chat_id)
+            if duel is None:
+                await callback.answer("❌ Дуэль не найдена или завершена", show_alert=True)
+                return
 
-        if user_id != turn:
-            await callback.answer("❌ Сейчас не ваш ход!", show_alert=True)
-            return
+            if duel["state"] != "wait_for_accept":
+                await callback.answer("❌ Дуэль уже началась или завершена", show_alert=True)
+                return
 
-        action = callback.data.split(":")[1]
-        opponent_id = target_id if user_id == challenger_id else challenger_id
+            if user_id != duel["target_id"]:
+                await callback.answer("❌ Только вызванный игрок может принять или отклонить дуэль", show_alert=True)
+                return
 
-        msg = ""
-        if action == "attack":
-            if random.random() < 0.2:  # 20% шанс промаха
-                msg = f"🗡 <a href='tg://user?id={user_id}'>Промахнулся!</a>"
-            else:
-                dmg = random.randint(18, 28)
-                hp[opponent_id] -= dmg
-                msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> -{dmg} HP противнику"
-        elif action == "dodge":
-            if random.random() < 0.5: # 50% шанс уворота
-                msg = f"🛡 <a href='tg://user?id={user_id}'>Успешно увернулся!</a> (следующая атака по вам не пройдет)"
-                duel_data["dodge"] = opponent_id
-            else:
-                msg = f"🛡 <a href='tg://user?id={user_id}'>Провалил уворот!</a>"
-        elif action == "heal": # Всегда успешно, но числа рандомны
-            heal = random.randint(15, 25)
-            hp[user_id] = min(100, hp[user_id] + heal)
-            msg = f"💊 <a href='tg://user?id={user_id}'>Лечится!</a> +{heal} HP"
+            if callback_data.action == "decline":
+                await callback.message.edit_text("❌ Дуэль отклонена.")
+                duel_sessions.pop(chat_id)
+                return
 
-        if hp[opponent_id] <= 0:
-            winner_id = user_id
-            loser_id = opponent_id
-            winner_name = await db.get_global_user_param(winner_id, "name")
-            if bet > 0:
-                await db.set_global_user_param(winner_id, "money", (await db.get_global_user_param(winner_id, "money")) + bet)
-                await db.set_global_user_param(loser_id, "money", (await db.get_global_user_param(loser_id, "money")) - bet)
+            challenger_bal = await db.get_global_user_param(duel["challenger_id"], "money")
+            target_bal = await db.get_global_user_param(duel["target_id"], "money")
+            bet = duel["bet"]
+            if bet > challenger_bal or bet > target_bal:
+                await callback.message.edit_text("❌ У одного из участников недостаточно средств для дуэли.")
+                duel_sessions.pop(chat_id)
+                return
+
+            duel["state"] = "fight"
             await callback.message.edit_text(
-                f"{msg}\n\n🏆 Победитель дуэли: <a href='tg://user?id={winner_id}'>{winner_name}</a>!\n"
-                f"💸 {'+' if bet > 0 else ''}{bet} {eco_config['currency_sign']}" if bet > 0 else "Без ставки.",
-                parse_mode=ParseMode.HTML
+                "⚔️ Дуэль началась!\n"
+                f"🗡 <a href='tg://user?id={duel['challenger_id']}'>Первый ходит</a>\n"
+                "Выберите действие:",
+                parse_mode=ParseMode.HTML,
+                reply_markup=make_duel_actions_keyboard(),
             )
-            await state.clear()
-            async with duel_sessions_lock:
-                duel_sessions.remove(callback.message.chat.id)
-            return
-
-        duel_data["turn"] = opponent_id
-        await state.update_data(duel_data=duel_data)
-
-        await callback.message.edit_text(
-            f"{msg}\n\n"
-            f"❤️ {await db.get_global_user_param(challenger_id, 'name')}: {hp[challenger_id]} HP\n"
-            f"❤️ {await db.get_global_user_param(target_id, 'name')}: {hp[target_id]} HP\n\n"
-            f"💡 Теперь ходит: <a href='tg://user?id={opponent_id}'>этот игрок</a>",
-            parse_mode=ParseMode.HTML,
-            reply_markup=make_duel_actions_keyboard()
-        )
     except Exception:
-        await error_report(callback, bot, "duel_fight", traceback.format_exc())
+        await error_report(callback.message, bot, "duel_accept", traceback.format_exc())
+
+
+@eco_router.callback_query(F.data.startswith("duel_action"))
+async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
+    try:
+        chat_id = callback.message.chat.id
+        user_id = callback.from_user.id
+
+        async with duel_sessions_lock:
+            duel = duel_sessions.get(chat_id)
+            if duel is None:
+                await callback.answer("❌ Дуэль не найдена или завершена", show_alert=True)
+                return
+
+            if duel["state"] != "fight":
+                await callback.answer("❌ Дуэль ещё не началась или уже завершена", show_alert=True)
+                return
+
+            if user_id != duel["turn"]:
+                await callback.answer("❌ Сейчас не ваш ход!", show_alert=True)
+                return
+
+            challenger_id = duel["challenger_id"]
+            target_id = duel["target_id"]
+            bet = duel["bet"]
+            hp = duel["hp"]
+
+            opponent_id = target_id if user_id == challenger_id else challenger_id
+
+            action = callback.data.split(":")[1]
+            msg = ""
+
+            if action == "attack":
+                if random.random() < 0.2:  # 20% шанс промаха
+                    msg = f"🗡 <a href='tg://user?id={user_id}'>Промахнулся!</a>"
+                else:
+                    dmg = random.randint(18, 28)
+                    hp[opponent_id] -= dmg
+                    msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> -{dmg} HP противнику"
+            elif action == "dodge":
+                if random.random() < 0.5:  # 50% шанс уворота
+                    msg = f"🛡 <a href='tg://user?id={user_id}'>Успешно увернулся!</a> (следующая атака по вам не пройдет)"
+                    duel["dodge"] = opponent_id
+                else:
+                    msg = f"🛡 <a href='tg://user?id={user_id}'>Провалил уворот!</a>"
+            elif action == "heal":  # Всегда успешно, но числа рандомны
+                heal = random.randint(15, 25)
+                hp[user_id] = min(100, hp[user_id] + heal)
+                msg = f"💊 <a href='tg://user?id={user_id}'>Лечится!</a> +{heal} HP"
+
+            if hp[opponent_id] <= 0:
+                winner_id = user_id
+                loser_id = opponent_id
+                winner_name = await db.get_global_user_param(winner_id, "name")
+                if bet > 0:
+                    await db.set_global_user_param(winner_id, "money", (await db.get_global_user_param(winner_id, "money")) + bet)
+                    await db.set_global_user_param(loser_id, "money", (await db.get_global_user_param(loser_id, "money")) - bet)
+
+                await callback.message.edit_text(
+                    f"{msg}\n\n🏆 Победитель дуэли: <a href='tg://user?id={winner_id}'>{winner_name}</a>!\n"
+                    f"💸 {'+' if bet > 0 else ''}{bet} {eco_config['currency_sign']}" if bet > 0 else "Без ставки.",
+                    parse_mode=ParseMode.HTML,
+                )
+                duel_sessions.pop(chat_id)
+                return
+
+            duel["turn"] = opponent_id
+
+            await callback.message.edit_text(
+                f"{msg}\n\n"
+                f"❤️ {await db.get_global_user_param(challenger_id, 'name')}: {hp[challenger_id]} HP\n"
+                f"❤️ {await db.get_global_user_param(target_id, 'name')}: {hp[target_id]} HP\n\n"
+                f"💡 Теперь ходит: <a href='tg://user?id={opponent_id}'>этот игрок</a>",
+                parse_mode=ParseMode.HTML,
+                reply_markup=make_duel_actions_keyboard(),
+            )
+    except Exception:
+        await error_report(callback.message, bot, "duel_fight", traceback.format_exc())
