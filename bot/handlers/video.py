@@ -2,65 +2,27 @@ import asyncio
 import uuid
 import traceback
 import shutil
-import json
 from pathlib import Path
-from urllib.parse import quote_plus, unquote_plus
-from datetime import timedelta
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import (
-    Message,
-    CallbackQuery,
-    FSInputFile,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    URLInputFile,
-)
+from aiogram.types import Message, FSInputFile
 from bot import logger
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.database import Database
-from bot.utils.aio_tools import error_report, convert_seconds
+from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import CACHE_DIR
 
 video_router = Router()
 
 
-async def get_video_info(url: str) -> dict:
-    process = await asyncio.create_subprocess_exec(
-        "yt-dlp",
-        "-j",
-        url,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-    )
-    stdout, stderr = await process.communicate()
-
-    if process.returncode != 0:
-        return {"status": "error", "message": stderr.decode()}
-
-    try:
-        info = json.loads(stdout.decode())
-        return {
-            "status": "success",
-            "title": info.get("title"),
-            "thumbnail": info.get("thumbnail"),
-            "duration": info.get("duration"),
-            "webpage_url": info.get("webpage_url"),
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-
-async def download_video(
-    url: str, format_code="worst/worstvideo+worstaudio/best", ext="mp4"
-) -> dict:
-    random_filename = f"{uuid.uuid4().hex}.{ext}"
+async def download_video(url: str) -> dict:
+    random_filename = f"{uuid.uuid4().hex}.mp4"
     output_path = CACHE_DIR / random_filename
 
     process = await asyncio.create_subprocess_exec(
         "yt-dlp",
         "-f",
-        format_code,
+        "worst/worstvideo+worstaudio/best",
         "-o",
         str(output_path),
         url,
@@ -81,118 +43,41 @@ async def download_video(
 
 @video_router.message(Command("video"), CooldownFilter("video", 150))
 async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
-    try:
-        if await db.is_user_mediabanned(message.from_user.id):
-            return await message.reply(
-                "❌ Вы заблокированы, это действие вам запрещено"
-            )
-
-        split_text = message.text.split()
-        if not url:
-            if len(split_text) > 1:
-                url = split_text[1]
-            else:
-                return await message.reply("❌ Укажите URL видео")
-
-        if not url.startswith("https://"):
-            await message.reply("Некорректный URL")
-            return
-
-        info = await get_video_info(url)
-        if info["status"] != "success":
-            return await message.reply("⚠️ Не удалось получить информацию о видео.")
-
-        safe_url = quote_plus(url)
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        "🎞 Видео с аудио", callback_data=f"video:full:{safe_url}"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "📹 Только видео", callback_data=f"video:video:{safe_url}"
-                    )
-                ],
-                [
-                    InlineKeyboardButton(
-                        "🔊 Только аудио", callback_data=f"video:audio:{safe_url}"
-                    )
-                ],
-            ]
-        )
-
-        duration = info.get("duration")
-        if duration:
-            days, hours, minutes, seconds = convert_seconds(duration)
-            parts = []
-            if days > 0:
-                parts.append(f"{days}д")
-            if hours > 0:
-                parts.append(f"{hours}ч")
-            if minutes > 0:
-                parts.append(f"{minutes}м")
-            parts.append(f"{seconds}с")
-            duration_str = " ".join(parts)
-        else:
-            duration_str = "неизвестно"
-
-        caption = f"📹 <b>{info.get('title', 'Без названия')}</b>\n⏱️ Длительность: <code>{duration_str}</code>"
-
-        await message.answer_photo(
-            photo=URLInputFile(info.get("thumbnail")),
-            caption=caption,
-            reply_markup=keyboard,
-            parse_mode="HTML",
-        )
-    except Exception:
-        await error_report(message, bot, "video", traceback.format_exc())
-
-
-@video_router.callback_query(lambda c: c.data.startswith("video:"))
-async def process_video_choice(callback: CallbackQuery, bot: Bot):
-    await callback.answer()
     command = "video"
     file_path = None
     processing_msg = None
 
     try:
-        _, mode, raw_url = callback.data.split(":", 2)
-        url = unquote_plus(raw_url)
+        if await db.is_user_mediabanned(message.from_user.id):
+            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
+            return
 
-        if mode == "audio":
-            format_code = "bestaudio"
-            ext = "m4a"
-        elif mode == "video":
-            format_code = "worstvideo"
-            ext = "mp4"
-        else:
-            format_code = "worst/worstvideo+worstaudio/best"
-            ext = "mp4"
+        split_text = message.text.split()
+        if not url:
+            if len(split_text) > 1 and split_text[1]:
+                url = split_text[1]
+            else:
+                return await message.reply("❌ Укажите URL видео в команде")
 
-        processing_msg = await callback.message.answer("⏳ Скачиваю, подождите...")
+        processing_msg = await message.answer("⏳ Скачиваю, ждите")
 
-        result = await download_video(url, format_code=format_code, ext=ext)
+        result = await download_video(url)
         if result["status"] != "success":
-            await error_report(callback.message, bot, command, result["message"])
+            await error_report(message, bot, command, result["message"])
             return
 
         file_path = result["file_path"]
-        file = FSInputFile(file_path)
-
-        if mode == "audio":
-            await callback.message.answer_audio(file, caption="🔊 Вот ваш аудиофайл:")
-        else:
-            await callback.message.answer_video(file, caption="📹 Вот ваше видео:")
+        vid = FSInputFile(file_path)
+        await message.reply_video(vid, caption="📹 Вот ваше видео:")
 
     except Exception:
-        await error_report(callback.message, bot, command, traceback.format_exc())
+        error_traceback = traceback.format_exc()
+        await error_report(message, bot, command, error_traceback)
 
     finally:
         if file_path and Path(file_path).exists():
-            proc = await asyncio.create_subprocess_exec("rm", "-f", file_path)
-            await proc.wait()
+            process = await asyncio.create_subprocess_exec("rm", "-f", file_path)
+            await process.wait()
         if processing_msg:
             await processing_msg.delete()
 
