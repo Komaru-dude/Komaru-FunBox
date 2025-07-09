@@ -559,30 +559,34 @@ class Duel(StatesGroup):
     fight = State()
 
 @eco_router.message(Command("duel"), CooldownFilter("duel", 30))
-async def cmd_duel(message: Message, bot: Bot, state: FSMContext):
+async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         chat_id = message.chat.id
 
         async with duel_sessions_lock:
             if chat_id in duel_sessions:
                 await message.reply("❌ В чате уже идёт дуэль")
+                await db.reset_cooldown(message.from_user.id, "duel")
                 return
 
         target_id, error = await get_user_id(message)
         
         if error:
             await message.reply(f"❌ {error}")
+            await db.reset_cooldown(message.from_user.id, "duel")
             return
         
         target_user = await bot.get_chat_member(chat_id, target_id)
         if target_user.user.is_bot:
             await message.reply("❌ Вы пытаетесь начать дуэль с ботом")
+            await db.reset_cooldown(message.from_user.id, "duel")
             return
         
         await state.update_data(target_id=target_id)
         await message.reply(f"✅ Отлично!\n{eco_config["currency_sign"]} Отправьте вашу ставку или 0 для её отсутствия.\n💡 Учитывайте что деньги должны быть на руках.")
         await state.set_state(Duel.choose_bet)
     except Exception:
+        await db.reset_cooldown(message.from_user.id, "duel")
         await error_report(message, bot, "duel", traceback.format_exc())
 
 
