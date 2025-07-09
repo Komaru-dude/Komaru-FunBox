@@ -566,7 +566,7 @@ class Duel(StatesGroup):
     choose_bet = State()
 
 
-@eco_router.message(Command("duel"), CooldownFilter("duel", 30))
+@eco_router.message(Command("duel"), CooldownFilter("duel", 30), ChatTypeFilter(chat_type=["group", "supergroup"]))
 async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         chat_id = message.chat.id
