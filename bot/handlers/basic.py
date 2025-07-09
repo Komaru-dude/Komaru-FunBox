@@ -16,7 +16,8 @@ from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import update_cache
 
 base_router = Router()
-BASE_WIKI_URL = "https://komaru-dude.github.io/Komaru-FunBox/docs/commands"
+BASE_COMMANDS_URL = "https://komaru-dude.github.io/Komaru-FunBox/docs/commands"
+BASE_MODULES_URL = "https://komaru-dude.github.io/Komaru-FunBox/docs/modules"
 # Списки хранения данных для /status
 cpu_loads = []
 memory_loads = []
@@ -152,26 +153,36 @@ async def check_wiki_page(url):
             return response.status == 200 or response.status == 301
 
 
+async def find_wiki_page(name: str) -> str | None:
+    encoded_name = quote(name)
+    url_commands = f"{BASE_COMMANDS_URL}/{encoded_name}"
+    url_modules = f"{BASE_MODULES_URL}/{encoded_name}"
+    if await check_wiki_page(url_commands):
+        return url_commands
+    elif await check_wiki_page(url_modules):
+        return url_modules
+    return None
+
+
 @base_router.message(Command("help"), CooldownFilter("help", 10))
 async def cmd_help(message: Message, bot: Bot):
     parts = message.text.strip().split(maxsplit=1)
 
     if len(parts) == 1:
         await message.reply(
-            f"Полный список команд и их описания доступны в вики:\n{BASE_WIKI_URL}/",
+            f"Полный список команд и их описания доступны в вики:\n{BASE_COMMANDS_URL}/",
             disable_web_page_preview=True,
         )
     else:
         argument = parts[1].lower()
-        encoded_arg = quote(argument)
-        url = f"{BASE_WIKI_URL}/{encoded_arg}"
-        if await check_wiki_page(url):
+        found_url = await find_wiki_page(argument)
+        if found_url:
             await message.reply(
-                f"Подробная информация о команде '{argument}':\n{url}",
+                f"Подробная информация о '{argument}':\n{found_url}",
                 disable_web_page_preview=True,
             )
         else:
             await message.reply(
-                f"Команда '{argument}' не найдена в вики.\nПолный список команд: {BASE_WIKI_URL}/",
+                f"'{argument}' не найдено в вики.\nПолный список команд: {BASE_COMMANDS_URL}/\nСписок модулей: {BASE_MODULES_URL}/",
                 disable_web_page_preview=True,
             )
