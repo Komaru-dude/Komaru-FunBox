@@ -1,14 +1,21 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
 
+
 class DuelCallback(CallbackData, prefix="duel"):
     action: str  # accept / decline
 
+
 def make_duel_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.button(text="✅ Принять", callback_data=DuelCallback(action="accept").pack())
-    builder.button(text="❌ Отклонить", callback_data=DuelCallback(action="decline").pack())
+    builder.button(
+        text="✅ Принять", callback_data=DuelCallback(action="accept").pack()
+    )
+    builder.button(
+        text="❌ Отклонить", callback_data=DuelCallback(action="decline").pack()
+    )
     return builder.as_markup()
+
 
 def make_duel_actions_keyboard():
     builder = InlineKeyboardBuilder()
