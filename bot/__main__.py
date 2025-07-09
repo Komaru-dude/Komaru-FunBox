@@ -24,7 +24,6 @@ from .handlers.administration import admin_router
 from .handlers.basic import base_router
 from .handlers.etc import etc_router
 from .handlers.time import time_router
-from .handlers.help import help_router
 from .handlers.rp import rp_router
 from .handlers.ai import ai_router
 from .handlers.mods import mods_router
@@ -129,7 +128,6 @@ async def main():
         base_router,
         etc_router,
         time_router,
-        help_router,
         rp_router,
         ai_router,
         mods_router,

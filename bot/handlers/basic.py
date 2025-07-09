@@ -1,6 +1,9 @@
 import time
 import psutil
 import traceback
+import aiohttp
+
+from urllib.parse import quote
 
 from aiogram import Router, Bot
 from aiogram.filters import Command
@@ -13,6 +16,7 @@ from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import update_cache
 
 base_router = Router()
+BASE_WIKI_URL = "https://komaru-dude.github.io/Komaru-FunBox/docs/commands"
 # Списки хранения данных для /status
 cpu_loads = []
 memory_loads = []
@@ -140,3 +144,33 @@ async def cmd_set_name(message: Message, bot: Bot, db: Database):
         await message.reply(f"✅ Ваше имя в боте изменено на {new_name}")
     except Exception:
         await error_report(message, bot, "set_name", traceback.format_exc())
+
+async def check_wiki_page(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.head(url) as response:
+            return response.status == 200 or response.status == 301
+
+
+@base_router.message(Command("help"), CooldownFilter("help", 10))
+async def cmd_help(message: Message, bot: Bot):
+    parts = message.text.strip().split(maxsplit=1)
+
+    if len(parts) == 1:
+        await message.reply(
+            f"Полный список команд и их описания доступны в вики:\n{BASE_WIKI_URL}/",
+            disable_web_page_preview=True,
+        )
+    else:
+        argument = parts[1].lower()
+        encoded_arg = quote(argument)
+        url = f"{BASE_WIKI_URL}/{encoded_arg}"
+        if await check_wiki_page(url):
+            await message.reply(
+                f"Подробная информация о команде '{argument}':\n{url}",
+                disable_web_page_preview=True,
+            )
+        else:
+            await message.reply(
+                f"Команда '{argument}' не найдена в вики.\nПолный список команд: {BASE_WIKI_URL}/",
+                disable_web_page_preview=True,
+            )
