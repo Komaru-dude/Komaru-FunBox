@@ -80,7 +80,7 @@ async def cmd_status(message: Message, bot: Bot, db: Database):
             commit = update_cache.get("current_commit", "unknown")
             branch = update_cache.get("branch", "unknown")
             if update_cache.get("has_update", "unknown"):
-                update_status = f"⚡️ Доступно обновление: {update_cache.get("latest_ver", "unknown")}@{update_cache.get("latest_commit", "unknown")}"
+                update_status = f"⚡️ Доступно обновление: {update_cache.get("latest_ver", "unknown")}@{update_cache.get("update_commit", "unknown")}"
             else:
                 update_status = f"😉 Обновлений нет"
 
