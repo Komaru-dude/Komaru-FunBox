@@ -112,7 +112,7 @@ async def show_working_models(message: Message):
     message_text += "\n❓ Что значат все эти эмодзи?\n\n🔐 - Платные модели, могут быть лимиты для бесплатных пользователей\n🆓 - Бесплатные модели, лимиты для юзеров отсутствуют/очень большие\n🟡 - Могут не работать, не рекомендуются к длительному использованию\n🟢 - Вероятнее всего, будут работать всегда\n⚡️Стриминг - могут отправлять ответ 'кусками', не завершая обработку"
 
     await message.reply(
-        f"🚀 <b>Доступные рабочие модели:</b>\n\n{message_text}",
+        f"🚀 <b>Доступные рабочие модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>",
         parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
     )
