@@ -145,6 +145,7 @@ async def cmd_set_name(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "set_name", traceback.format_exc())
 
+
 async def check_wiki_page(url):
     async with aiohttp.ClientSession() as session:
         async with session.head(url) as response:
