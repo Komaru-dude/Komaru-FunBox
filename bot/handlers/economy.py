@@ -612,12 +612,16 @@ async def duel_choose_bet(message: Message, bot: Bot, state: FSMContext, db: Dat
         if bet < 0:
             await message.reply("❌ Ставка не может быть отрицательной")
             return
-        if bet > user_bal:
-            await message.reply("❌ У вас не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки")
-            return
-        if bet > target_bal:
-            await message.reply("❌ У цели не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки")
-            return
+
+        if bet == 0:
+            await message.reply("🆗 Дуэль без ставки принята")
+        else:
+            if bet > user_bal:
+                await message.reply("❌ У вас не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки")
+                return
+            if bet > target_bal:
+                await message.reply("❌ У цели не хватает денег на руках\n💡 Снимите деньги с банка с помощью /withdraw или отправьте /cancel для остановки")
+                return
 
         await state.update_data(bet=bet)
         await state.set_state(Duel.wait_for_accept)
