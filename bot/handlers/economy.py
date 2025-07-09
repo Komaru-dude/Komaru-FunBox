@@ -726,7 +726,10 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
             msg = ""
 
             if action == "attack":
-                if random.random() < 0.2:  # 20% шанс промаха
+                if duel.get("dodge") == opponent_id:
+                    msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> Но <a href='tg://user?id={opponent_id}'>увернулся!</a> 💨"
+                    duel["dodge"] = None
+                elif random.random() < 0.2:  # 20% шанс промаха
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Промахнулся!</a>"
                 else:
                     dmg = random.randint(18, 28)
