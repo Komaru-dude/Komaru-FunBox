@@ -121,7 +121,7 @@ async def show_working_models(message: Message):
     )
 
     await message.reply(
-        f"🚀 <b>Доступные рабочие модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}",
+        f"🚀 <b>Доступные модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}",
         parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
     )
