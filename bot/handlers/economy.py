@@ -614,7 +614,7 @@ async def cmd_shop(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "shop", traceback.format_exc())
     finally:
         if await db.is_feature_enabled(message.chat.id, "auto_delete"):
-            await asyncio.sleep(15)
+            await asyncio.sleep(90)
             try:
                 await message.delete()
                 if "msg" in locals():
