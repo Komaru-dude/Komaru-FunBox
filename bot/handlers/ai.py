@@ -1,30 +1,28 @@
-import os
 import asyncio
-import aiohttp
+import os
 import re
-import traceback
-import openai
 import time
-import uuid
+import traceback
 import urllib.parse
-from html import escape
-from datetime import datetime
+import uuid
 from collections import deque
-from aiogram import Router, Bot
+from datetime import datetime
+from html import escape
+
+import aiohttp
+import openai
+from aiogram import Bot, Router
+from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, FSInputFile
-from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramRetryAfter
-from bot.filters.cooldown_filter import CooldownFilter
-from bot.utils.aio_tools import make_post_request, error_report
-from bot.utils.global_storage import (
-    active_chats,
-    active_chats_lock,
-    onlysq_models,
-)
+from aiogram.types import FSInputFile, Message
+
 from bot.database import Database
+from bot.filters.cooldown_filter import CooldownFilter
+from bot.utils.aio_tools import error_report, make_post_request
+from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
 
 ai_router = Router()
 url = os.getenv("API_URL")

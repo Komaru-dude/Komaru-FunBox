@@ -1,16 +1,18 @@
 import json
 import traceback
-from aiogram import Router, Bot, F
-from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardButton, CallbackQuery
+from pathlib import Path
+
+from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
-from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from bot.filters.cooldown_filter import CooldownFilter
+from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from bot.database import Database
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
-from pathlib import Path
 
 rp_router = Router()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")

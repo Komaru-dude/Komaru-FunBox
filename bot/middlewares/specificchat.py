@@ -1,8 +1,10 @@
 import os
 import traceback
-from typing import Callable, Dict, Any, Awaitable
-from aiogram import Bot, BaseMiddleware
-from aiogram.types import Message, CallbackQuery, TelegramObject
+from typing import Any, Awaitable, Callable, Dict
+
+from aiogram import BaseMiddleware, Bot
+from aiogram.types import CallbackQuery, Message, TelegramObject
+
 from bot import logger
 from bot.database import Database
 

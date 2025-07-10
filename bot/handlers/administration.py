@@ -1,22 +1,21 @@
+import asyncio
+import os
 import subprocess
 import traceback
-import os
 import uuid
+from pathlib import Path
+from urllib.parse import urlparse
+
 import aiohttp
-import asyncio
-
-from aiogram import Router, Bot
-from aiogram.filters import Command
-from aiogram.types import Message, FSInputFile
+from aiogram import Bot, Router
 from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.types import FSInputFile, Message
 
-from bot import database, API_URL
+from bot import API_URL, database
 from bot.database import Database
 from bot.utils.aio_tools import error_report, fetch_json
 from bot.utils.global_storage import CACHE_DIR
-
-from pathlib import Path
-from urllib.parse import urlparse
 
 admin_router = Router()
 models_path = database.BASE_DIR / "data" / "models.json"

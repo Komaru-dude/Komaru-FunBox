@@ -1,23 +1,25 @@
-import json
-import random
-import traceback
-import openai
-import re
-import os
-import time
 import asyncio
+import json
+import os
+import random
+import re
+import time
+import traceback
 from pathlib import Path
 from urllib.parse import urlparse
-from aiogram import Router, Bot, F
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+
+import openai
+from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramRetryAfter
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
+
 from bot.database import Database
-from bot.handlers.ai import cmd_ai, ChatState
+from bot.handlers.ai import ChatState, cmd_ai
 from bot.handlers.video import cmd_video
+from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 from bot.utils.global_storage import active_chats, onlysq_models
-from bot.utils.aio_tools import get_user_id, fetch_user_data, error_report
 
 text_router = Router()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")

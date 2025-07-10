@@ -1,37 +1,36 @@
 import asyncio
-import os
-import subprocess
-import signal
-import sys
-import shutil
 import json
-import sys
+import os
+import shutil
+import signal
 import subprocess
+import sys
 from pathlib import Path
-from dotenv import load_dotenv
+
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
+from dotenv import load_dotenv
 
 from bot import PYRO_HOST, PYRO_PORT, logger
 from bot.database import BASE_DIR, Database
-from bot.middlewares.specificchat import SpecificChat
 from bot.middlewares.chatwatcher import ChatWatcher
-from bot.utils.global_storage import onlysq_models
+from bot.middlewares.specificchat import SpecificChat
 from bot.utils.aio_tools import fetch_json
+from bot.utils.global_storage import onlysq_models
 from bot.utils.timers import background_checker
 
 from .handlers.administration import admin_router
-from .handlers.basic import base_router
-from .handlers.etc import etc_router
-from .handlers.time import time_router
-from .handlers.rp import rp_router
 from .handlers.ai import ai_router
+from .handlers.basic import base_router
+from .handlers.economy import eco_router
+from .handlers.etc import etc_router
+from .handlers.image import image_router
 from .handlers.mods import mods_router
 from .handlers.rights import rights_router
-from .handlers.video import video_router
-from .handlers.image import image_router
-from .handlers.economy import eco_router
+from .handlers.rp import rp_router
 from .handlers.text import text_router
+from .handlers.time import time_router
+from .handlers.video import video_router
 
 load_dotenv()
 

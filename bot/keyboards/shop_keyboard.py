@@ -1,6 +1,8 @@
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters.callback_data import CallbackData
 from typing import Optional
+
+from aiogram.filters.callback_data import CallbackData
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from bot.utils.global_storage import eco_config, shop_config
 
 

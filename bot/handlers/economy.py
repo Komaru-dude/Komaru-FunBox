@@ -1,33 +1,35 @@
+import asyncio
 import os
 import random
 import traceback
 import uuid
-import asyncio
-from aiogram import Router, Bot, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
+
+from aiogram import Bot, F, Router
+from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData
-from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
 from bot import logger
 from bot.database import Database
+from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
-from bot.filters.chat_type import ChatTypeFilter
 from bot.keyboards.duel_keyboard import (
-    make_duel_keyboard,
-    make_duel_actions_keyboard,
     DuelCallback,
+    make_duel_actions_keyboard,
+    make_duel_keyboard,
 )
-from bot.keyboards.shop_keyboard import make_shop_keyboard, ShopCallback
+from bot.keyboards.shop_keyboard import ShopCallback, make_shop_keyboard
 from bot.utils.aio_tools import error_report, get_user_id
 from bot.utils.global_storage import (
-    eco_config,
-    shop_config,
     duel_sessions,
     duel_sessions_lock,
+    eco_config,
+    shop_config,
 )
 
 eco_router = Router()

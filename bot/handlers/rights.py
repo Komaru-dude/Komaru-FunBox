@@ -1,14 +1,16 @@
-import aiohttp
 import os
 import traceback
-from aiogram import Router, Bot
+
+import aiohttp
+from aiogram import Bot, Router
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from bot.database import RANK_TO_LEVEL, Database
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.database import Database, RANK_TO_LEVEL
 from bot.utils import aio_tools
 
 rights_router = Router()
