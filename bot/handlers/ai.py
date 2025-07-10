@@ -7,6 +7,7 @@ import openai
 import time
 import uuid
 import urllib.parse
+from html import escape
 from datetime import datetime
 from collections import deque
 from aiogram import Router, Bot
@@ -219,6 +220,12 @@ async def cmd_ai(
             {"role": "user", "content": request},
         ]
 
+        if len(request) > 150:
+            safe = escape(request)
+            request = f"<blockquote expandable>{safe}</blockquote>"
+        else:
+            request = escape(request)
+
         can_stream = onlysq_models["models"].get(model, {}).get("can-stream", False)
 
         if can_stream:
@@ -248,7 +255,7 @@ async def cmd_ai(
                                 await base_msg.edit_text(
                                     f"💭 Запрос: {request}\n"
                                     f"🧠 Модель: {model_display_name}\n\n"
-                                    f"📝 Ответ: {final_text}"
+                                    f"📝 Ответ: {escape(final_text)}", parse_mode=ParseMode.HTML
                                 )
                                 buffer = ""
                                 edited_once = True
@@ -268,7 +275,7 @@ async def cmd_ai(
                     await base_msg.edit_text(
                         f"💭 Запрос: {request}\n"
                         f"🧠 Модель: {model_display_name}\n\n"
-                        f"📝 Ответ: {answer}"
+                        f"📝 Ответ: {escape(answer)}", parse_mode=ParseMode.HTML
                     )
                 except Exception:
                     pass
@@ -299,7 +306,7 @@ async def cmd_ai(
                 raw_answer = (
                     f"💭 Запрос: {request}\n"
                     f"🧠 Модель: {model_display_name}\n\n"
-                    f"📝 Ответ: {answer}"
+                    f"📝 Ответ: {escape(answer)}"
                 )
 
                 chunks = [
