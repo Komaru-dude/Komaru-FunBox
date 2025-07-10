@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.8.1">
 <title data-rh="true">🚀 Быстрый старт | Komaru FunBox wiki</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart"><meta data-rh="true" property="og:locale" content="ru"><meta data-rh="true" name="docusaurus_locale" content="ru"><meta data-rh="true" name="docsearch:language" content="ru"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="🚀 Быстрый старт | Komaru FunBox wiki"><meta data-rh="true" name="description" content="📌 Как начать пользоваться ботом"><meta data-rh="true" property="og:description" content="📌 Как начать пользоваться ботом"><link data-rh="true" rel="icon" href="/Komaru-FunBox/img/logo.jpg"><link data-rh="true" rel="canonical" href="https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart"><link data-rh="true" rel="alternate" href="https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart" hreflang="ru"><link data-rh="true" rel="alternate" href="https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"⚙️ Настройка","item":"https://komaru-dude.github.io/Komaru-FunBox/docs/setup/"},{"@type":"ListItem","position":2,"name":"🚀 Быстрый старт","item":"https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart"}]}</script><link rel="stylesheet" href="/Komaru-FunBox/assets/css/styles.ac55dd43.css">
-<script src="/Komaru-FunBox/assets/js/runtime~main.41e97e7b.js" defer="defer"></script>
+<script src="/Komaru-FunBox/assets/js/runtime~main.534523fb.js" defer="defer"></script>
 <script src="/Komaru-FunBox/assets/js/main.1acfbd7c.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -17,16 +17,15 @@
 <li>
 <p><strong>Выдайте боту права администратора</strong><br>
 <!-- -->Это <strong>не обязательно</strong>, но <strong>очень рекомендуется</strong> — иначе вам придётся писать команды в виде <code>/ai@komarufunbox_bot</code>, а не просто <code>/ai</code>. Также без прав не будет работать модерация и часть функций.</p>
-<p>Минимальные права для корректной работы:</p>
+<p>Для некоторых функций в боте требуюся дополнительные права:</p>
 <ul>
-<li>Удаление сообщений</li>
-<li>Блокировка пользователей</li>
-<li>Закрепление сообщений</li>
+<li>Удаление сообщений для работы функции auto_delete</li>
+<li>Блокировка пользователей для работы функций модерации</li>
 </ul>
 </li>
 <li>
-<p><strong>Назначьте себя администратором бота</strong><br>
-<!-- -->Создатель чата должен выполнить команду:</p>
+<p><strong>Права</strong><br>
+<!-- -->Назначьте <strong>себя</strong> и ваш персонал на роли в боте:</p>
 <div class="language-telegram codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_QJqH"><pre tabindex="0" class="prism-code language-telegram codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain">/set_rank</span><br></span></code></pre></div></div>
 </li>
 </ol>
@@ -36,7 +35,7 @@
 <table><thead><tr><th>Команда</th><th>Описание</th></tr></thead><tbody><tr><td><code>/set_rank</code></td><td>Назначение прав (ранга) пользователю</td></tr><tr><td><code>/info</code></td><td>Получение информации о пользователе</td></tr><tr><td><code>/history</code></td><td>История наказаний (варны, мьюты, баны)</td></tr><tr><td><code>/warn</code></td><td>Выдать предупреждение</td></tr><tr><td><code>/mute</code></td><td>Мьют пользователя на время</td></tr><tr><td><code>/unmute</code></td><td>Снять мьют</td></tr><tr><td><code>/ban</code></td><td>Забанить пользователя</td></tr><tr><td><code>/unban</code></td><td>Разбанить пользователя</td></tr><tr><td><code>/ban_media</code></td><td>Запрет медиа-функций для пользователя</td></tr><tr><td><code>/unban_media</code></td><td>Разрешить медиа-функции</td></tr><tr><td><code>/enable</code></td><td>Включить модуль</td></tr><tr><td><code>/disable</code></td><td>Выключить модуль</td></tr></tbody></table>
 <hr>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="-команды-с-ии">🤖 Команды с ИИ<a href="#-команды-с-ии" class="hash-link" aria-label="Прямая ссылка на 🤖 Команды с ИИ" title="Прямая ссылка на 🤖 Команды с ИИ">​</a></h3>
-<table><thead><tr><th>Команда</th><th>Описание</th></tr></thead><tbody><tr><td><code>/ai</code></td><td>Запрос к ИИ. Можно указать модель через <code>-m</code>, например <code>/ai -m searchgpt</code></td></tr><tr><td><code>/agai</code></td><td>&quot;Злая&quot; версия — отвечает с агрессией и матом. Поддержка моделей через <code>-m</code></td></tr><tr><td><code>/chat</code></td><td>Начать диалог с ИИ. Поддержка споров через <code>-argue</code> и моделей через <code>-m</code></td></tr><tr><td><code>/chat_stop</code></td><td>Остановить текущий ИИ-чат</td></tr><tr><td><code>/set_def_model</code></td><td>Установить модель ИИ по умолчанию</td></tr><tr><td><code>/available_models</code></td><td>Список доступных ИИ моделей</td></tr><tr><td><code>/ocr</code></td><td>Распознать текст на картинке</td></tr><tr><td><code>/translate</code></td><td>Перевод текста с указанием языка (<code>/translate en Привет</code>)</td></tr></tbody></table>
+<table><thead><tr><th>Команда</th><th>Описание</th></tr></thead><tbody><tr><td><code>/ai</code></td><td>Запрос к ИИ. Можно указать модель через <code>-m</code>, например <code>/ai -m searchgpt</code></td></tr><tr><td><code>/agai</code></td><td>&quot;Злая&quot; версия — отвечает с агрессией и матом. Поддержка моделей через <code>-m</code></td></tr><tr><td><code>/chat</code></td><td>Начать диалог с ИИ. Поддержка споров через <code>-argue</code>, моделей через <code>-m</code>, злой версии через - <code>-aggressive</code></td></tr><tr><td><code>/chat_clear</code></td><td>Очищает историю текущего чата</td></tr><tr><td><code>/chat_stop</code></td><td>Остановить текущий ИИ-чат</td></tr><tr><td><code>/set_def_model</code></td><td>Установить модель ИИ по умолчанию</td></tr><tr><td><code>/available_models</code></td><td>Список доступных ИИ моделей</td></tr><tr><td><code>/ocr</code></td><td>Распознать текст на картинке</td></tr><tr><td><code>/translate</code></td><td>Перевод текста с указанием языка (<code>/translate en Привет</code>)</td></tr></tbody></table>
 <hr>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="️-генерация-и-медиа">🖼️ Генерация и медиа<a href="#️-генерация-и-медиа" class="hash-link" aria-label="Прямая ссылка на 🖼️ Генерация и медиа" title="Прямая ссылка на 🖼️ Генерация и медиа">​</a></h3>
 <table><thead><tr><th>Команда</th><th>Описание</th></tr></thead><tbody><tr><td><code>/image</code></td><td>Генерация картинки по описанию</td></tr><tr><td><code>/video</code></td><td>Скачать видео (YouTube, TikTok и др.)</td></tr><tr><td><code>/jpeg</code></td><td>&quot;Шакализация&quot; картинки</td></tr></tbody></table>
@@ -61,7 +60,7 @@
 <li>⚠️ Некоторые команды (например <code>/update</code>, <code>/restart</code>, <code>/ban_media</code>) доступны <strong>только персоналу</strong>.</li>
 <li>🧠 ИИ-команды используют <a href="https://api.onlysq.ru/" target="_blank" rel="noopener noreferrer">OnlySQ API</a></li>
 <li>🔒 Команду <code>/set_rank</code> может использовать только <strong>создатель чата</strong></li>
-<li>📆 Актуально на <strong>15.05.2025</strong></li>
+<li>📆 Актуально на <strong>10.07.2025</strong></li>
 </ul>
 <hr>
 <p>Автор: <a href="https://t.me/komaru_dude" target="_blank" rel="noopener noreferrer">@komaru_dude</a><br>
