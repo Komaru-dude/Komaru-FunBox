@@ -13,7 +13,8 @@ from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.utils.aio_tools import error_report
+from bot.filters.chat_type import ChatTypeFilter
+from bot.utils.aio_tools import error_report, fetch_json
 
 etc_router = Router()
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -174,3 +175,55 @@ async def send_weather(message: Message):
 @etc_router.message(Command("nillerxs"), CooldownFilter("bradok", 15))
 async def cmd_nillerxs(message: Message):
     await message.reply("нильрекс")
+
+
+@etc_router.message(
+    Command("tagall"),
+    CooldownFilter("tagall", 900),
+    ChatTypeFilter(["group", "supergroup"]),
+)
+async def cmd_tagall(message: Message, bot: Bot, db: Database):
+    try:
+        chat_id = message.chat.id
+        user_id = message.from_user.id
+
+        if not await db.is_feature_enabled(
+            chat_id, "tag"
+        ) and not await db.has_permission(user_id, chat_id, 1):
+            await message.reply(
+                "❌ Функция не включена в чате, а вы не имеете прав модератора."
+            )
+            return
+
+        try:
+            url = f"http://127.0.0.1:8001/chat_members/{chat_id}"
+            response_data = await fetch_json(url)
+            members = response_data.get("members", [])
+        except Exception as e:
+            await message.reply(f"❌ Ошибка при получении участников: {str(e)}")
+            return
+
+        bot_id = (await message.bot.get_me()).id
+        tags = [
+            f'<a href="tg://user?id={member["user_id"]}">\u2060</a>'
+            for member in members
+            if member.get("user_id") and member["user_id"] != bot_id
+        ]
+
+        if not tags:
+            await message.reply("❌ Нет участников для упоминания.")
+            return
+
+        chunk_size = 5
+        chunks = [tags[i : i + chunk_size] for i in range(0, len(tags), chunk_size)]
+
+        for idx, chunk in enumerate(chunks):
+            tags_str = " ".join(chunk)
+            if idx == 0:
+                await message.answer(
+                    f"❗️ Упоминаю всех! {tags_str}", parse_mode=ParseMode.HTML
+                )
+            else:
+                await message.answer(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
+    except Exception:
+        await error_report(message, bot, "tagall", traceback.format_exc())

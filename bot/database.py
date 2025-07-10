@@ -17,7 +17,7 @@ RANK_TO_LEVEL = {
 
 DEFAULT_FEATURES = [
     ("who", 1),
-    ("tag", 0),
+    ("tagall", 0),
     ("autovideo", 1),
     ("warn", 0),
     ("mute", 0),
