@@ -255,7 +255,8 @@ async def cmd_ai(
                                 await base_msg.edit_text(
                                     f"💭 Запрос: {request}\n"
                                     f"🧠 Модель: {model_display_name}\n\n"
-                                    f"📝 Ответ: {escape(final_text)}", parse_mode=ParseMode.HTML
+                                    f"📝 Ответ: {escape(final_text)}",
+                                    parse_mode=ParseMode.HTML,
                                 )
                                 buffer = ""
                                 edited_once = True
@@ -275,7 +276,8 @@ async def cmd_ai(
                     await base_msg.edit_text(
                         f"💭 Запрос: {request}\n"
                         f"🧠 Модель: {model_display_name}\n\n"
-                        f"📝 Ответ: {escape(answer)}", parse_mode=ParseMode.HTML
+                        f"📝 Ответ: {escape(answer)}",
+                        parse_mode=ParseMode.HTML,
                     )
                 except Exception:
                     pass
