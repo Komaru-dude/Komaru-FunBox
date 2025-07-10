@@ -27,14 +27,15 @@ start_time = time.time()
 @base_router.message(Command("start"), CooldownFilter("start", 5))
 async def cmd_start(message: Message):
     await message.reply(
-        f"👋 Привет, {message.from_user.first_name}!\n"
+        f"👋 Привет, <b>{message.from_user.first_name}</b>!\n"
         "🤖 Это развлекательный и модерационный бот.\n"
-        "❔ Если хочешь узнать более подробную информацию о командах, напиши /help.\n\n"
+        "❔ Если хочешь узнать более подробную информацию о командах, напиши <code>/help.</code>\n\n"
         "👤 Владелец бота: @komaru_dude\n"
         "📚 Гайд по настройке бота: https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart\n"
         "📰 Новостной канал бота: @komaru_funbox\n"
         "🧑‍💻 Исходный код бота: https://github.com/Komaru-dude/Komaru-FunBox\n\n"
-        "🎩 Приятного использования!",
+        "🎩 <b>Приятного</b> использования!",
+        parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
     )
 
