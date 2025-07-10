@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import aiohttp
+import asyncio
 import uuid
 import os
 from aiogram import Bot
@@ -157,7 +158,7 @@ async def error_report(message: Message, bot: Bot, command, traceback):
         error_report_timestamps.append(current_time)
 
     if send_to_user:
-        await message.reply(
+        msg = await message.reply(
             f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}"
         )
 
@@ -181,6 +182,13 @@ async def error_report(message: Message, bot: Bot, command, traceback):
                 await bot.send_message(os.getenv("OWNER_ID"), chunk)
             except Exception as e:
                 logger.error(f"Ошибка при отправке отчёта владельцу: {e}")
+
+        await asyncio.sleep(30)
+        try:
+            await message.delete()
+            await msg.delete()
+        except Exception as e:
+            logger.debug(f"Не удалось удалить сообщение о репорте: {e}")
 
     elif send_owner_alert:
         alert_message = (

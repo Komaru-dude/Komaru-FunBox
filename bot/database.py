@@ -26,6 +26,7 @@ DEFAULT_FEATURES = [
     ("alo", 0),
     ("economy", 1),
     ("sendcooldown", 1),
+    ("auto_delete", 0),
 ]
 
 USERS_COLUMNS = {
