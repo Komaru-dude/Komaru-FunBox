@@ -77,7 +77,7 @@ async def cmd_cats_birthdays(message: Message, bot: Bot):
 
             responses.append(
                 f"⏳ {name}: через {int(days)} дней, {int(hours)} часов, {int(minutes)} минут, {int(seconds)} секунд "
-                f"(день рождения {next_birthday.date()})."
+                f"({next_birthday.date()})."
             )
 
         if responses:
