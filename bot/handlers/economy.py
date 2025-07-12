@@ -7,7 +7,6 @@ import uuid
 from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
