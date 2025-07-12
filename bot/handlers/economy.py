@@ -849,29 +849,68 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
             bet = duel["bet"]
             hp = duel["hp"]
 
+            if "heals" not in duel:
+                duel["heals"] = {challenger_id: 0, target_id: 0}
+            if "failed_dodge" not in duel:
+                duel["failed_dodge"] = None
+            if "skip" not in duel:
+                duel["skip"] = None
+
             opponent_id = target_id if user_id == challenger_id else challenger_id
             msg = ""
 
-            if action == "attack":  # 20% шанс промаха
-                if duel.get("dodge") == opponent_id:
+            if duel["skip"] == user_id:
+                msg = f"💨 Ход был пропущен из-за лечения"
+                duel["skip"] = None
+
+            if action == "attack":
+                # Критический удар
+                crit = random.random() < 0.1
+                dmg = random.randint(18, 28)
+                if crit:
+                    dmg *= 2
+                    msg = f"🗡 <a href='tg://user?id={user_id}'>Критический удар!</a> -{dmg} HP противнику"
+                elif duel.get("dodge") == opponent_id:
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> Но <a href='tg://user?id={opponent_id}'>увернулся!</a> 💨"
                     duel["dodge"] = None
+                elif duel.get("failed_dodge") == opponent_id:
+                    dmg = int(dmg * 1.5)
+                    hp[opponent_id] -= dmg
+                    msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> (штраф за провал уворота) -{dmg} HP противнику"
+                    duel["failed_dodge"] = None
                 elif random.random() < 0.2:
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Промахнулся!</a>"
                 else:
-                    dmg = random.randint(18, 28)
                     hp[opponent_id] -= dmg
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> -{dmg} HP противнику"
-            elif action == "dodge":  # 50% шанс уворота
+            elif action == "dodge":
                 if random.random() < 0.5:
                     msg = f"🛡 <a href='tg://user?id={user_id}'>Успешно увернулся!</a>"
                     duel["dodge"] = opponent_id
                 else:
                     msg = f"🛡 <a href='tg://user?id={user_id}'>Провалил уворот!</a>"
-            elif action == "heal":  # Всегда успешно, но числа рандомны
-                heal = random.randint(15, 25)
-                hp[user_id] = min(100, hp[user_id] + heal)
-                msg = f"💊 <a href='tg://user?id={user_id}'>Лечится!</a> +{heal} HP"
+                    duel["failed_dodge"] = user_id
+            elif action == "heal":
+                # Ограничение на количество исцелений
+                if duel["heals"][user_id] >= 2:
+                    msg = f"💊 <a href='tg://user?id={user_id}'>Лечение недоступно! (макс. 2 за дуэль)</a>"
+                else:
+                    heal = random.randint(10, 18)
+                    hp[user_id] = min(100, hp[user_id] + heal)
+                    duel["heals"][user_id] += 1
+                    msg = f"💊 <a href='tg://user?id={user_id}'>Лечится!</a> +{heal} HP\n⚠️ Следующий ход пропущен!"
+                    # Пропуск хода после лечения
+                    duel["skip"] = user_id
+                    duel["turn"] = opponent_id
+                    await callback.message.edit_text(
+                        f"{msg}\n\n"
+                        f"❤️ {await db.get_global_user_param(challenger_id, 'name')}: {hp[challenger_id]} HP\n"
+                        f"❤️ {await db.get_global_user_param(target_id, 'name')}: {hp[target_id]} HP\n\n"
+                        f"💡 Теперь ходит: <a href='tg://user?id={opponent_id}'>этот игрок</a>",
+                        parse_mode=ParseMode.HTML,
+                        reply_markup=make_duel_actions_keyboard(duel_id),
+                    )
+                    return
 
             if hp[opponent_id] <= 0:
                 winner_id = user_id
