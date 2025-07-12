@@ -5,6 +5,8 @@ import traceback
 import uuid
 from pathlib import Path
 from urllib.parse import urlparse
+import platform
+import shutil
 
 import aiohttp
 from aiogram import Bot, Router
@@ -34,6 +36,9 @@ SERVICE_NAME = get_service_name()
 
 @admin_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot, db: Database):
+    if platform.system() != "Linux" or not shutil.which("systemctl"):
+        await message.reply("❌ Платформа не поддерживается\n📀 Требуется Linux + Systemd")
+        return 
     user_id = message.from_user.id
     chat_id = message.chat.id
     if not await db.has_permission(user_id, chat_id, 4):
@@ -49,6 +54,9 @@ async def cmd_restart(message: Message, bot: Bot, db: Database):
 
 @admin_router.message(Command("update"))
 async def cmd_update(message: Message, bot: Bot, db: Database):
+    if platform.system() != "Linux" or not shutil.which("systemctl"):
+        await message.reply("❌ Платформа не поддерживается\n📀 Требуется Linux + Systemd")
+        return 
     user_id = message.from_user.id
     chat_id = message.chat.id
     if not await db.has_permission(user_id, chat_id, 4):
@@ -111,6 +119,9 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
 @admin_router.message(Command("logs"))
 async def cmd_send_logs(message: Message, bot: Bot, db: Database):
     try:
+        if platform.system() != "Linux" or not shutil.which("systemctl"):
+            await message.reply("❌ Платформа не поддерживается\n📀 Требуется Linux + Systemd")
+            return 
         random_log_name = f"{uuid.uuid4()}.log"
         out_path = CACHE_DIR / random_log_name
 
