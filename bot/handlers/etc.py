@@ -19,9 +19,6 @@ from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
 
 etc_router = Router()
-current_dir = os.path.dirname(os.path.abspath(__file__))
-media_folder = os.path.join(current_dir, "..", "media")
-sticker_extensions = {".webp", ".tgs", ".webm"}
 
 
 def load_http_codes(filename):
