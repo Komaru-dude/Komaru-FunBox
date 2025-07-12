@@ -24,7 +24,6 @@ from .handlers.ai import ai_router
 from .handlers.basic import base_router
 from .handlers.economy import eco_router
 from .handlers.etc import etc_router
-from .handlers.image import image_router
 from .handlers.mods import mods_router
 from .handlers.rights import rights_router
 from .handlers.rp import rp_router
@@ -131,7 +130,6 @@ async def main():
         mods_router,
         rights_router,
         video_router,
-        image_router,
         eco_router,
         text_router,
     )
