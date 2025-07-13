@@ -296,7 +296,7 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
 
         user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
         if "error" in user_info:
-            raise Exception(user_info["error"])
+            return await message.reply("❌ Пользователь не найден в базе данных")
 
         user_data = await db.get_user_data(user_info["user_id"], chat_id)
         if not user_data:
