@@ -1,4 +1,5 @@
 import asyncio
+import html
 import json
 import platform
 import random
@@ -270,7 +271,9 @@ async def cmd_cowsay(message: Message, bot):
             return
 
         result = stdout.decode()
-        await message.reply(f"<code>{result}</code>", parse_mode=ParseMode.HTML)
+        await message.reply(
+            f"'<code>{html.escape(result)}</code>", parse_mode=ParseMode.HTML
+        )
 
     except Exception:
         await error_report(message, bot, "cowsay", traceback.format_exc())
