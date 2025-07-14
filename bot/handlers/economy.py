@@ -44,6 +44,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         current_bal = await db.get_global_user_param(user_id, "money")
+        work_tools_msg = ""
 
         min_income = eco_config["min_work_income"]
         max_income = eco_config["max_work_income"]
@@ -52,8 +53,6 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
             bonus = round(current_income * 0.02, 2)
             current_income = current_income + bonus
             f"🧑‍🏭 Использование рабочих инструментов принесло вам: {bonus} {eco_config['currency_sign']}\n"
-        else:
-            work_tools_msg = ""
 
         new_bal = current_bal + current_income
         new_bal = round(new_bal, 2)
