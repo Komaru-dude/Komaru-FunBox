@@ -131,6 +131,9 @@ StandardError=journal
 User=${USER_NAME}
 Group=${GROUP_NAME}
 Environment=USER=%n
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games"
+Environment="HOME=/home/${USER_NAME}"
+Environment="PYTHONUNBUFFERED=1"
 
 [Install]
 WantedBy=multi-user.target
