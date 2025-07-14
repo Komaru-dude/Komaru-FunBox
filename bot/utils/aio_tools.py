@@ -171,7 +171,7 @@ async def error_report(message: Message, bot: Bot, command, traceback):
         )
         error_report_text = (
             f"❌ Во время обработки команды {command} возникла ошибка!\n"
-            f"🔢 Report ID: {report_id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
+            f"🔢 Report ID: {report_id}\n👤 User ID: {message.from_user.id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
             f"📛 Traceback:\n{traceback}"
         )
 
