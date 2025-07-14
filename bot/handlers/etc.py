@@ -240,17 +240,18 @@ async def cmd_cowsay(message: Message, bot):
             )
             return
 
-        user_input = message.text.strip()
-        if (
-            not user_input
-            and message.reply_to_message
-            and message.reply_to_message.text
-        ):
-            user_input = message.reply_to_message.text.strip()
+        words = message.text.strip().split(maxsplit=1)
 
-        if not user_input:
-            await message.reply("💬 Нужно указать текст (в сообщении или через ответ)")
-            return
+        if len(words) < 2 or not words[1].strip():
+            if message.reply_to_message and message.reply_to_message.text:
+                user_input = message.reply_to_message.text.strip()
+            else:
+                await message.reply(
+                    "💬 Нужно указать текст (в сообщении или через ответ)"
+                )
+                return
+        else:
+            user_input = words[1].strip()
 
         safe_input = re.sub(
             r"[^a-zA-Zа-яА-Я0-9 .,!?()\\/_\-+=:;\"'`~@#№$%^&*]", "", user_input
@@ -272,7 +273,7 @@ async def cmd_cowsay(message: Message, bot):
 
         result = stdout.decode()
         await message.reply(
-            f"'<code>{html.escape(result)}</code>", parse_mode=ParseMode.HTML
+            f"<code>{html.escape(result)}</code>", parse_mode=ParseMode.HTML
         )
 
     except Exception:
