@@ -61,6 +61,9 @@ class ChatWatcher(BaseMiddleware):
                         logger.info(msg)
                         if owner_id := os.getenv("OWNER_ID"):
                             await bot.send_message(owner_id, msg)
+                            if chat.username:
+                                link = f"https://t.me/{chat.username}"
+                                await bot.send_message(owner_id, f"🔗 Ссылка: {link}")
 
                 if chat_type == "private" or is_bot_command:
                     await db.log_command()
