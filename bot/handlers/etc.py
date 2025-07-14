@@ -1,6 +1,9 @@
+import asyncio
 import json
+import platform
 import random
 import re
+import shutil
 import traceback
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -225,3 +228,49 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
                 await message.answer(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
     except Exception:
         await error_report(message, bot, "tagall", traceback.format_exc())
+
+
+@etc_router.message(Command("cowsay"))
+async def cmd_cowsay(message: Message, bot):
+    try:
+        if platform.system() != "Linux" or not shutil.which("cowsay"):
+            await message.reply(
+                "❌ Платформа не поддерживается\n📀 Требуется Linux + пакет cowsay"
+            )
+            return
+
+        user_input = message.text.strip()
+        if (
+            not user_input
+            and message.reply_to_message
+            and message.reply_to_message.text
+        ):
+            user_input = message.reply_to_message.text.strip()
+
+        if not user_input:
+            await message.reply("💬 Нужно указать текст (в сообщении или через ответ)")
+            return
+
+        safe_input = re.sub(
+            r"[^a-zA-Zа-яА-Я0-9 .,!?()\\/_\-+=:;\"'`~@#№$%^&*]", "", user_input
+        )
+        safe_input = safe_input[:200]
+
+        proc = await asyncio.create_subprocess_exec(
+            "cowsay",
+            "--",
+            safe_input,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await proc.communicate()
+
+        if proc.returncode != 0:
+            await error_report(message, bot, "cowsay", stderr)
+            return
+
+        result = stdout.decode()
+        await message.reply(f"<code>{result}</code>", parse_mode=ParseMode.HTML)
+
+    except Exception:
+        await error_report(message, bot, "cowsay", traceback.format_exc())
