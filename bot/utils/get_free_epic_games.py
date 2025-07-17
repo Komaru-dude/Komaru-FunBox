@@ -38,8 +38,8 @@ async def get_free_games():
                 if start <= now <= end:
                     free_games[title] = {
                         "title": title,
-                        "start": start,
-                        "end": end,
+                        "start": start.isoformat(),
+                        "end": end.isoformat(),
                         "id": game["id"],
                         "slug": game.get("productSlug")
                         or game.get("catalogNs", {})
