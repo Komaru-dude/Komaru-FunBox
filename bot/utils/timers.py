@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import subprocess
 from pathlib import Path
@@ -7,8 +8,9 @@ import aiohttp
 
 from bot import logger
 from bot.database import Database
+from bot.utils.get_free_epic_games import get_free_games
 
-from .global_storage import update_cache
+from .global_storage import FREE_GAMES_PATH, update_cache
 
 db = Database()
 
@@ -85,10 +87,63 @@ async def cleanup_expired_items_task():
         await asyncio.sleep(86400)  # Интервал 24 часа (86400 секунд)
 
 
+async def check_free_games():
+    while True:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        weekday = now.weekday()  # четверг = 3
+        hour = now.hour
+        minute = now.minute
+
+        if weekday == 3 and 14 <= hour <= 16:
+            if hour == 15 and 0 <= minute < 30:
+                # Проверка на то, что уже обновляли сегодня
+                if FREE_GAMES_PATH.exists():
+                    try:
+                        with FREE_GAMES_PATH.open(encoding="utf-8") as f:
+                            data = json.load(f)
+                            cached_ts = data.get("_updated_at")
+                            if cached_ts:
+                                updated_dt = datetime.datetime.fromisoformat(cached_ts)
+                                if updated_dt.date() == now.date():
+                                    logger.debug(
+                                        "Игры уже обновлены сегодня, пропускаем."
+                                    )
+                                    await asyncio.sleep(86400)
+                                    continue
+                    except Exception as e:
+                        logger.warning(f"Не удалось прочитать кэш: {e}")
+
+                try:
+                    games_data = await get_free_games()
+                    games_data = {
+                        "available": games_data[0],
+                        "unavailable": games_data[1],
+                        "_updated_at": now.isoformat(),
+                    }
+
+                    FREE_GAMES_PATH.parent.mkdir(parents=True, exist_ok=True)
+                    with FREE_GAMES_PATH.open("w", encoding="utf-8") as f:
+                        json.dump(games_data, f, indent=2, ensure_ascii=False)
+
+                    logger.info(f"Бесплатные игры обновлены ({now.isoformat()})")
+                    await asyncio.sleep(86400)
+                    continue
+
+                except Exception as e:
+                    logger.exception(f"Ошибка при обновлении бесплатных игр: {e}")
+                    await asyncio.sleep(600)
+                    continue
+
+            await asyncio.sleep(300)
+        else:
+            await asyncio.sleep(3600)
+
+
 async def background_checker():
     """Главная функция для запуска фоновых задач"""
     update_task = asyncio.create_task(check_updates_task())
     cleanup_task = asyncio.create_task(cleanup_expired_items_task())
+    epic_task = asyncio.create_task(check_free_games())
 
     # Ждём того чего не случится
-    await asyncio.gather(update_task, cleanup_task)
+    await asyncio.gather(update_task, cleanup_task, epic_task)

@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import html
 import json
 import platform
@@ -20,6 +21,7 @@ from bot.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
+from bot.utils.global_storage import FREE_GAMES_PATH
 
 etc_router = Router()
 
@@ -278,3 +280,52 @@ async def cmd_cowsay(message: Message, bot):
 
     except Exception:
         await error_report(message, bot, "cowsay", traceback.format_exc())
+
+
+@etc_router.message(Command("free_epic_games"), CooldownFilter("free_epic_games", 15))
+async def cmd_epic_games(message: Message, bot: Bot):
+    try:
+        if not FREE_GAMES_PATH.exists():
+            await message.reply("🤷‍♂️ Попробуйте позже")
+            return
+
+        with FREE_GAMES_PATH.open(encoding="utf-8") as f:
+            data = json.load(f)
+            available = data.get("available", {})
+            unavailable = data.get("unavailable", {})
+            updated_at = data.get("_updated_at")
+
+        if not available and not unavailable:
+            await message.reply("🤷‍♀️ Сейчас нет бесплатных игр или данные не получены.")
+            return
+
+        msg_lines = []
+
+        if available:
+            msg_lines.append("🎮 <b>Бесплатно сейчас:</b>")
+            for game in available.values():
+                start = datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
+                end = datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                msg_lines.append(
+                    f"• <a href=\"{game['url']}\">{game['title']}</a>\n"
+                    f"  🗓 {start} — {end}"
+                )
+
+        if unavailable:
+            msg_lines.append("\n🔒 <b>Не доступное в РФ:</b>")
+            for game in unavailable.values():
+                msg_lines.append(f"• {game['title']}")
+
+        if updated_at:
+            dt = datetime.fromisoformat(updated_at)
+            msg_lines.append(
+                f"\n<code>Обновлено: {dt.strftime('%d.%m %H:%M UTC')}</code>"
+            )
+
+        await message.reply(
+            "\n".join(msg_lines),
+            disable_web_page_preview=True,
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception:
+        await error_report(message, bot, "free_epic_games", traceback.format_exc())
