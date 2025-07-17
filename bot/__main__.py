@@ -6,6 +6,7 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
+from traceback import format_exc
 
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
@@ -116,9 +117,13 @@ def clear_cache():
 
 
 async def main():
-    clear_cache()
-    await load_models()
-    await db.connect()
+    try:
+        logger.info("Подготовка...")
+        clear_cache()
+        await load_models()
+        await db.connect()
+    except Exception:
+        logger.fatal(f"Не удалось выполнить подготовку.\n\nTraceback: {format_exc()}")
 
     dp.include_routers(
         admin_router,
@@ -157,6 +162,8 @@ async def main():
         asyncio.create_task(background_checker())
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
+    except Exception:
+        logger.fatal(f"Запуск не удался.\n\nTraceback: {format_exc()}")
     finally:
         await bot.session.close()
         if pyrogram_process.poll() is None:
