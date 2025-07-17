@@ -88,55 +88,49 @@ async def cleanup_expired_items_task():
 
 
 async def check_free_games():
+    logger.info("Служба обновления игр запущена.")
     while True:
-        now = datetime.datetime.now(datetime.timezone.utc)
-        weekday = now.weekday()  # четверг = 3
-        hour = now.hour
-        minute = now.minute
+        try:
+            # 1. Вычисляем время следующего запуска
+            now_utc = datetime.datetime.now(datetime.timezone.utc)
+            target_weekday = 3  # Четверг
+            target_hour = 15    # 15:00 по UTC
 
-        if weekday == 3 and 14 <= hour <= 16:
-            if hour == 15 and 0 <= minute < 30:
-                # Проверка на то, что уже обновляли сегодня
-                if FREE_GAMES_PATH.exists():
-                    try:
-                        with FREE_GAMES_PATH.open(encoding="utf-8") as f:
-                            data = json.load(f)
-                            cached_ts = data.get("_updated_at")
-                            if cached_ts:
-                                updated_dt = datetime.datetime.fromisoformat(cached_ts)
-                                if updated_dt.date() == now.date():
-                                    logger.debug(
-                                        "Игры уже обновлены сегодня, пропускаем."
-                                    )
-                                    await asyncio.sleep(86400)
-                                    continue
-                    except Exception as e:
-                        logger.warning(f"Не удалось прочитать кэш: {e}")
+            next_run = now_utc.replace(hour=target_hour, minute=0, second=0, microsecond=0)
+            if next_run <= now_utc:
+                next_run += datetime.timedelta(days=7)
 
-                try:
-                    games_data = await get_free_games()
-                    games_data = {
-                        "available": games_data[0],
-                        "unavailable": games_data[1],
-                        "_updated_at": now.isoformat(),
-                    }
+            days_ahead = (target_weekday - next_run.weekday() + 7) % 7
+            next_run += datetime.timedelta(days=days_ahead)
 
-                    FREE_GAMES_PATH.parent.mkdir(parents=True, exist_ok=True)
-                    with FREE_GAMES_PATH.open("w", encoding="utf-8") as f:
-                        json.dump(games_data, f, indent=2, ensure_ascii=False)
+            # 2. Спим до нужного момента
+            if FREE_GAMES_PATH.exists():
+                sleep_seconds = (next_run - now_utc).total_seconds()
+                logger.info(f"Следующее обновление: {next_run.isoformat()}. Сон на {sleep_seconds:.0f} секунд.")
+                await asyncio.sleep(sleep_seconds)
 
-                    logger.info(f"Бесплатные игры обновлены ({now.isoformat()})")
-                    await asyncio.sleep(86400)
-                    continue
+            # 3. Обновляем данные
+            logger.info("Начинаем обновление бесплатных игр.")
+            games_available, games_unavailable = await get_free_games()
+            
+            games_to_save = {
+                "available": games_available,
+                "unavailable": games_unavailable,
+                "_updated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
 
-                except Exception as e:
-                    logger.exception(f"Ошибка при обновлении бесплатных игр: {e}")
-                    await asyncio.sleep(600)
-                    continue
+            FREE_GAMES_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with FREE_GAMES_PATH.open("w", encoding="utf-8") as f:
+                json.dump(games_to_save, f, indent=2, ensure_ascii=False)
+            
+            logger.info("Бесплатные игры успешно обновлены!")
 
-            await asyncio.sleep(300)
-        else:
-            await asyncio.sleep(3600)
+        except asyncio.CancelledError:
+            logger.info("Задача обновления игр отменена.")
+            break
+        except Exception as e:
+            logger.exception(f"Произошла ошибка при обновлении игр: {e}\nПовторная попытка через 10 минут...")
+            await asyncio.sleep(600)
 
 
 async def background_checker():
