@@ -159,7 +159,7 @@ async def main():
     )
 
     try:
-        asyncio.create_task(background_checker())
+        asyncio.create_task(background_checker(bot))
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     except Exception:
