@@ -6,7 +6,7 @@ CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
 ECONOMY_CONFIG_PATH = Path(__file__).resolve().parent.parent / "eco_cfg.json"
 SHOP_CONFIG_PATH = Path(__file__).resolve().parent.parent / "items.json"
 FREE_GAMES_PATH = (
-    Path(__file__).resolve().parent.parent / "data" / "epic_free_games.json"
+    Path(__file__).resolve().parent.parent.parent / "data" / "epic_free_games.json"
 )
 
 active_chats = []
