@@ -325,7 +325,7 @@ async def cmd_epic_games(message: Message, bot: Bot):
                 msg_lines.append(f"• {game['title']}")
 
         if updated_at:
-            dt = datetime.fromisoformat(updated_at)
+            dt = datetime.datetime.fromisoformat(updated_at)
             msg_lines.append(
                 f"\n<code>Обновлено: {dt.strftime('%d.%m %H:%M UTC')}</code>"
             )
