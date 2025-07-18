@@ -89,30 +89,37 @@ async def cleanup_expired_items_task():
 
 async def check_free_games():
     logger.info("Служба обновления игр запущена.")
+
+    clean_run = not FREE_GAMES_PATH.exists()
+
     while True:
         try:
-            # 1. Вычисляем время следующего запуска
             now_utc = datetime.datetime.now(datetime.timezone.utc)
             target_weekday = 3  # Четверг
-            target_hour = 15    # 15:00 по UTC
+            target_hour = 15    # 15:00 UTC
 
-            next_run = now_utc.replace(hour=target_hour, minute=0, second=0, microsecond=0)
+            # Вычисляем ближайший четверг 15:00 UTC
+            days_ahead = (target_weekday - now_utc.weekday() + 7) % 7
+            next_run = (now_utc + datetime.timedelta(days=days_ahead)).replace(
+                hour=target_hour, minute=0, second=0, microsecond=0
+            )
+
+            # Если уже прошёл — берём следующий четверг
             if next_run <= now_utc:
                 next_run += datetime.timedelta(days=7)
 
-            days_ahead = (target_weekday - next_run.weekday() + 7) % 7
-            next_run += datetime.timedelta(days=days_ahead)
-
-            # 2. Спим до нужного момента
-            if FREE_GAMES_PATH.exists():
+            if not clean_run:
                 sleep_seconds = (next_run - now_utc).total_seconds()
                 logger.info(f"Следующее обновление: {next_run.isoformat()}. Сон на {sleep_seconds:.0f} секунд.")
                 await asyncio.sleep(sleep_seconds)
+            else:
+                logger.info("Файл не найден — выполняем немедленное первое обновление.")
+                clean_run = False
 
-            # 3. Обновляем данные
+            # Обновление данных
             logger.info("Начинаем обновление бесплатных игр.")
             games_available, games_unavailable = await get_free_games()
-            
+
             games_to_save = {
                 "available": games_available,
                 "unavailable": games_unavailable,
@@ -120,9 +127,11 @@ async def check_free_games():
             }
 
             FREE_GAMES_PATH.parent.mkdir(parents=True, exist_ok=True)
-            with FREE_GAMES_PATH.open("w", encoding="utf-8") as f:
+            tmp_path = FREE_GAMES_PATH.with_suffix(".tmp")
+            with tmp_path.open("w", encoding="utf-8") as f:
                 json.dump(games_to_save, f, indent=2, ensure_ascii=False)
-            
+            tmp_path.replace(FREE_GAMES_PATH)
+
             logger.info("Бесплатные игры успешно обновлены!")
 
         except asyncio.CancelledError:
