@@ -290,7 +290,15 @@ async def cmd_epic_games(message: Message, bot: Bot):
             return
 
         with FREE_GAMES_PATH.open(encoding="utf-8") as f:
-            data = json.load(f)
+            content = f.read().strip()
+            if not content:
+                await message.reply("⚠️ Данные ещё не загружены. Попробуйте позже.")
+                return
+            try:
+                data = json.loads(content)
+            except json.JSONDecodeError:
+                await message.reply("⚠️ Произошла ошибка при чтении данных. Обновление в процессе, попробуйте позже.")
+                return
             available = data.get("available", {})
             unavailable = data.get("unavailable", {})
             updated_at = data.get("_updated_at")
