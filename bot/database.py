@@ -34,6 +34,7 @@ DEFAULT_FEATURES = [
     ("economy", 1),
     ("sendcooldown", 1),
     ("auto_delete", 0),
+    ("auto_eg_free", 0)
 ]
 
 USERS_COLUMNS = {
@@ -516,6 +517,18 @@ class Database:
                 chat_id,
                 feature_name,
             )
+
+    async def get_chats_with_feature(self, feature_name: str) -> list[int]:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT chat_id FROM features
+                WHERE feature_name = $1 AND is_enabled = TRUE
+                """,
+                feature_name,
+            )
+            return [row["chat_id"] for row in rows]
 
     async def mediaban_user(self, user_id: int):
         await self.ensure_connection()

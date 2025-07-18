@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 import aiohttp
-
+from aiogram import Bot
 from bot import logger
 from bot.database import Database
 from bot.utils.get_free_epic_games import get_free_games
@@ -87,7 +87,7 @@ async def cleanup_expired_items_task():
         await asyncio.sleep(86400)  # Интервал 24 часа (86400 секунд)
 
 
-async def check_free_games():
+async def check_free_games(bot: Bot):
     logger.info("Служба обновления игр запущена.")
 
     clean_run = not FREE_GAMES_PATH.exists()
@@ -132,7 +132,44 @@ async def check_free_games():
                 json.dump(games_to_save, f, indent=2, ensure_ascii=False)
             tmp_path.replace(FREE_GAMES_PATH)
 
-            logger.info("Бесплатные игры успешно обновлены!")
+            logger.info("Бесплатные игры успешно обновлены, запускаем рассылку в чаты.")
+            msg_lines = []
+
+            if games_to_save["available"]:
+                msg_lines.append("🎁 <b>Бесплатно сейчас:</b>\n")
+                for game in games_to_save["available"].values():
+                    start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
+                    end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                    msg_lines.append(
+                        f"🎮 <b>{game['title']}</b>\n"
+                        f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
+                        f"🗓️ <i>{start} UTC — {end} UTC</i>\n"
+                        f"🆔 <code>{game['slug']}</code>\n"
+                    )
+
+            if games_to_save["unavailable"]:
+                msg_lines.append("\n🔒 <b>Не доступно в РФ:</b>\n")
+                for game in games_to_save["unavailable"].values():
+                    start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
+                    end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                    msg_lines.append(
+                        f"🎮 <b>{game['title']}</b>\n"
+                        f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
+                        f"🗓️ <i>{start} UTC — {end} UTC</i>\n"
+                        f"🆔 <code>{game['slug']}</code>\n"
+                    )
+
+            if games_to_save["_updated_at"]:
+                dt = datetime.datetime.fromisoformat(games_to_save["_updated_at"])
+                msg_lines.append(f"\n⌛️ Обновлено: {dt.strftime('%d.%m %H:%M UTC')}")
+
+            message_text = "\n".join(msg_lines)
+
+            for chat_id in await db.get_chats_with_feature("auto_eg_free"):
+                try:
+                    await bot.send_message(chat_id, message_text, parse_mode="HTML", disable_web_page_preview=True)
+                except Exception as e:
+                    logger.warning(f"Не удалось отправить сообщение в чат {chat_id}: {e}")
 
         except asyncio.CancelledError:
             logger.info("Задача обновления игр отменена.")
@@ -142,11 +179,11 @@ async def check_free_games():
             await asyncio.sleep(600)
 
 
-async def background_checker():
+async def background_checker(bot: Bot):
     """Главная функция для запуска фоновых задач"""
     update_task = asyncio.create_task(check_updates_task())
     cleanup_task = asyncio.create_task(cleanup_expired_items_task())
-    epic_task = asyncio.create_task(check_free_games())
+    epic_task = asyncio.create_task(check_free_games(bot))
 
     # Ждём того чего не случится
     await asyncio.gather(update_task, cleanup_task, epic_task)
