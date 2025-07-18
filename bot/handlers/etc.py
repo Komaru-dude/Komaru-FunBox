@@ -310,24 +310,33 @@ async def cmd_epic_games(message: Message, bot: Bot):
         msg_lines = []
 
         if available:
-            msg_lines.append("🎮 <b>Бесплатно сейчас:</b>")
+            msg_lines.append("🎁 <b>Бесплатно сейчас:</b>\n")
             for game in available.values():
-                start = datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
-                end = datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
+                end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
                 msg_lines.append(
-                    f"• <a href=\"{game['url']}\">{game['title']}</a>\n"
-                    f"  🗓 {start} — {end}"
+                    f"🎮 <b>{game['title']}</b>\n"
+                    f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
+                    f"🗓️ <i>{start} UTC — {end} UTC</i>\n"
+                    f"🆔 <code>{game['slug']}</code>\n"
                 )
 
         if unavailable:
-            msg_lines.append("\n🔒 <b>Не доступное в РФ:</b>")
+            msg_lines.append("\n🔒 <b>Не доступно в РФ:</b>\n")
             for game in unavailable.values():
-                msg_lines.append(f"• {game['title']}")
+                start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
+                end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                msg_lines.append(
+                    f"🎮 <b>{game['title']}</b>\n"
+                    f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
+                    f"🗓️ <i>{start} UTC — {end}</i> UTC\n"
+                    f"🆔 <code>{game['slug']}</code>\n"
+                )
 
         if updated_at:
             dt = datetime.datetime.fromisoformat(updated_at)
             msg_lines.append(
-                f"\n<code>Обновлено: {dt.strftime('%d.%m %H:%M UTC')}</code>"
+                f"\n⌛️ Обновлено: {dt.strftime('%d.%m %H:%M UTC')}"
             )
 
         await message.reply(
