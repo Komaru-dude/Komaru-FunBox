@@ -5,9 +5,9 @@ import random
 import re
 import time
 import traceback
+from html import escape
 from pathlib import Path
 from urllib.parse import urlparse
-from html import escape
 
 import openai
 from aiogram import Bot, F, Router
@@ -219,7 +219,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             await message.reply(f"📝 Ответ: {answer}")
             return
         elif text_msg.startswith(PROMPT_TRIGGER_PREFIX):
-            match = re.match(rf"^{re.escape(PROMPT_TRIGGER_PREFIX)}(\S+)\s*(.*)", text_msg)
+            match = re.match(
+                rf"^{re.escape(PROMPT_TRIGGER_PREFIX)}(\S+)\s*(.*)", text_msg
+            )
             if match:
                 prompt_name = match.group(1)
                 user_query = match.group(2)

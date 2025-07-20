@@ -947,11 +947,15 @@ async def add_prompt_title(message: Message, bot: Bot, db: Database, state: FSMC
         await message.reply("✏️ Теперь отправьте содержимое промпта")
         await state.set_state(AddPromptStates.choose_content)
     except Exception:
-        await error_report(message, bot, "add_prompt_choose_title", traceback.format_exc())
+        await error_report(
+            message, bot, "add_prompt_choose_title", traceback.format_exc()
+        )
 
 
 @ai_router.message(AddPromptStates.choose_content)
-async def add_prompt_content(message: Message, bot: Bot, db: Database, state: FSMContext):
+async def add_prompt_content(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
     try:
         data = await state.get_data()
         user_id = message.from_user.id
@@ -968,7 +972,9 @@ async def add_prompt_content(message: Message, bot: Bot, db: Database, state: FS
         )
         await state.clear()
     except Exception:
-        await error_report(message, bot, "add_prompt_choose_content", traceback.format_exc())
+        await error_report(
+            message, bot, "add_prompt_choose_content", traceback.format_exc()
+        )
 
 
 @ai_router.message(Command("list_prompts"), CooldownFilter("list_prompts", 30))
@@ -982,7 +988,8 @@ async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
             return
 
         text = "📋 <b>Ваши промпты:</b>\n\n" + "\n".join(
-            f"🔰 <b>{escape(p['title'])}</b> (🆔 <code>{p['id']}</code>)" for p in prompts
+            f"🔰 <b>{escape(p['title'])}</b> (🆔 <code>{p['id']}</code>)"
+            for p in prompts
         )
         await message.reply(text, parse_mode=ParseMode.HTML)
     except Exception:
