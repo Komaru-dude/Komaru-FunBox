@@ -165,25 +165,30 @@ class Database:
                         "PRIMARY KEY (chat_id, feature_name)",
                     ),
                     "banned_users": (BANNED_USERS_COLUMNS, None),
-                    "chats": (CHATS_COLUMNS, "PRIMARY KEY (chat_id)"),
-                    "global_users": (GLOBAL_USERS_COLUMNS, "PRIMARY KEY (user_id)"),
+                    "chats": (CHATS_COLUMNS, None),
+                    "global_users": (GLOBAL_USERS_COLUMNS, None),
                     "command_cooldowns": (
                         COMMAND_COOLDOWNS_COLUMNS,
                         "PRIMARY KEY (user_id, command)",
                     ),
-                    "uses": (USES_COLUMNS, "PRIMARY KEY (day)"),
-                    "custom_prompts": (CUSTOM_PROMPTS_COLUMNS, "PRIMARY KEY (id)"),
+                    "uses": (USES_COLUMNS, None),
+                    "custom_prompts": (CUSTOM_PROMPTS_COLUMNS, None),
                 }
 
                 # Создание таблиц
                 for table, (columns, pk) in table_definitions.items():
                     cols = []
                     for name, definition in columns.items():
-                        # Убираем PRIMARY KEY из столбцов, если они явно указаны в ключе
-                        clean_def = definition.replace("PRIMARY KEY", "").strip()
+                        # Убираем PRIMARY KEY только если он указан отдельно
+                        if pk and "PRIMARY KEY" in definition:
+                            clean_def = definition.replace("PRIMARY KEY", "").strip()
+                            clean_def = clean_def.rstrip(",").strip()
+                        else:
+                            clean_def = definition
                         cols.append(f"{name} {clean_def}")
                     if pk:
                         cols.append(pk)
+
                     columns_sql = ",\n".join(cols)
                     await conn.execute(
                         f"CREATE TABLE IF NOT EXISTS {table} (\n{columns_sql}\n);"
@@ -198,9 +203,13 @@ class Database:
                     for name, definition in columns.items():
                         if name not in existing:
                             clean_def = definition.replace("PRIMARY KEY", "").strip()
-                            await conn.execute(
-                                f"ALTER TABLE {table} ADD COLUMN {name} {clean_def}"
-                            )
+                            clean_def = clean_def.rstrip(",").strip()
+                            try:
+                                await conn.execute(
+                                    f"ALTER TABLE {table} ADD COLUMN {name} {clean_def}"
+                                )
+                            except asyncpg.exceptions.DuplicateColumnError:
+                                pass  # Колонка уже существует (редкий случай)
 
     async def sync_all(self):
         await self.ensure_connection()
