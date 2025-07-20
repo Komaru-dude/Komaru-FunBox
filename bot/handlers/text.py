@@ -218,7 +218,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             answer = await cmd_ai(messages=messages, cli_mode=True)
             await message.reply(f"📝 Ответ: {answer}")
             return
-        elif text_msg.startswith(PROMPT_TRIGGER_PREFIX) and await db.is_feature_enabled(chat_id, "user_prompts"):
+        elif text_msg.startswith(PROMPT_TRIGGER_PREFIX) and await db.is_feature_enabled(
+            chat_id, "user_prompts"
+        ):
             match = re.match(
                 rf"^{re.escape(PROMPT_TRIGGER_PREFIX)}(\S+)\s*(.*)", text_msg
             )
