@@ -34,7 +34,8 @@ DEFAULT_FEATURES = [
     ("economy", 1),
     ("sendcooldown", 1),
     ("auto_delete", 0),
-    ("auto_eg_free", 0)
+    ("auto_eg_free", 0),
+    ("user_prompts", 1),
 ]
 
 USERS_COLUMNS = {
@@ -84,6 +85,15 @@ COMMAND_COOLDOWNS_COLUMNS = {
 }
 
 USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
+
+CUSTOM_PROMPTS_COLUMNS = {
+    "id": "SERIAL PRIMARY KEY",
+    "user_id": "BIGINT NOT NULL",
+    "title": "TEXT NOT NULL",
+    "content": "TEXT NOT NULL",
+    "is_public": "BOOLEAN DEFAULT FALSE",
+    "created_at": "TIMESTAMP DEFAULT NOW()",
+}
 
 
 class Database:
@@ -143,142 +153,49 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                # Таблица users
-                users_def = ",\n".join(
-                    [f"{col} {definition}" for col, definition in USERS_COLUMNS.items()]
-                )
-                await conn.execute(
-                    f"""
-                    CREATE TABLE IF NOT EXISTS users (
-                        {users_def},
-                        PRIMARY KEY (user_id, chat_id)
-                    )
-                    """
-                )
+                # Конфигурация таблиц: имя, колонки, первичный ключ
+                table_configs = [
+                    ('users', USERS_COLUMNS, 'PRIMARY KEY (user_id, chat_id)'),
+                    ('features', FEATURES_COLUMNS, 'PRIMARY KEY (chat_id, feature_name)'),
+                    ('banned_users', BANNED_USERS_COLUMNS, None),
+                    ('chats', CHATS_COLUMNS, None),
+                    ('global_users', GLOBAL_USERS_COLUMNS, None),
+                    ('command_cooldowns', COMMAND_COOLDOWNS_COLUMNS, 'PRIMARY KEY (user_id, command)'),
+                    ('uses', USES_COLUMNS, 'PRIMARY KEY (day)'),
+                    ('custom_prompts', CUSTOM_PROMPTS_COLUMNS, None),
+                ]
+                
+                # Создание всех таблиц
+                for name, columns, pk in table_configs:
+                    cols_def = ",\n".join(f"{k} {v}" for k, v in columns.items())
+                    if pk:
+                        cols_def += f",\n{pk}"
+                    await conn.execute(f"CREATE TABLE IF NOT EXISTS {name} (\n{cols_def}\n)")
 
-                # Таблица features
-                features_def = ",\n".join(
-                    [
-                        f"{col} {definition}"
-                        for col, definition in FEATURES_COLUMNS.items()
-                    ]
-                )
-                await conn.execute(
-                    f"""
-                    CREATE TABLE IF NOT EXISTS features (
-                        {features_def},
-                        PRIMARY KEY (chat_id, feature_name)
-                    )
-                    """
-                )
-
-                # Таблица banned_users
-                banned_users_def = ",\n".join(
-                    [
-                        f"{col} {definition}"
-                        for col, definition in BANNED_USERS_COLUMNS.items()
-                    ]
-                )
-                await conn.execute(
-                    f"""
-                    CREATE TABLE IF NOT EXISTS banned_users (
-                        {banned_users_def}
-                    )
-                    """
-                )
-
-                # Таблица chats
-                await conn.execute(
-                    f"""CREATE TABLE IF NOT EXISTS chats (
-                        {", ".join([f"{k} {v}" for k, v in CHATS_COLUMNS.items()])}
-                    )"""
-                )
-
-                # Таблица global_users
-                await conn.execute(
-                    f"""CREATE TABLE IF NOT EXISTS global_users (
-                        {", ".join([f"{k} {v}" for k, v in GLOBAL_USERS_COLUMNS.items()])}
-                    )"""
-                )
-
-                # Таблица command_cooldowns
-                await conn.execute(
-                    f"""CREATE TABLE IF NOT EXISTS command_cooldowns (
-                        {", ".join([f"{k} {v}" for k, v in COMMAND_COOLDOWNS_COLUMNS.items()])},
-                        PRIMARY KEY (user_id, command)
-                    )"""
-                )
-
-                # Таблица uses
-                await conn.execute(
-                    f"""CREATE TABLE IF NOT EXISTS uses (
-                        day DATE PRIMARY KEY,
-                        {", ".join([f"{k} {v}" for k, v in USES_COLUMNS.items()])}
-                    )"""
-                )
-
-                # Добавляем недостающие столбцы в users
-                users_existing_cols = await conn.fetch(
-                    """
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'users'
-                    """
-                )
-                users_existing_col_names = {
-                    r["column_name"] for r in users_existing_cols
+                # Конфигурация для ALTER TABLE (таблицы + колонки)
+                alter_config = {
+                    'users': USERS_COLUMNS,
+                    'chats': CHATS_COLUMNS,
+                    'global_users': GLOBAL_USERS_COLUMNS,
+                    'uses': USES_COLUMNS,
+                    'custom_prompts': CUSTOM_PROMPTS_COLUMNS
                 }
-
-                for col, definition in USERS_COLUMNS.items():
-                    if col not in users_existing_col_names:
-                        await conn.execute(
-                            f"""ALTER TABLE users ADD COLUMN {col} {definition}"""
-                        )
-
-                # Добавляем недостающие столбцы в chats
-                chats_existing_cols = await conn.fetch(
-                    """SELECT column_name FROM information_schema.columns 
-                    WHERE table_name = 'chats'
-                    """
-                )
-                chats_existing_col_names = {
-                    r["column_name"] for r in chats_existing_cols
-                }
-
-                for col, definition in CHATS_COLUMNS.items():
-                    if col not in chats_existing_col_names:
-                        await conn.execute(
-                            f"""ALTER TABLE chats ADD COLUMN {col} {definition}"""
-                        )
-
-                # Добавляем недостающие столбцы в global_users
-                globusers_existing_cols = await conn.fetch(
-                    """SELECT column_name FROM information_schema.columns 
-                    WHERE table_name = 'global_users'
-                    """
-                )
-                globusers_existing_col_names = {
-                    r["column_name"] for r in globusers_existing_cols
-                }
-
-                for col, definition in GLOBAL_USERS_COLUMNS.items():
-                    if col not in globusers_existing_col_names:
-                        await conn.execute(
-                            f"""ALTER TABLE global_users ADD COLUMN {col} {definition}"""
-                        )
-
-                # Добавляем недостающие столбцы в uses
-                uses_existing_cols = await conn.fetch(
-                    """SELECT column_name FROM information_schema.columns 
-                    WHERE table_name = 'uses'
-                    """
-                )
-                uses_existing_col_names = {r["column_name"] for r in uses_existing_cols}
-
-                for col, definition in USES_COLUMNS.items():
-                    if col not in uses_existing_col_names:
-                        await conn.execute(
-                            f"""ALTER TABLE uses ADD COLUMN {col} {definition}"""
-                        )
+                
+                # Добавление недостающих колонок
+                for table, columns in alter_config.items():
+                    # Получение существующих колонок
+                    res = await conn.fetch(
+                        f"SELECT column_name FROM information_schema.columns "
+                        f"WHERE table_name = '{table}'"
+                    )
+                    existing = {r['column_name'] for r in res}
+                    
+                    # Добавление новых колонок
+                    for col, definition in columns.items():
+                        if col not in existing:
+                            await conn.execute(
+                                f"ALTER TABLE {table} ADD COLUMN {col} {definition}"
+                            )
 
     async def sync_all(self):
         await self.ensure_connection()
