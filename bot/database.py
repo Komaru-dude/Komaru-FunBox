@@ -3,6 +3,7 @@ import json
 import os
 import random
 import time
+import uuid
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -84,10 +85,13 @@ COMMAND_COOLDOWNS_COLUMNS = {
     "available_at": "BIGINT NOT NULL",
 }
 
-USES_COLUMNS = {"count": "INTEGER NOT NULL DEFAULT 0"}
+USES_COLUMNS = {
+    "day": "DATE PRIMARY KEY",
+    "count": "INTEGER NOT NULL DEFAULT 0",
+}
 
 CUSTOM_PROMPTS_COLUMNS = {
-    "id": "SERIAL PRIMARY KEY",
+    "id": "TEXT NOT NULL PRIMARY KEY",
     "user_id": "BIGINT NOT NULL",
     "title": "TEXT NOT NULL",
     "content": "TEXT NOT NULL",
@@ -153,48 +157,49 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                # Конфигурация таблиц: имя, колонки, первичный ключ
-                table_configs = [
-                    ('users', USERS_COLUMNS, 'PRIMARY KEY (user_id, chat_id)'),
-                    ('features', FEATURES_COLUMNS, 'PRIMARY KEY (chat_id, feature_name)'),
-                    ('banned_users', BANNED_USERS_COLUMNS, None),
-                    ('chats', CHATS_COLUMNS, None),
-                    ('global_users', GLOBAL_USERS_COLUMNS, None),
-                    ('command_cooldowns', COMMAND_COOLDOWNS_COLUMNS, 'PRIMARY KEY (user_id, command)'),
-                    ('uses', USES_COLUMNS, 'PRIMARY KEY (day)'),
-                    ('custom_prompts', CUSTOM_PROMPTS_COLUMNS, None),
-                ]
-                
-                # Создание всех таблиц
-                for name, columns, pk in table_configs:
-                    cols_def = ",\n".join(f"{k} {v}" for k, v in columns.items())
-                    if pk:
-                        cols_def += f",\n{pk}"
-                    await conn.execute(f"CREATE TABLE IF NOT EXISTS {name} (\n{cols_def}\n)")
-
-                # Конфигурация для ALTER TABLE (таблицы + колонки)
-                alter_config = {
-                    'users': USERS_COLUMNS,
-                    'chats': CHATS_COLUMNS,
-                    'global_users': GLOBAL_USERS_COLUMNS,
-                    'uses': USES_COLUMNS,
-                    'custom_prompts': CUSTOM_PROMPTS_COLUMNS
+                # Мапа таблиц
+                table_definitions = {
+                    "users": (USERS_COLUMNS, "PRIMARY KEY (user_id, chat_id)"),
+                    "features": (
+                        FEATURES_COLUMNS,
+                        "PRIMARY KEY (chat_id, feature_name)",
+                    ),
+                    "banned_users": (BANNED_USERS_COLUMNS, None),
+                    "chats": (CHATS_COLUMNS, "PRIMARY KEY (chat_id)"),
+                    "global_users": (GLOBAL_USERS_COLUMNS, "PRIMARY KEY (user_id)"),
+                    "command_cooldowns": (
+                        COMMAND_COOLDOWNS_COLUMNS,
+                        "PRIMARY KEY (user_id, command)",
+                    ),
+                    "uses": (USES_COLUMNS, "PRIMARY KEY (day)"),
+                    "custom_prompts": (CUSTOM_PROMPTS_COLUMNS, "PRIMARY KEY (id)"),
                 }
-                
-                # Добавление недостающих колонок
-                for table, columns in alter_config.items():
-                    # Получение существующих колонок
-                    res = await conn.fetch(
-                        f"SELECT column_name FROM information_schema.columns "
-                        f"WHERE table_name = '{table}'"
+
+                # Создание таблиц
+                for table, (columns, pk) in table_definitions.items():
+                    cols = []
+                    for name, definition in columns.items():
+                        # Убираем PRIMARY KEY из столбцов, если они явно указаны в ключе
+                        clean_def = definition.replace("PRIMARY KEY", "").strip()
+                        cols.append(f"{name} {clean_def}")
+                    if pk:
+                        cols.append(pk)
+                    columns_sql = ",\n".join(cols)
+                    await conn.execute(
+                        f"CREATE TABLE IF NOT EXISTS {table} (\n{columns_sql}\n);"
                     )
-                    existing = {r['column_name'] for r in res}
-                    
-                    # Добавление новых колонок
-                    for col, definition in columns.items():
-                        if col not in existing:
+
+                # Добавление недостающих колонок
+                for table, (columns, _) in table_definitions.items():
+                    res = await conn.fetch(
+                        f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table}'"
+                    )
+                    existing = {r["column_name"] for r in res}
+                    for name, definition in columns.items():
+                        if name not in existing:
+                            clean_def = definition.replace("PRIMARY KEY", "").strip()
                             await conn.execute(
-                                f"ALTER TABLE {table} ADD COLUMN {col} {definition}"
+                                f"ALTER TABLE {table} ADD COLUMN {name} {clean_def}"
                             )
 
     async def sync_all(self):
@@ -994,3 +999,27 @@ class Database:
                 return True
 
             return False
+
+    async def get_prompt(self, id: str) -> dict:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            record = await conn.fetchrow("SELECT * FROM custom_prompts WHERE id = $1", id)
+            return dict(record) if record else None
+        
+    async def add_prompt(self, user_id: int, title: str, content: str, is_public: bool) -> str:
+        await self.ensure_connection()
+        prompt_id = str(uuid.uuid4())
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                INSERT INTO custom_prompts (id, user_id, title, content, is_public)
+                VALUES ($1, $2, $3, $4, $5)
+            """, prompt_id, user_id, title, content, is_public)
+        return prompt_id
+    
+    async def get_prompt_by_title(self, title: str, user_id: int) -> str:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT * FROM custom_prompts WHERE title = $1 AND user_id = $2
+            """, title, user_id)
+            return row if row else None
