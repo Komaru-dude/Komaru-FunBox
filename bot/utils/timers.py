@@ -6,6 +6,7 @@ from pathlib import Path
 
 import aiohttp
 from aiogram import Bot
+
 from bot import logger
 from bot.database import Database
 from bot.utils.get_free_epic_games import get_free_games
@@ -96,7 +97,7 @@ async def check_free_games(bot: Bot):
         try:
             now_utc = datetime.datetime.now(datetime.timezone.utc)
             target_weekday = 3  # Четверг
-            target_hour = 15    # 15:00 UTC
+            target_hour = 15  # 15:00 UTC
 
             # Вычисляем ближайший четверг 15:00 UTC
             days_ahead = (target_weekday - now_utc.weekday() + 7) % 7
@@ -110,7 +111,9 @@ async def check_free_games(bot: Bot):
 
             if not clean_run:
                 sleep_seconds = (next_run - now_utc).total_seconds()
-                logger.info(f"Следующее обновление: {next_run.isoformat()}. Сон на {sleep_seconds:.0f} секунд.")
+                logger.info(
+                    f"Следующее обновление: {next_run.isoformat()}. Сон на {sleep_seconds:.0f} секунд."
+                )
                 await asyncio.sleep(sleep_seconds)
             else:
                 logger.info("Файл не найден — выполняем немедленное первое обновление.")
@@ -138,8 +141,12 @@ async def check_free_games(bot: Bot):
             if games_to_save["available"]:
                 msg_lines.append("🎁 <b>Бесплатно сейчас:</b>\n")
                 for game in games_to_save["available"].values():
-                    start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
-                    end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                    start = datetime.datetime.fromisoformat(game["start"]).strftime(
+                        "%d.%m %H:%M"
+                    )
+                    end = datetime.datetime.fromisoformat(game["end"]).strftime(
+                        "%d.%m %H:%M"
+                    )
                     msg_lines.append(
                         f"🎮 <b>{game['title']}</b>\n"
                         f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
@@ -150,8 +157,12 @@ async def check_free_games(bot: Bot):
             if games_to_save["unavailable"]:
                 msg_lines.append("\n🔒 <b>Не доступно в РФ:</b>\n")
                 for game in games_to_save["unavailable"].values():
-                    start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
-                    end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                    start = datetime.datetime.fromisoformat(game["start"]).strftime(
+                        "%d.%m %H:%M"
+                    )
+                    end = datetime.datetime.fromisoformat(game["end"]).strftime(
+                        "%d.%m %H:%M"
+                    )
                     msg_lines.append(
                         f"🎮 <b>{game['title']}</b>\n"
                         f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
@@ -167,15 +178,24 @@ async def check_free_games(bot: Bot):
 
             for chat_id in await db.get_chats_with_feature("auto_eg_free"):
                 try:
-                    await bot.send_message(chat_id, message_text, parse_mode="HTML", disable_web_page_preview=True)
+                    await bot.send_message(
+                        chat_id,
+                        message_text,
+                        parse_mode="HTML",
+                        disable_web_page_preview=True,
+                    )
                 except Exception as e:
-                    logger.warning(f"Не удалось отправить сообщение в чат {chat_id}: {e}")
+                    logger.warning(
+                        f"Не удалось отправить сообщение в чат {chat_id}: {e}"
+                    )
 
         except asyncio.CancelledError:
             logger.info("Задача обновления игр отменена.")
             break
         except Exception as e:
-            logger.exception(f"Произошла ошибка при обновлении игр: {e}\nПовторная попытка через 10 минут...")
+            logger.exception(
+                f"Произошла ошибка при обновлении игр: {e}\nПовторная попытка через 10 минут..."
+            )
             await asyncio.sleep(600)
 
 

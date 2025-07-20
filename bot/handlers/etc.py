@@ -297,7 +297,9 @@ async def cmd_epic_games(message: Message, bot: Bot):
             try:
                 data = json.loads(content)
             except json.JSONDecodeError:
-                await message.reply("⚠️ Произошла ошибка при чтении данных. Обновление в процессе, попробуйте позже.")
+                await message.reply(
+                    "⚠️ Произошла ошибка при чтении данных. Обновление в процессе, попробуйте позже."
+                )
                 return
             available = data.get("available", {})
             unavailable = data.get("unavailable", {})
@@ -312,8 +314,12 @@ async def cmd_epic_games(message: Message, bot: Bot):
         if available:
             msg_lines.append("🎁 <b>Бесплатно сейчас:</b>\n")
             for game in available.values():
-                start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
-                end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                start = datetime.datetime.fromisoformat(game["start"]).strftime(
+                    "%d.%m %H:%M"
+                )
+                end = datetime.datetime.fromisoformat(game["end"]).strftime(
+                    "%d.%m %H:%M"
+                )
                 msg_lines.append(
                     f"🎮 <b>{game['title']}</b>\n"
                     f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
@@ -324,8 +330,12 @@ async def cmd_epic_games(message: Message, bot: Bot):
         if unavailable:
             msg_lines.append("\n🔒 <b>Не доступно в РФ:</b>\n")
             for game in unavailable.values():
-                start = datetime.datetime.fromisoformat(game["start"]).strftime("%d.%m %H:%M")
-                end = datetime.datetime.fromisoformat(game["end"]).strftime("%d.%m %H:%M")
+                start = datetime.datetime.fromisoformat(game["start"]).strftime(
+                    "%d.%m %H:%M"
+                )
+                end = datetime.datetime.fromisoformat(game["end"]).strftime(
+                    "%d.%m %H:%M"
+                )
                 msg_lines.append(
                     f"🎮 <b>{game['title']}</b>\n"
                     f"🔗 <a href=\"{game['url']}\">Ссылка на игру</a>\n"
@@ -335,9 +345,7 @@ async def cmd_epic_games(message: Message, bot: Bot):
 
         if updated_at:
             dt = datetime.datetime.fromisoformat(updated_at)
-            msg_lines.append(
-                f"\n⌛️ Обновлено: {dt.strftime('%d.%m %H:%M UTC')}"
-            )
+            msg_lines.append(f"\n⌛️ Обновлено: {dt.strftime('%d.%m %H:%M UTC')}")
 
         await message.reply(
             "\n".join(msg_lines),
