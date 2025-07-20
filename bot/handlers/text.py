@@ -7,6 +7,7 @@ import time
 import traceback
 from pathlib import Path
 from urllib.parse import urlparse
+from html import escape
 
 import openai
 from aiogram import Bot, F, Router
@@ -23,6 +24,7 @@ from bot.utils.global_storage import active_chats, onlysq_models
 
 text_router = Router()
 BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
+PROMPT_TRIGGER_PREFIX = "!"
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
 SUPPORTED_DOMAINS = [
@@ -216,7 +218,33 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             answer = await cmd_ai(messages=messages, cli_mode=True)
             await message.reply(f"📝 Ответ: {answer}")
             return
-        elif message.text.startswith(
+        elif text_msg.startswith(PROMPT_TRIGGER_PREFIX):
+            match = re.match(rf"^{re.escape(PROMPT_TRIGGER_PREFIX)}(\S+)\s*(.*)", text_msg)
+            if match:
+                prompt_name = match.group(1)
+                user_query = match.group(2)
+
+                prompt = await db.get_prompt_by_title(prompt_name, user1.id)
+                if not prompt:
+                    await message.reply(
+                        f"❌ Промпт <b>{escape(prompt_name)}</b> не найден.",
+                        parse_mode=ParseMode.HTML,
+                    )
+                    return
+
+                prompt_content = prompt["content"]
+                messages_for_ai = [
+                    {"role": "system", "content": prompt_content},
+                    {"role": "user", "content": user_query},
+                ]
+                await cmd_ai(
+                    message=message,
+                    bot=bot,
+                    messages=messages_for_ai,
+                    db=db,
+                )
+                return
+        elif text_msg.startswith(
             ("http://", "https://")
         ) and await db.is_feature_enabled(chat_id, "autovideo"):
             parsed_url = urlparse(message.text)

@@ -900,3 +900,119 @@ async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
 
     except Exception:
         await error_report(message, bot, "set_def_model", traceback.format_exc())
+
+
+class AddPromptStates(StatesGroup):
+    choose_title = State()
+    choose_content = State()
+
+
+@ai_router.message(Command("add_prompt"), CooldownFilter("add_prompt", 30))
+async def cmd_add_prompt(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        if not state.get_data() is None:
+            await message.reply(
+                "❌ Выполняется другое действие, отмените перед продолжением",
+            )
+            return
+
+        if await db.is_user_mediabanned(message.from_user.id):
+            await message.reply(
+                "❌ Вы заблокированы, это действие вам запрещено",
+            )
+            return
+
+        await message.reply(
+            "▶️ Теперь отправьте имя вашего будущего промпта\n"
+            "💡 Оно будет использоваться для активации\n"
+            "❌ Отправьте <code>/cancel</code> для отмены",
+            parse_mode=ParseMode.HTML,
+        )
+        await state.set_state(AddPromptStates.choose_title)
+    except Exception:
+        await error_report(message, bot, "add_prompt", traceback.format_exc())
+
+
+@ai_router.message(AddPromptStates.choose_title)
+async def add_prompt_title(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        user_id = message.from_user.id
+        prompt_name = message.text.strip()
+
+        if await db.get_prompt_by_title(prompt_name, user_id):
+            await message.reply("❌ Промпт с таким именем уже существует")
+            return
+
+        await state.update_data(title=prompt_name)
+        await message.reply("✏️ Теперь отправьте содержимое промпта")
+        await state.set_state(AddPromptStates.choose_content)
+    except Exception:
+        await error_report(message, bot, "add_prompt_choose_title", traceback.format_exc())
+
+
+@ai_router.message(AddPromptStates.choose_content)
+async def add_prompt_content(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        data = await state.get_data()
+        user_id = message.from_user.id
+        title = data["title"]
+        content = message.text.strip()
+
+        prompt_id = await db.add_prompt(user_id, title, content)
+
+        escaped_title = escape(title)
+
+        await message.reply(
+            f"✅ Промпт <b>{escaped_title}</b> добавлен\n🆔 ID: <code>{prompt_id}</code>",
+            parse_mode=ParseMode.HTML,
+        )
+        await state.clear()
+    except Exception:
+        await error_report(message, bot, "add_prompt_choose_content", traceback.format_exc())
+
+
+@ai_router.message(Command("list_prompts"), CooldownFilter("list_prompts", 30))
+async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+        prompts = await db.get_all_prompts(user_id)
+
+        if not prompts:
+            await message.reply("📭 У вас пока нет сохранённых промптов.")
+            return
+
+        text = "📋 <b>Ваши промпты:</b>\n\n" + "\n".join(
+            f"🔰 <b>{escape(p['title'])}</b> (🆔 <code>{p['id']}</code>)" for p in prompts
+        )
+        await message.reply(text, parse_mode=ParseMode.HTML)
+    except Exception:
+        await error_report(message, bot, "list_prompts", traceback.format_exc())
+
+
+@ai_router.message(Command("remove_prompt"), CooldownFilter("remove_prompt", 15))
+async def cmd_remove_prompt(message: Message, bot: Bot, db: Database):
+    try:
+        parts = message.text.strip().split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply(
+                "❌ Укажите название промпта: <code>/remove_prompt &lt;название&gt;</code>",
+                parse_mode=ParseMode.HTML,
+            )
+            return
+
+        title = parts[1].strip()
+        user_id = message.from_user.id
+
+        prompt = await db.get_prompt_by_title(title, user_id)
+        if not prompt:
+            await message.reply("❌ Промпт не найден.", parse_mode=ParseMode.HTML)
+            return
+
+        await db.remove_prompt_by_id(prompt["id"])
+
+        await message.reply(
+            f"🗑️ Промпт <b>{escape(title)}</b> удалён.",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception:
+        await error_report(message, bot, "remove_prompt", traceback.format_exc())

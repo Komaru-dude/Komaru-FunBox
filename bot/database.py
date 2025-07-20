@@ -1003,23 +1003,51 @@ class Database:
     async def get_prompt(self, id: str) -> dict:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            record = await conn.fetchrow("SELECT * FROM custom_prompts WHERE id = $1", id)
+            record = await conn.fetchrow(
+                "SELECT * FROM custom_prompts WHERE id = $1", id
+            )
             return dict(record) if record else None
-        
-    async def add_prompt(self, user_id: int, title: str, content: str, is_public: bool) -> str:
+
+    async def get_all_prompts(self, user_id: int) -> list[dict]:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            records = await conn.fetch(
+                "SELECT * FROM custom_prompts WHERE user_id = $1", user_id
+            )
+            return [dict(record) for record in records]
+
+    async def add_prompt(
+        self, user_id: int, title: str, content: str, is_public: bool = False
+    ) -> str:
         await self.ensure_connection()
         prompt_id = str(uuid.uuid4())
         async with self.pool.acquire() as conn:
-            await conn.execute("""
+            await conn.execute(
+                """
                 INSERT INTO custom_prompts (id, user_id, title, content, is_public)
                 VALUES ($1, $2, $3, $4, $5)
-            """, prompt_id, user_id, title, content, is_public)
+            """,
+                prompt_id,
+                user_id,
+                title,
+                content,
+                is_public,
+            )
         return prompt_id
-    
+
     async def get_prompt_by_title(self, title: str, user_id: int) -> str:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            row = await conn.fetchrow("""
+            row = await conn.fetchrow(
+                """
                 SELECT * FROM custom_prompts WHERE title = $1 AND user_id = $2
-            """, title, user_id)
+            """,
+                title,
+                user_id,
+            )
             return row if row else None
+
+    async def remove_prompt_by_id(self, prompt_id: str) -> None:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute("DELETE FROM custom_prompts WHERE id = $1", prompt_id)
