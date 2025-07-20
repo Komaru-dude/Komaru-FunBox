@@ -21,6 +21,7 @@ from aiogram.types import FSInputFile, Message
 
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
+from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report, make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
 
@@ -907,7 +908,9 @@ class AddPromptStates(StatesGroup):
     choose_content = State()
 
 
-@ai_router.message(Command("add_prompt"), CooldownFilter("add_prompt", 30))
+@ai_router.message(
+    Command("add_prompt"), CooldownFilter("add_prompt", 30), FuncEnabled("user_prompts")
+)
 async def cmd_add_prompt(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
         if await state.get_data() is None:
@@ -977,7 +980,11 @@ async def add_prompt_content(
         )
 
 
-@ai_router.message(Command("list_prompts"), CooldownFilter("list_prompts", 30))
+@ai_router.message(
+    Command("list_prompts"),
+    CooldownFilter("list_prompts", 30),
+    FuncEnabled("user_prompts"),
+)
 async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -996,7 +1003,11 @@ async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "list_prompts", traceback.format_exc())
 
 
-@ai_router.message(Command("remove_prompt"), CooldownFilter("remove_prompt", 15))
+@ai_router.message(
+    Command("remove_prompt"),
+    CooldownFilter("remove_prompt", 15),
+    FuncEnabled("user_prompts"),
+)
 async def cmd_remove_prompt(message: Message, bot: Bot, db: Database):
     try:
         parts = message.text.strip().split(maxsplit=1)
