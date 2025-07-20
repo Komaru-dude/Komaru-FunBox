@@ -910,7 +910,7 @@ class AddPromptStates(StatesGroup):
 @ai_router.message(Command("add_prompt"), CooldownFilter("add_prompt", 30))
 async def cmd_add_prompt(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
-        if not state.get_data() is None:
+        if state.get_data() is None:
             await message.reply(
                 "❌ Выполняется другое действие, отмените перед продолжением",
             )
