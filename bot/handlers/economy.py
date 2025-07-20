@@ -853,15 +853,22 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
                 duel["heals"] = {challenger_id: 0, target_id: 0}
             if "failed_dodge" not in duel:
                 duel["failed_dodge"] = None
-            if "skip" not in duel:
-                duel["skip"] = None
 
             opponent_id = target_id if user_id == challenger_id else challenger_id
             msg = ""
 
-            if duel["skip"] == user_id:
-                msg = f"💨 Ход был пропущен из-за лечения"
+            if duel.get("skip") == user_id:
                 duel["skip"] = None
+                await callback.message.edit_text(
+                    f"💨 <a href='tg://user?id={user_id}'>Пропускает ход из-за лечения</a>\n\n"
+                    f"❤️ {await db.get_global_user_param(challenger_id, 'name')}: {hp[challenger_id]} HP\n"
+                    f"❤️ {await db.get_global_user_param(target_id, 'name')}: {hp[target_id]} HP\n\n"
+                    f"💡 Теперь ходит: <a href='tg://user?id={opponent_id}'>этот игрок</a>",
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=make_duel_actions_keyboard(duel_id),
+                )
+                duel["turn"] = opponent_id
+                return
 
             if action == "attack":
                 # Критический удар
