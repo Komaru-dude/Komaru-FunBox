@@ -121,6 +121,9 @@ async def process_username(message: Message, state: FSMContext, db: Database):
     for rank in ["Участник", "Модератор", "Администратор"]:
         builder.button(text=rank, callback_data=f"setrank_{rank}")
 
+    if message.from_user.id == int(os.getenv("OWNER_ID")):
+        builder.button(text="Персонал", callback_data=f"setrank_Персонал")
+
     builder.adjust(1)
 
     await state.update_data(target_user_id=user_id, first_name=first_name)
