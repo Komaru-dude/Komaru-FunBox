@@ -181,6 +181,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         target_cash = await db.get_global_user_param(target_id, "money")
         target_bank = await db.get_global_user_param(target_id, "bank")
         target_total = target_cash + target_bank
+        rob_max_limit = user_total * 0.10
 
         if target_cash < 0 and target_bank <= 0:
             msg = await message.reply("❌ У цели нет средств (ни налички, ни в банке)")
@@ -200,12 +201,12 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         base_limit = min(
             user_total * 0.10,
             target_total * 0.15,
-            eco_config["rob_max_limit"],
+            rob_max_limit,
         )
 
         # Логарифмический множитель (ограбление топов сложнее)
         log_limit = max(1.0, math.log10(target_total + 10))
-        final_limit = min(base_limit, eco_config["rob_max_limit"] / log_limit)
+        final_limit = min(base_limit, rob_max_limit / log_limit)
 
         succeed_percent = random.randint(
             eco_config["rob_min_percent"], eco_config["rob_max_percent"]
