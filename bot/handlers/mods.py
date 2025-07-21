@@ -292,7 +292,8 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
             return
 
         if error:
-            raise error
+            await message.reply("❌ Непредвиденная ошибка, попробуйте позже, убедитесь что аккаунт цели корректен")
+            return
 
         user_info = await fetch_user_data(user_id=user_id, chat_id=chat_id)
         if "error" in user_info:
