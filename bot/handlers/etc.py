@@ -182,50 +182,62 @@ async def cmd_cat_gif(message: Message, bot: Bot):
 
 
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
-async def send_weather(message: Message):
-    parts = message.text.strip().split(maxsplit=1)
+async def send_weather(message: Message, bot: Bot, db: Database):
+    try:
+        parts = message.text.strip().split(maxsplit=1)
 
-    if len(parts) < 2:
-        await message.reply(
-            "❌ Вы не указали город.\nПример: <code>/weather Москва</code>",
-            parse_mode=ParseMode.HTML,
+        if len(parts) < 2:
+            await message.reply(
+                "❌ Вы не указали город.\nПример: <code>/weather Москва</code>",
+                parse_mode=ParseMode.HTML,
+            )
+            await db.reset_cooldown(message.from_user.id, "weather")
+            return
+
+        city = parts[1]
+
+        async with ClientSession() as session:
+            url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&aqi=yes"
+            async with session.get(url) as response:
+                if response.status == 400:
+                    await message.reply("❌ Такой город не существует")
+                    await db.reset_cooldown(message.from_user.id, "weather")
+                    return
+                elif response.status == 403:
+                    await message.reply("❌ Упс, попробуйте позже")
+                    await db.reset_cooldown(message.from_user.id, "weather")
+                    return
+                elif response.status == 401:
+                    await message.reply(
+                        "❌ Проблема с авторизацией\n\n🛠 Сообщение разработчику"
+                    )
+                    await db.reset_cooldown(message.from_user.id, "weather")
+                    return
+
+                data = await response.json()
+
+        loc = data["location"]
+        cur = data["current"]
+        cond = cur["condition"]
+
+        code = cond["code"]
+        emoji = WEATHER_ICONS.get(code, "❔")
+
+        text = (
+            f"<b>{emoji} Погода в {loc['name']}, {loc['country']}</b>\n"
+            f"<b>🌡 Температура:</b> {cur['temp_c']}°C (Ощущается как {cur['feelslike_c']}°C)\n"
+            f"<b>💧 Влажность:</b> {cur['humidity']}%\n"
+            f"<b>💨 Ветер:</b> {cur['wind_kph']} км/ч {cur['wind_dir']}\n"
+            f"<b>👀 Видимость:</b> {cur['vis_km']} км\n"
+            f"<b>🧪 Давление:</b> {cur['pressure_mb']} мбар\n"
+            f"<b>🌞 UV-индекс:</b> {cur['uv']}\n"
+            f"<b>💨 Качество воздуха (PM2.5):</b> {cur.get('air_quality', {}).get('pm2_5', 'н/д')}\n"
+            f"<b>📅 Обновлено:</b> {cur['last_updated']}"
         )
-        return
 
-    city = parts[1]
-
-    async with ClientSession() as session:
-        url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&aqi=yes"
-        async with session.get(url) as response:
-            if response.status == 400:
-                await message.reply("❌ Такой город не существует")
-                return
-            elif response.status == 403:
-                await message.reply("❌ Упс, попробуйте позже")
-                return
-
-            data = await response.json()
-
-    loc = data["location"]
-    cur = data["current"]
-    cond = cur["condition"]
-
-    code = cond["code"]
-    emoji = WEATHER_ICONS.get(code, "❔")
-
-    text = (
-        f"<b>{emoji} Погода в {loc['name']}, {loc['country']}</b>\n"
-        f"<b>🌡 Температура:</b> {cur['temp_c']}°C (Ощущается как {cur['feelslike_c']}°C)\n"
-        f"<b>💧 Влажность:</b> {cur['humidity']}%\n"
-        f"<b>💨 Ветер:</b> {cur['wind_kph']} км/ч {cur['wind_dir']}\n"
-        f"<b>👀 Видимость:</b> {cur['vis_km']} км\n"
-        f"<b>🧪 Давление:</b> {cur['pressure_mb']} мбар\n"
-        f"<b>🌞 UV-индекс:</b> {cur['uv']}\n"
-        f"<b>💨 Качество воздуха (PM2.5):</b> {cur.get('air_quality', {}).get('pm2_5', 'н/д')}\n"
-        f"<b>📅 Обновлено:</b> {cur['last_updated']}"
-    )
-
-    await message.reply(text, parse_mode=ParseMode.HTML)
+        await message.reply(text, parse_mode=ParseMode.HTML)
+    except Exception:
+        await error_report(message, bot, "weather", traceback.format_exc())
 
 
 @etc_router.message(Command("nillerxs"), CooldownFilter("bradok", 15))
