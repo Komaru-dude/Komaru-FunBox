@@ -52,7 +52,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         has_work_tools = await db.has_valid_item(user_id, "work_tools")
 
         if has_work_tools:
-            bonus = round(current_income * 0.02, 2)
+            bonus = round(current_income * 0.25, 2)
             current_income = current_income + bonus
             work_tools_msg = f"🧑‍🏭 Использование рабочих инструментов принесло вам: {bonus} {eco_config['currency_sign']}\n"
 
