@@ -10,10 +10,10 @@
     {
         "id": "rob_protection",
         "name": "Защита от rob",
-        "price": "600",
+        "price": "400",
         "desc": "2 раза или 24 часа защищает вас от rob",
-        "expires": "86400",
-        "uses": "2"
+        "expires": "172800",
+        "uses": "3"
     },
     {
         "id": "work_tools",

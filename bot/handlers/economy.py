@@ -1,4 +1,5 @@
 import asyncio
+import math
 import os
 import random
 import traceback
@@ -154,6 +155,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         user_id = message.from_user.id
         split_text = message.text.split()
         target_id, get_id_error = await get_user_id(message)
+        protection_note = ""
 
         if user_id == target_id:
             msg = await message.reply("❌ Нельзя ограбить самого себя")
@@ -171,56 +173,88 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await db.reset_cooldown(user_id, "rob")
             return
 
-        user_bal = await db.get_global_user_param(user_id, "money")
-        target_user_bal = await db.get_global_user_param(target_id, "money")
+        # Получение баланса
+        user_cash = await db.get_global_user_param(user_id, "money")
+        user_bank = await db.get_global_user_param(user_id, "bank")
+        user_total = user_cash + user_bank
 
-        if target_user_bal < 0:
-            msg = await message.reply("❌ У цели нет наличных")
+        target_cash = await db.get_global_user_param(target_id, "money")
+        target_bank = await db.get_global_user_param(target_id, "bank")
+        target_total = target_cash + target_bank
+
+        if target_cash < 0 and target_bank <= 0:
+            msg = await message.reply("❌ У цели нет средств (ни налички, ни в банке)")
             await db.reset_cooldown(user_id, "rob")
             return
+
+        if target_total < eco_config["min_rob_amount"]:
+            msg = await message.reply("❌ У цели недостаточно средств для ограбления")
+            await db.reset_cooldown(user_id, "rob")
+            return
+
+        # Ограничение ограбления:
+        # 1. Максимум 10% от общего баланса грабителя
+        # 2. Максимум 15% от общего баланса жертвы
+        # 3. Абсолютное ограничение (например, не более 20_000)
+        # 4. Логарифмическое ограничение
+        base_limit = min(
+            user_total * 0.10,
+            target_total * 0.15,
+            eco_config["rob_max_limit"],
+        )
+
+        # Логарифмический множитель (ограбление топов сложнее)
+        log_limit = max(1.0, math.log10(target_total + 10))
+        final_limit = min(base_limit, eco_config["rob_max_limit"] / log_limit)
 
         succeed_percent = random.randint(
             eco_config["rob_min_percent"], eco_config["rob_max_percent"]
         )
-        if target_user_bal * succeed_percent / 100 < 1:
-            msg = await message.reply("❌ У цели недостаточно наличных")
-            await db.reset_cooldown(user_id, "rob")
-            return
+        rob_amount = round(target_total * (succeed_percent / 100), 2)
+        rob_amount = min(rob_amount, final_limit)
 
         fail_percent = eco_config["rob_fail_percent"]
         if await db.has_valid_item(target_id, "rob_protection"):
             await db.use_item(target_id, "rob_protection")
-            msg = await message.reply(
-                f"🧨 Упс!\n🛡 У пользователя была защита от краж\n📉 Вы потеряли: {eco_config["rob_protection_penalty"]} {eco_config["currency_sign"]}"
-            )
-            new_bal = user_bal - int(eco_config["rob_protection_penalty"])
-        elif random.randint(1, 100) <= fail_percent:
-            min_penalty = eco_config["min_rob_penalty"]
-            max_penalty = eco_config["max_rob_penalty"]
-            user_penalty = random.randint(min_penalty, max_penalty)
-            new_bal = user_bal - user_penalty
-            new_bal = round(new_bal, 2)
-            msg = await message.reply(
-                f"😔 Вам не повезло.\n🧨 Вы потеряли: {user_penalty}\n{eco_config["currency_sign"]} Ваш новый баланс: {new_bal}"
-            )
-        else:
-            target_penalty = target_user_bal * (succeed_percent / 100)
-            target_new_bal = target_user_bal - target_penalty
-            new_bal = user_bal + target_penalty
-            new_bal = round(new_bal, 2)
-            msg = await message.reply(
-                f"🤑 Повезло!\n💡 Вы украли: {target_penalty}\n{eco_config["currency_sign"]}Новый баланс цели {target_new_bal}\n{eco_config["currency_sign"]}Ваш новый баланс: {new_bal}"
-            )
-            await db.set_global_user_param(target_id, "money", target_new_bal)
+            protection_note = "🛡 У цели была активирована защита от ограблений.\n"
+            fail_percent += 25
 
-        await db.set_global_user_param(user_id, "money", new_bal)
+        if random.randint(1, 100) <= fail_percent:
+            penalty = random.randint(
+                eco_config["min_rob_penalty"], eco_config["max_rob_penalty"]
+            )
+            new_cash = user_cash - penalty
+            msg = await message.reply(
+                protection_note
+                + f"🚔 Вас поймали!\n📉 Штраф: {penalty}{eco_config['currency_sign']}\n💰 Новый баланс: {round(new_cash, 2)}"
+            )
+            await db.set_global_user_param(user_id, "money", new_cash)
+        else:
+            taken_cash = min(target_cash, rob_amount)
+            taken_bank = rob_amount - taken_cash
+            target_new_cash = target_cash - taken_cash
+            target_new_bank = target_bank - taken_bank
+
+            new_cash = user_cash + rob_amount
+
+            msg = await message.reply(
+                protection_note
+                + f"🤑 Повезло!\n💰 Украдено: {rob_amount}{eco_config['currency_sign']}\n"
+                f"💸 Из наличных: {taken_cash}, из банка: {taken_bank}\n"
+                f"🎯 Новый баланс цели: {round(target_new_cash + target_new_bank, 2)}\n"
+                f"💵 Ваш новый баланс: {round(new_cash, 2)}"
+            )
+
+            await db.set_global_user_param(user_id, "money", new_cash)
+            await db.set_global_user_param(target_id, "money", target_new_cash)
+            await db.set_global_user_param(target_id, "bank", target_new_bank)
 
     except ZeroDivisionError:
         profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
         msg = await message.reply(
             f'❌ Произошло деление на ноль! Обратитесь к владельцу: <a href="{profile_link}">Тык</a>',
             parse_mode=ParseMode.HTML,
-        )  # Не используем юзернейм во избежании его изменения
+        )
     except Exception:
         await db.reset_cooldown(user_id, "rob")
         await error_report(message, bot, "rob", traceback.format_exc())
