@@ -400,7 +400,7 @@ async def cmd_deposit(message: Message, bot: Bot, db: Database):
             )
             return
 
-        commission = round(to_deposit * 0.02, 2)
+        commission = round(to_deposit * 0.15, 2)
         new_to_deposit = round(to_deposit - commission, 2)
         new_user_bal = round(user_bal - to_deposit, 2)
 
@@ -463,8 +463,7 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
             )
             return
 
-        commission = round(to_withdraw * 0.02, 2)
-        new_to_withdraw = round(to_withdraw - commission, 2)
+        new_to_withdraw = round(to_withdraw, 2)
         new_bank = round(user_bank - to_withdraw, 2)
 
         user_money = await db.get_global_user_param(user_id, "money")
@@ -472,7 +471,6 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
 
         msg = await message.reply(
             f"✅ Вы успешно сняли деньги с банковского счёта!\n"
-            f"🔥 Комиссия составила: {commission}{currency_sign}\n"
             f"🪙 На руки получено: {new_to_withdraw}{currency_sign}\n"
             f"💳 Остаток на счёте: {new_bank}{currency_sign}\n"
             f"💰 Всего у вас на руках: {new_user_money}{currency_sign}"
