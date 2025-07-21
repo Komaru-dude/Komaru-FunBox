@@ -44,15 +44,12 @@ async def download_video(url: str) -> dict:
 
 
 @video_router.message(Command("video"), CooldownFilter("video", 150))
-async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
+async def cmd_video(message: Message, bot: Bot, url=None):
     command = "video"
     file_path = None
     processing_msg = None
 
     try:
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
 
         split_text = message.text.split()
         if not url:
@@ -85,7 +82,7 @@ async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
 
 
 @video_router.message(Command("gif"), CooldownFilter("gif", 300))
-async def cmd_gif(message: Message, bot: Bot, db: Database):
+async def cmd_gif(message: Message, bot: Bot):
     command = "gif"
     input_path = None
     frames_dir = None
@@ -93,9 +90,6 @@ async def cmd_gif(message: Message, bot: Bot, db: Database):
     processing_msg = None
 
     try:
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
 
         video = None
         if message.video:

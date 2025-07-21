@@ -61,10 +61,6 @@ async def cmd_rp_setup(message: Message, bot: Bot, db: Database):
             )
             return
 
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
-
         builder = InlineKeyboardBuilder()
         builder.add(
             InlineKeyboardButton(
@@ -165,10 +161,6 @@ async def cmd_rp_add(message: Message, bot: Bot, state: FSMContext, db: Database
             await message.reply(
                 "❌ У вас недостаточно прав для выполнению этой команды"
             )
-            return
-
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
         await message.answer(
@@ -287,10 +279,6 @@ async def cmd_rp_remove(message: Message, bot: Bot, db: Database):
             )
             return
 
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
-
         parts = message.text.split(maxsplit=1)
         if len(parts) < 2:
             await message.reply(
@@ -327,10 +315,6 @@ async def cmd_rp_wipe(message: Message, bot: Bot, db: Database):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнению этой команды"
             )
-            return
-
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
         cur_commands = get_chat_commands(chat_id)

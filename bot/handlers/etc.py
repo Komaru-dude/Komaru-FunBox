@@ -37,11 +37,8 @@ dog_http_codes = load_http_codes("dog_http_codes.json")
 
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800))
-async def cmd_tea(message: Message, bot: Bot, db: Database):
+async def cmd_tea(message: Message, bot: Bot):
     try:
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
 
         t418 = URLInputFile(url="https://http.cat/418.jpg", filename="418.jpg")
         if message.reply_to_message:
@@ -61,14 +58,10 @@ async def cmd_tea(message: Message, bot: Bot, db: Database):
 
 
 @etc_router.message(Command("http_cat"), CooldownFilter("http_pets", 5))
-async def cmd_http_cat(message: Message, bot: Bot, db: Database):
+async def cmd_http_cat(message: Message, bot: Bot):
     try:
         split_text = message.text.split()
         code = None
-
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
 
         if len(split_text) > 1:
             try:
@@ -92,14 +85,10 @@ async def cmd_http_cat(message: Message, bot: Bot, db: Database):
 
 
 @etc_router.message(Command("http_dog"), CooldownFilter("http_pets", 5))
-async def cmd_http_dog(message: Message, bot: Bot, db: Database):
+async def cmd_http_dog(message: Message, bot: Bot):
     try:
         split_text = message.text.split()
         code = None
-
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
 
         if len(split_text) > 1:
             try:
@@ -123,12 +112,8 @@ async def cmd_http_dog(message: Message, bot: Bot, db: Database):
 
 
 @etc_router.message(Command("cat"), CooldownFilter("pets", 15))
-async def cmd_cat(message: Message, bot: Bot, db: Database):
+async def cmd_cat(message: Message, bot: Bot):
     try:
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
-
         await message.reply_photo(
             URLInputFile("https://cataas.com/cat"), caption="🐈‍⬛ Ваш кот:"
         )
@@ -137,11 +122,8 @@ async def cmd_cat(message: Message, bot: Bot, db: Database):
 
 
 @etc_router.message(Command("cat_gif"), CooldownFilter("pets", 15))
-async def cmd_cat_gif(message: Message, bot: Bot, db: Database):
+async def cmd_cat_gif(message: Message, bot: Bot):
     try:
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
         await message.reply_video(URLInputFile("https://cataas.com/cat/gif"))
     except Exception:
         await error_report(message, bot, "cat_gif", traceback.format_exc())

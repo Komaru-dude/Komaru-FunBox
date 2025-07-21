@@ -151,10 +151,6 @@ async def cmd_ai(
             base_msg = await message.reply("🔄 Обработка...")
             split_text = message.text.split(maxsplit=1) if message.text else [""]
 
-            if await db.is_user_mediabanned(user_id):
-                await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-                return
-
             args_text = split_text[1] if len(split_text) > 1 else ""
             model_name = None
 
@@ -374,17 +370,13 @@ async def cmd_aggemini(message: Message, bot: Bot, db: Database):
 
 
 @ai_router.message(Command("image"), CooldownFilter("image", 25))
-async def cmd_image(message: Message, bot: Bot, db: Database):
+async def cmd_image(message: Message, bot: Bot):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
             await message.answer(
                 "✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде"
             )
-            return
-
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
             return
 
         prompt_ru = args[1]
@@ -526,7 +518,6 @@ async def cmd_translate(
     cli_mode: bool = False,
     request: str = None,
     target_lang: str = None,
-    db: Database = None,
 ):
     try:
         if not cli_mode and (message is None or bot is None):
@@ -542,10 +533,6 @@ async def cmd_translate(
         else:
             user_id = message.from_user.id
             base_msg = await message.reply("🔄 Обработка...")
-
-            if await db.is_user_mediabanned(user_id):
-                await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-                return
 
             original_text = message.text
             processed_text = original_text.replace("@KomaruFunBox_bot", "").strip()
@@ -707,10 +694,6 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         model_name = None
         model = None
 
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
-
         async with active_chats_lock:
             if message.chat.id in active_chats:
                 await message.reply(
@@ -828,10 +811,6 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Datab
         chat_id = message.chat.id
         current_state = await state.get_state()
 
-        if await db.is_user_mediabanned(user_id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
-
         if not await db.has_permission(user_id, chat_id, 1) and current_state is None:
             await message.reply(
                 "❌ У вас недостаточно прав для выполнения этой команды и вы не являетесь инициатором разговора."
@@ -857,10 +836,6 @@ async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
-
-        if await db.is_user_mediabanned(user_id):
-            await message.reply("❌ Вы заблокированы, это действие вам запрещено")
-            return
 
         parts = message.text.strip().split(maxsplit=1)
         if len(parts) < 2:
@@ -911,17 +886,11 @@ class AddPromptStates(StatesGroup):
 @ai_router.message(
     Command("add_prompt"), CooldownFilter("add_prompt", 30), FuncEnabled("user_prompts")
 )
-async def cmd_add_prompt(message: Message, bot: Bot, db: Database, state: FSMContext):
+async def cmd_add_prompt(message: Message, bot: Bot, state: FSMContext):
     try:
         if await state.get_data() is None:
             await message.reply(
                 "❌ Выполняется другое действие, отмените перед продолжением",
-            )
-            return
-
-        if await db.is_user_mediabanned(message.from_user.id):
-            await message.reply(
-                "❌ Вы заблокированы, это действие вам запрещено",
             )
             return
 
