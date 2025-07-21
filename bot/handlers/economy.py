@@ -245,7 +245,7 @@ class Dice(StatesGroup):
     FuncEnabled("economy"),
     CooldownFilter(command="dice", cooldown=eco_config["dice_timeout"]),
 )
-async def cmd_dice(message: Message, bot: Bot, db: Database, state: FSMContext):
+async def cmd_dice(message: Message, bot: Bot, state: FSMContext):
     try:
         currency_sign = eco_config["currency_sign"]
         await message.reply(
