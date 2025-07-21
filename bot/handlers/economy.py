@@ -214,7 +214,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             eco_config["rob_min_percent"], eco_config["rob_max_percent"]
         )
         rob_amount = round(target_total * (succeed_percent / 100), 2)
-        rob_amount = min(rob_amount, final_limit)
+        rob_amount = round(min(rob_amount, final_limit), 2)
 
         fail_percent = eco_config["rob_fail_percent"]
         if await db.has_valid_item(target_id, "rob_protection"):
@@ -233,11 +233,10 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             )
             await db.set_global_user_param(user_id, "money", new_cash)
         else:
-            taken_cash = min(target_cash, rob_amount)
-            taken_bank = rob_amount - taken_cash
-            target_new_cash = target_cash - taken_cash
-            target_new_bank = target_bank - taken_bank
-
+            taken_cash = round(min(target_cash, rob_amount), 2)
+            taken_bank = round(rob_amount - taken_cash, 2)
+            target_new_cash = round(target_cash - taken_cash, 2)
+            target_new_bank = round(target_bank - taken_bank, 2)
             new_cash = user_cash + rob_amount
 
             msg = await message.reply(
