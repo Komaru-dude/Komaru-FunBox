@@ -54,6 +54,9 @@ class ChatWatcher(BaseMiddleware):
                 user_name = user.full_name
                 language_code = user.language_code
 
+                if await db.is_user_mediabanned(user_id):
+                    return None
+
                 if not await db.chat_exists(chat_id):
                     await db.add_chat(chat_id, chat_data={"type": chat_type})
                     if chat_type != "private":
