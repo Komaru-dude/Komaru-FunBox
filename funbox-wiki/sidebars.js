@@ -42,7 +42,7 @@ const sidebars = {
         type: 'doc', 
         id: 'modules/modules'
       },
-      items: ['modules/who', 'modules/tagall'],
+      items: ['modules/who', 'modules/tagall', 'modules/warn', 'modules/mute', 'modules/ban'],
     },
   ],
 
