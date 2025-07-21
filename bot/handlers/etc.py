@@ -2,13 +2,13 @@ import asyncio
 import datetime
 import html
 import json
+import os
 import platform
 import random
 import re
 import shutil
 import traceback
 from pathlib import Path
-from urllib.parse import quote_plus
 
 from aiogram import Bot, Router
 from aiogram.enums import ParseMode
@@ -34,6 +34,58 @@ def load_http_codes(filename):
 
 cat_http_codes = load_http_codes("cat_http_codes.json")
 dog_http_codes = load_http_codes("dog_http_codes.json")
+
+
+WEATHER_ICONS = {
+    1000: "☀️",
+    1003: "⛅",
+    1006: "☁️",
+    1009: "🌥️",
+    1030: "🌫️",
+    1063: "🌦️",
+    1066: "🌨️",
+    1069: "🌧️",
+    1072: "🌧️",
+    1087: "⛈️",
+    1114: "🌨️",
+    1117: "❄️",
+    1135: "🌁",
+    1147: "🌁",
+    1150: "🌧️",
+    1153: "🌧️",
+    1168: "🌧️",
+    1171: "🌧️",
+    1180: "🌧️",
+    1183: "🌧️",
+    1186: "🌧️",
+    1189: "🌧️",
+    1192: "🌧️",
+    1195: "🌧️",
+    1198: "🌧️",
+    1201: "🌧️",
+    1204: "🌨️",
+    1207: "🌨️",
+    1210: "🌨️",
+    1213: "🌨️",
+    1216: "🌨️",
+    1219: "🌨️",
+    1222: "🌨️",
+    1225: "❄️",
+    1237: "🌨️",
+    1240: "🌦️",
+    1243: "🌧️",
+    1246: "🌧️",
+    1249: "🌨️",
+    1252: "🌨️",
+    1255: "🌨️",
+    1258: "❄️",
+    1261: "🌨️",
+    1264: "❄️",
+    1273: "⛈️",
+    1276: "⛈️",
+    1279: "🌩️",
+    1282: "⛈️",
+}
 
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800))
@@ -131,31 +183,49 @@ async def cmd_cat_gif(message: Message, bot: Bot):
 
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def send_weather(message: Message):
-    def escape_ansi(line):
-        ansi_escape = re.compile(r"(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]")
-        return ansi_escape.sub("", line)
+    parts = message.text.strip().split(maxsplit=1)
 
-    parts = message.text.split()
-    location = parts[1] if len(parts) > 1 else "Oymyakon"
-    if len(parts) <= 1:
-        await message.reply("⚠️ Вы не указали город, будет использоваться Oymyakon")
+    if len(parts) < 2:
+        await message.reply(
+            "❌ Вы не указали город.\nПример: <code>/weather Москва</code>",
+            parse_mode=ParseMode.HTML,
+        )
+        return
 
-    lang = (
-        "ru"
-        if location and location[0].lower() in "ёйцукенгшщзхъфывапролджэячсмитьбю"
-        else "en"
-    )
-
-    encoded_location = quote_plus(location)
-    url = f"https://wttr.in/{encoded_location}?m&T0&lang={lang}"
+    city = parts[1]
 
     async with ClientSession() as session:
+        url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&aqi=yes"
         async with session.get(url) as response:
-            weather_art = await response.text()
-            cleaned_art = escape_ansi(weather_art)
-            await message.reply(
-                f"<code>{cleaned_art}</code>", parse_mode=ParseMode.HTML
-            )
+            if response.status == 400:
+                await message.reply("❌ Такой город не существует")
+                return
+            elif response.status == 403:
+                await message.reply("❌ Упс, попробуйте позже")
+                return
+
+            data = await response.json()
+
+    loc = data["location"]
+    cur = data["current"]
+    cond = cur["condition"]
+
+    code = cond["code"]
+    emoji = WEATHER_ICONS.get(code, "❔")
+
+    text = (
+        f"<b>{emoji} Погода в {loc['name']}, {loc['country']}</b>\n"
+        f"<b>🌡 Температура:</b> {cur['temp_c']}°C (Ощущается как {cur['feelslike_c']}°C)\n"
+        f"<b>💧 Влажность:</b> {cur['humidity']}%\n"
+        f"<b>💨 Ветер:</b> {cur['wind_kph']} км/ч {cur['wind_dir']}\n"
+        f"<b>👀 Видимость:</b> {cur['vis_km']} км\n"
+        f"<b>🧪 Давление:</b> {cur['pressure_mb']} мбар\n"
+        f"<b>🌞 UV-индекс:</b> {cur['uv']}\n"
+        f"<b>💨 Качество воздуха (PM2.5):</b> {cur.get('air_quality', {}).get('pm2_5', 'н/д')}\n"
+        f"<b>📅 Обновлено:</b> {cur['last_updated']}"
+    )
+
+    await message.reply(text, parse_mode=ParseMode.HTML)
 
 
 @etc_router.message(Command("nillerxs"), CooldownFilter("bradok", 15))
