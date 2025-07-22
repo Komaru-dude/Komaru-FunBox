@@ -403,7 +403,7 @@ class Database:
             for name, _, _, default in DEFAULT_SETTINGS:
                 await conn.execute(
                     """
-                    INSERT INTO settings(chat_id, name, value)
+                    INSERT INTO features(chat_id, name, value)
                     VALUES($1, $2, $3::jsonb)
                     ON CONFLICT DO NOTHING
                     """,
@@ -413,7 +413,7 @@ class Database:
     async def sync_all_settings(self):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            rows = await conn.fetch("SELECT DISTINCT chat_id FROM settings")
+            rows = await conn.fetch("SELECT DISTINCT chat_id FROM features")
             chat_ids = [r["chat_id"] for r in rows]
             for cid in chat_ids:
                 await self.init_chat_settings(cid)
@@ -422,7 +422,7 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
-                "SELECT value FROM settings WHERE chat_id=$1 AND name=$2",
+                "SELECT value FROM features WHERE chat_id=$1 AND name=$2",
                 chat_id, name
             )
 
@@ -430,7 +430,7 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
-                "UPDATE settings SET value=$1::jsonb WHERE chat_id=$2 AND name=$3",
+                "UPDATE features SET value=$1::jsonb WHERE chat_id=$2 AND name=$3",
                 json.dumps(value), chat_id, name
             )
 
@@ -438,7 +438,7 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
-                "SELECT EXISTS(SELECT 1 FROM settings WHERE chat_id=$1 AND name=$2)",
+                "SELECT EXISTS(SELECT 1 FROM features WHERE chat_id=$1 AND name=$2)",
                 chat_id, name
             )
 
