@@ -16,6 +16,10 @@
 
 `sudo bash -c "$(curl -sSL https://github.com/Komaru-dude/Komaru-FunBox/raw/test/setup.sh)"`
 
+## Вики
+
+Бот так-же имеет [вики](https://komaru-dude.github.io/Komaru-FunBox) рассказывающую о командах и настройке бота базированную на [docusaurus](https://docusaurus.io/)
+
 ## Благодарности
 
 * [Aiogram](https://aiogram.dev/) — за асинхронный фреймворк, без которого этот бот бы не появился.  
