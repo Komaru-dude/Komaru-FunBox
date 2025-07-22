@@ -1,5 +1,6 @@
 from aiogram import F, Router
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -35,12 +36,18 @@ async def open_category(callback: CallbackQuery, db: Database):
     for setting in DEFAULT_SETTINGS:
         if setting[1] == category:
             value = await db.get_setting(chat_id, setting[0])
-            settings_state[setting[0]] = value
+            settings_state[setting[0]] = value if value is not None else setting[3]
 
-    await callback.message.edit_text(
-        f"⚙️ <b>Категория: {category}</b>",
-        reply_markup=kb_settings.category_settings_keyboard(category, settings_state),
-    )
+    try:
+        await callback.message.edit_text(
+            f"⚙️ <b>Категория: {category}</b>",
+            reply_markup=kb_settings.category_settings_keyboard(
+                category, settings_state
+            ),
+            parse_mode=ParseMode.HTML,
+        )
+    except TelegramBadRequest:
+        pass  # Игнорируем ошибку неизмененного сообщения
     await callback.answer()
 
 
@@ -50,11 +57,63 @@ async def open_setting(callback: CallbackQuery, db: Database):
     chat_id = callback.message.chat.id
     current_value = await db.get_setting(chat_id, setting_name)
 
-    await callback.message.edit_text(
-        f"⚙️ <b>Настройка: {setting_name}</b>\nТекущее значение: {current_value}",
-        reply_markup=kb_settings.setting_options_keyboard(setting_name, current_value),
-        parse_mode=ParseMode.HTML,
-    )
+    # Получаем информацию о настройке
+    setting_info = next((s for s in DEFAULT_SETTINGS if s[0] == setting_name), None)
+    if not setting_info:
+        await callback.answer("Настройка не найдена!")
+        return
+
+    # Устанавливаем значение по умолчанию если None
+    if current_value is None and len(setting_info) > 3:
+        current_value = setting_info[3]
+
+    try:
+        await callback.message.edit_text(
+            f"⚙️ <b>Настройка: {setting_name}</b>\nТекущее значение: {current_value}",
+            reply_markup=kb_settings.setting_options_keyboard(
+                setting_name, current_value
+            ),
+            parse_mode=ParseMode.HTML,
+        )
+    except TelegramBadRequest:
+        pass  # Игнорируем ошибку неизмененного сообщения
+    await callback.answer()
+
+
+@settings_router.callback_query(F.data == "back_to_main")
+async def back_to_main_menu(callback: CallbackQuery):
+    try:
+        await callback.message.edit_text(
+            "⚙️ <b>Главное меню настроек</b>\nВыберите категорию:",
+            reply_markup=kb_settings.main_settings_keyboard(),
+            parse_mode=ParseMode.HTML,
+        )
+    except TelegramBadRequest:
+        pass
+    await callback.answer()
+
+
+@settings_router.callback_query(F.data.startswith("back_to_category:"))
+async def back_to_category_menu(callback: CallbackQuery, db: Database):
+    category = callback.data.split(":")[1]
+    chat_id = callback.message.chat.id
+
+    settings_state = {}
+    for setting in DEFAULT_SETTINGS:
+        if setting[1] == category:
+            value = await db.get_setting(chat_id, setting[0])
+            settings_state[setting[0]] = value if value is not None else setting[3]
+
+    try:
+        await callback.message.edit_text(
+            f"⚙️ <b>Категория: {category}</b>",
+            reply_markup=kb_settings.category_settings_keyboard(
+                category, settings_state
+            ),
+            parse_mode=ParseMode.HTML,
+        )
+    except TelegramBadRequest:
+        pass
     await callback.answer()
 
 

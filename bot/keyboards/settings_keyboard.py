@@ -19,10 +19,15 @@ def category_settings_keyboard(category: str, settings_state: dict):
     for setting in DEFAULT_SETTINGS:
         if setting[1] == category:
             name = setting[0]
-            value = settings_state.get(name, None)
+            value = settings_state.get(name)
 
-            # Форматируем значение для отображения
-            if isinstance(value, bool):
+            if value is None and len(setting) > 3:
+                value = setting[3]
+
+            # Форматирование значения
+            if value is None:
+                display = "❓ Не установлено"
+            elif isinstance(value, bool):
                 display = "✅ Вкл" if value else "❌ Выкл"
             elif isinstance(value, int):
                 display = f"🔢 {value}"
@@ -59,7 +64,7 @@ def setting_options_keyboard(setting_name: str, current_value):
         builder.button(text="✏️ Ввести число", callback_data=f"input_int:{setting_name}")
 
     # Список вариантов
-    elif setting[2] is list:
+    elif setting[2] is list and len(setting) > 3:
         for option in setting[3]:
             is_selected = "🔘" if option == current_value else "⚪️"
             builder.button(
@@ -71,6 +76,11 @@ def setting_options_keyboard(setting_name: str, current_value):
     elif setting[2] is str:
         builder.button(
             text="✏️ Изменить текст", callback_data=f"input_str:{setting_name}"
+        )
+
+    else:
+        builder.button(
+            text="✏️ Изменить значение", callback_data=f"input_str:{setting_name}"
         )
 
     builder.button(text="⬅️ Назад", callback_data=f"back_to_category:{setting[1]}")
