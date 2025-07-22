@@ -176,7 +176,7 @@ async def check_free_games(bot: Bot):
 
             message_text = "\n".join(msg_lines)
 
-            for chat_id in await db.get_chats_with_feature("auto_eg_free"):
+            for chat_id in await db.get_chats_with_setting("auto_eg_free"):
                 try:
                     await bot.send_message(
                         chat_id,

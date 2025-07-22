@@ -255,7 +255,7 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
         chat_id = message.chat.id
         user_id = message.from_user.id
 
-        if not await db.is_feature_enabled(
+        if not await db.is_setting_enabled(
             chat_id, "tag"
         ) and not await db.has_permission(user_id, chat_id, 1):
             await message.reply(

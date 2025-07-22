@@ -23,21 +23,26 @@ RANK_TO_LEVEL = {
     "Персонал": 4,
 }
 
-DEFAULT_FEATURES = [
-    ("who", 1),
-    ("tagall", 0),
-    ("autovideo", 1),
-    ("warn", 0),
-    ("mute", 0),
-    ("ban", 0),
-    ("senddisabledmsg", 1),
-    ("alo", 0),
-    ("economy", 1),
-    ("sendcooldown", 1),
-    ("auto_delete", 0),
-    ("auto_eg_free", 0),
-    ("user_prompts", 1),
+DEFAULT_SETTINGS = [
+    ("who",            "Основные",   bool,  True),
+    ("tagall",         "Основные",   bool,  False),
+    ("autovideo",      "Медиа",      bool,  True),
+    ("warn",           "Модерация",  bool,  False),
+    ("mute",           "Модерация",  bool,  False),
+    ("ban",            "Модерация",  bool,  False),
+    ("senddisabledmsg","Уведомления", bool,  True),
+    ("alo",            "Разное",     bool,  False),
+    ("economy",        "Экономика",  bool,  True),
+    ("sendcooldown",   "Основные",   bool,  True),
+    ("auto_delete",    "Модерация",  bool,  False),
+
+    ("max_warnings",   "Модерация",  int,   3),
+    ("cooldown_time",  "Основные",   int,   30),
+
+    ("welcome_message","Приветствия",str,  "Добро пожаловать!")
 ]
+
+CATEGORIES = list({cat for _, cat, *rest in DEFAULT_SETTINGS})
 
 USERS_COLUMNS = {
     "user_id": "BIGINT",
@@ -57,6 +62,7 @@ FEATURES_COLUMNS = {
     "chat_id": "BIGINT",
     "feature_name": "TEXT",
     "is_enabled": "BOOLEAN DEFAULT FALSE",
+    "value": "JSONB NULL",
 }
 
 BANNED_USERS_COLUMNS = {
@@ -215,35 +221,34 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                # Синхронизируем фичи
                 chat_ids_records = await conn.fetch(
                     "SELECT DISTINCT chat_id FROM features"
                 )
                 chat_ids = [r["chat_id"] for r in chat_ids_records]
-                for chat_id_val in chat_ids:
-                    # Добавляем отсутствующие фичи
-                    for feature, enabled in DEFAULT_FEATURES:
+
+                for chat_id in chat_ids:
+                    setting_names = [s[0] for s in DEFAULT_SETTINGS]
+
+                    # Добавляем отсутствующие настройки
+                    for name, _, _, default in DEFAULT_SETTINGS:
                         await conn.execute(
                             """
-                            INSERT INTO features (chat_id, feature_name, is_enabled)
-                            VALUES ($1, $2, $3)
+                            INSERT INTO features (chat_id, feature_name, value)
+                            VALUES ($1, $2, $3::jsonb)
                             ON CONFLICT (chat_id, feature_name) DO NOTHING
-                        """,
-                            chat_id_val,
-                            feature,
-                            bool(enabled),
+                            """,
+                            chat_id, name, json.dumps(default)
                         )
 
-                    # Удаляем старые фичи
-                    feature_names = [f[0] for f in DEFAULT_FEATURES]
+                    # Удаляем устаревшие настройки
                     await conn.execute(
                         """
-                        DELETE FROM features 
-                        WHERE chat_id = $1 
+                        DELETE FROM features
+                        WHERE chat_id = $1
                         AND feature_name NOT IN (SELECT unnest($2::text[]))
-                    """,
-                        chat_id_val,
-                        feature_names,
+                        """,
+                        chat_id,
+                        setting_names
                     )
 
     async def has_permission(
@@ -392,72 +397,70 @@ class Database:
                 chat_id,
             )
 
-    async def init_chat_features(self, chat_id: int):
+    async def init_chat_settings(self, chat_id: int):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            for feature, enabled in DEFAULT_FEATURES:
+            for name, _, _, default in DEFAULT_SETTINGS:
                 await conn.execute(
                     """
-                    INSERT INTO features (chat_id, feature_name, is_enabled)
-                    VALUES ($1, $2, $3)
+                    INSERT INTO settings(chat_id, name, value)
+                    VALUES($1, $2, $3::jsonb)
                     ON CONFLICT DO NOTHING
-                """,
-                    chat_id,
-                    feature,
-                    bool(enabled),
+                    """,
+                    chat_id, name, json.dumps(default)
                 )
 
-    async def is_feature_exists(self, chat_id: int, feature_name: str) -> bool:
+    async def sync_all_settings(self):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("SELECT DISTINCT chat_id FROM settings")
+            chat_ids = [r["chat_id"] for r in rows]
+            for cid in chat_ids:
+                await self.init_chat_settings(cid)
+
+    async def get_setting(self, chat_id: int, name: str):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
-                """
-                SELECT EXISTS(
-                    SELECT 1 FROM features 
-                    WHERE chat_id = $1 AND feature_name = $2
-                )
-            """,
-                chat_id,
-                feature_name,
+                "SELECT value FROM settings WHERE chat_id=$1 AND name=$2",
+                chat_id, name
             )
 
-    async def is_feature_enabled(self, chat_id: int, feature_name: str) -> bool:
-        await self.ensure_connection()
-        async with self.pool.acquire() as conn:
-            return await conn.fetchval(
-                """
-                SELECT is_enabled FROM features 
-                WHERE chat_id = $1 AND feature_name = $2
-            """,
-                chat_id,
-                feature_name,
-            )
-
-    async def toggle_feature(
-        self, chat_id: int, feature_name: str, enable: bool = False
-    ):
+    async def set_setting(self, chat_id: int, name: str, value):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
-                """
-                UPDATE features 
-                SET is_enabled = $1 
-                WHERE chat_id = $2 AND feature_name = $3
-            """,
-                enable,
-                chat_id,
-                feature_name,
+                "UPDATE settings SET value=$1::jsonb WHERE chat_id=$2 AND name=$3",
+                json.dumps(value), chat_id, name
             )
 
-    async def get_chats_with_feature(self, feature_name: str) -> list[int]:
+    async def is_setting_exists(self, chat_id: int, name: str) -> bool:
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM settings WHERE chat_id=$1 AND name=$2)",
+                chat_id, name
+            )
+
+    async def is_setting_enabled(self, chat_id: int, name: str) -> bool:
+        val = await self.get_setting(chat_id, name)
+        return bool(val)
+
+    async def toggle_setting(self, chat_id: int, name: str, enable: bool = None) -> bool:
+        current = await self.get_setting(chat_id, name)
+        new_val = bool(enable) if enable is not None else not bool(current)
+        await self.set_setting(chat_id, name, new_val)
+        return new_val
+    
+    async def get_chats_with_setting(self, setting_name: str) -> list[int]:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
                 """
                 SELECT chat_id FROM features
-                WHERE feature_name = $1 AND is_enabled = TRUE
+                WHERE feature_name = $1 AND value::bool = TRUE
                 """,
-                feature_name,
+                setting_name,
             )
             return [row["chat_id"] for row in rows]
 

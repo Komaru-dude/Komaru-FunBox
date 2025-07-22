@@ -15,7 +15,7 @@ class CooldownFilter(BaseFilter):
         chat_id = message.chat.id
         available = await db.is_command_available(user_id, self.command, self.cooldown)
         if not available:
-            if await db.is_feature_enabled(chat_id, "sendcooldown"):
+            if await db.is_setting_enabled(chat_id, "sendcooldown"):
                 cooldown_sec = await db.get_cooldown_remaining(user_id, self.command)
                 d, h, m, s = convert_seconds(cooldown_sec)
                 await message.reply(

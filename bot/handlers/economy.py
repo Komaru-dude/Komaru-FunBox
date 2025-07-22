@@ -67,7 +67,7 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
         await db.reset_cooldown(user_id, "work")
         await error_report(message, bot, "work", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -134,7 +134,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         await db.reset_cooldown(user_id, "steal")
         await error_report(message, bot, "steal", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -265,7 +265,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         await db.reset_cooldown(user_id, "rob")
         await error_report(message, bot, "rob", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -403,7 +403,7 @@ async def handle_dice_throw(
     except Exception:
         await error_report(callback, bot, "handle_dice_throw", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(callback.message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(callback.message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await callback.message.delete()
@@ -464,7 +464,7 @@ async def cmd_deposit(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "deposit", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -525,7 +525,7 @@ async def cmd_withdraw(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "withdraw", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -590,7 +590,7 @@ async def cmd_transfer(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "transfer", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -627,7 +627,7 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "top", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()
@@ -653,7 +653,7 @@ async def cmd_shop(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "shop", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(90)
             try:
                 await message.delete()
@@ -724,7 +724,7 @@ async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
         await db.reset_cooldown(message.from_user.id, "duel")
         await error_report(message, bot, "duel", traceback.format_exc())
     finally:
-        if await db.is_feature_enabled(message.chat.id, "auto_delete"):
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
             await asyncio.sleep(15)
             try:
                 await message.delete()

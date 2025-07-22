@@ -7,11 +7,10 @@ from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
-from aiogram.types import CallbackQuery, ChatPermissions, Message
+from aiogram.types import ChatPermissions, Message
 
-from bot.database import DEFAULT_FEATURES, Database
+from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.keyboards.settings_keyboard import get_features_keyboard
 from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 
 mods_router = Router()
@@ -27,61 +26,6 @@ def parse_time(time_str: str) -> timedelta:
     return timedelta(**{units[unit]: int(value)})
 
 
-@mods_router.message(Command("settings"))
-async def cmd_settings(message: Message, db: Database):
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-
-    if message.chat.type in ["private", "channel"]:
-        return await message.reply("❌ Команда доступна только в группах")
-
-    if not await db.has_permission(user_id, chat_id, 2):
-        return await message.reply("❌ Недостаточно прав")
-
-    # Получаем текущие состояния всех функций
-    features_status = []
-    for feature, _ in DEFAULT_FEATURES:
-        is_enabled = await db.is_feature_enabled(chat_id, feature)
-        features_status.append((feature, is_enabled))
-
-    await message.reply(
-        "⚙️ <b>Настройки функций чата:</b>\n" "Выберите функцию для переключения:",
-        reply_markup=get_features_keyboard(features_status),
-    )
-
-
-@mods_router.callback_query(F.data.startswith("toggle:"))
-async def toggle_feature(callback: CallbackQuery, db: Database):
-    chat_id = callback.message.chat.id
-    user_id = callback.from_user.id
-    feature = callback.data.split(":", 1)[1]
-
-    if not await db.has_permission(user_id, chat_id, 2):
-        return await callback.answer("❌ Недостаточно прав", show_alert=True)
-
-    # Переключаем состояние
-    current_state = await db.is_feature_enabled(chat_id, feature)
-    await db.toggle_feature(chat_id, feature, not current_state)
-
-    # Обновляем клавиатуру
-    features_status = []
-    for f, _ in DEFAULT_FEATURES:
-        state = await db.is_feature_enabled(chat_id, f)
-        features_status.append((f, state))
-
-    await callback.message.edit_reply_markup(
-        reply_markup=get_features_keyboard(features_status)
-    )
-    await callback.answer(
-        f"Функция {feature} {'включена' if not current_state else 'выключена'}"
-    )
-
-
-@mods_router.callback_query(F.data == "close")
-async def close_settings(callback: CallbackQuery):
-    await callback.message.delete()
-
-
 @mods_router.message(Command("history"), CooldownFilter("moderation", 7))
 async def cmd_history(message: Message, bot: Bot, db: Database):
     try:
@@ -92,13 +36,13 @@ async def cmd_history(message: Message, bot: Bot, db: Database):
             return
 
         if not (
-            await db.is_feature_enabled(chat_id, "warn")
-            or await db.is_feature_enabled(chat_id, "mute")
-            or await db.is_feature_enabled(chat_id, "ban")
+            await db.is_setting_enabled(chat_id, "warn")
+            or await db.is_setting_enabled(chat_id, "mute")
+            or await db.is_setting_enabled(chat_id, "ban")
         ):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
+                if await db.is_setting_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -156,10 +100,10 @@ async def cmd_warn(message: Message, bot: Bot, db: Database):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not await db.is_feature_enabled(chat_id, "warn"):
+        if not await db.is_setting_enabled(chat_id, "warn"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
+                if await db.is_setting_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -328,10 +272,10 @@ async def cmd_mute(message: Message, bot: Bot, db: Database):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not await db.is_feature_enabled(chat_id, "mute"):
+        if not await db.is_setting_enabled(chat_id, "mute"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
+                if await db.is_setting_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -414,10 +358,10 @@ async def cmd_ban(message: Message, bot: Bot, db: Database):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not await db.is_feature_enabled(chat_id, "ban"):
+        if not await db.is_setting_enabled(chat_id, "ban"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
+                if await db.is_setting_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -494,10 +438,10 @@ async def cmd_unmute(message: Message, bot: Bot, db: Database):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not await db.is_feature_enabled(chat_id, "mute"):
+        if not await db.is_setting_enabled(chat_id, "mute"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
+                if await db.is_setting_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 
@@ -552,10 +496,10 @@ async def cmd_unban(message: Message, bot: Bot, db: Database):
             await message.reply("❌ Эта команда доступна только в группах/супергруппах")
             return
 
-        if not await db.is_feature_enabled(chat_id, "ban"):
+        if not await db.is_setting_enabled(chat_id, "ban"):
             return (
                 await message.reply("❌ Функция отключена.")
-                if await db.is_feature_enabled(chat_id, "senddisabledmsg")
+                if await db.is_setting_enabled(chat_id, "senddisabledmsg")
                 else None
             )
 

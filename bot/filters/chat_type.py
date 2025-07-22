@@ -22,7 +22,7 @@ class ChatTypeFilter(BaseFilter):
         if allowed:
             return True
         else:
-            if await db.is_feature_enabled(message.chat.id, "senddisabledmsg"):
+            if await db.is_setting_enabled(message.chat.id, "senddisabledmsg"):
                 if len(allowed_types) == 1:
                     await message.reply(
                         f"❌ Эту команду можно использовать только в чатах типа: {allowed_types[0]}."

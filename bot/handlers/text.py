@@ -193,7 +193,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
         if message.chat.type == "channel":
             return
-        await db.init_chat_features(chat_id)
+        await db.init_chat_settings(chat_id)
         await db.update_message_count(user1.id, chat_id)
         if not text_msg:
             return
@@ -206,7 +206,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             text_msg.lower() == "это что?"
             and message.reply_to_message
             and message.reply_to_message.text
-            and await db.is_feature_enabled(chat_id, "who")
+            and await db.is_setting_enabled(chat_id, "who")
         ):
             messages = [
                 {
@@ -218,7 +218,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             answer = await cmd_ai(messages=messages, cli_mode=True)
             await message.reply(f"📝 Ответ: {answer}")
             return
-        elif text_msg.startswith(PROMPT_TRIGGER_PREFIX) and await db.is_feature_enabled(
+        elif text_msg.startswith(PROMPT_TRIGGER_PREFIX) and await db.is_setting_enabled(
             chat_id, "user_prompts"
         ):
             match = re.match(
@@ -250,7 +250,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 return
         elif text_msg.startswith(
             ("http://", "https://")
-        ) and await db.is_feature_enabled(chat_id, "autovideo"):
+        ) and await db.is_setting_enabled(chat_id, "autovideo"):
             parsed_url = urlparse(message.text)
             domain = parsed_url.netloc.lower().replace("www.", "")
             if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
@@ -294,13 +294,13 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
         if any(
             word in words for word in ("alo", "ало", "алё", "ale")
-        ) and await db.is_feature_enabled(chat_id, "alo"):
+        ) and await db.is_setting_enabled(chat_id, "alo"):
             await message.reply("📞 В очко себе поалёкай")
             return
 
         if any(
             word in words for word in ("ау", "ay", "au")
-        ) and await db.is_feature_enabled(chat_id, "alo"):
+        ) and await db.is_setting_enabled(chat_id, "alo"):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
 
