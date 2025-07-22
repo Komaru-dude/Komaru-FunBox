@@ -56,10 +56,6 @@ def setting_options_keyboard(setting_name: str, current_value):
     # Булевые настройки
     if setting[2] is bool:
         builder.button(
-            text="✅ Включено" if current_value else "❌ Выключено",
-            callback_data=f"toggle_bool:{setting_name}",
-        )
-        builder.button(
             text="🔄 Переключить",
             callback_data=f"toggle_bool:{setting_name}",
         )

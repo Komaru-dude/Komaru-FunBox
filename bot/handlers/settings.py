@@ -119,13 +119,14 @@ async def back_to_category_menu(callback: CallbackQuery, db: Database):
 
 @settings_router.callback_query(F.data.startswith("toggle_bool:"))
 async def toggle_bool_setting(callback: CallbackQuery, db: Database):
-    _, setting_name, _ = callback.data.split(":")
+    setting_name = callback.data.split(":")[1]
     chat_id = callback.message.chat.id
+    
     current_value = await db.get_setting(chat_id, setting_name)
     new_value = not bool(current_value)
-
+    
     await db.set_setting(chat_id, setting_name, new_value)
-
+    
     # Обновляем интерфейс
     try:
         await callback.message.edit_text(
@@ -135,7 +136,7 @@ async def toggle_bool_setting(callback: CallbackQuery, db: Database):
         )
     except TelegramBadRequest:
         pass
-
+    
     await callback.answer(f"Настройка изменена: {'Вкл' if new_value else 'Выкл'}")
 
 
