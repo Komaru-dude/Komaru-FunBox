@@ -51,6 +51,7 @@ def setting_options_keyboard(setting_name: str, current_value):
 
     if not setting:
         builder.button(text="❌ Ошибка: настройка не найдена", callback_data="noop")
+        builder.adjust(1)
         return builder.as_markup()
 
     # Булевые настройки

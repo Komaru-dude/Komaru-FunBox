@@ -55,7 +55,7 @@ async def open_category(callback: CallbackQuery, db: Database):
 async def open_setting(callback: CallbackQuery, db: Database):
     setting_name = callback.data.split(":")[1]
     chat_id = callback.message.chat.id
-    current_value = await db.get_setting(chat_id, setting_name)
+    raw_value = await db.get_setting(chat_id, setting_name)
 
     # Получаем информацию о настройке
     setting_info = next((s for s in DEFAULT_SETTINGS if s[0] == setting_name), None)
@@ -63,7 +63,16 @@ async def open_setting(callback: CallbackQuery, db: Database):
         await callback.answer("Настройка не найдена!")
         return
 
-    # Устанавливаем значение по умолчанию если None
+    # Преобразуем значение к правильному типу
+    if setting_info[2] is bool:
+        if isinstance(raw_value, str):
+            current_value = raw_value.lower() == "true"
+        else:
+            current_value = bool(raw_value)
+    else:
+        current_value = raw_value
+
+    # Если значение None, используем значение по умолчанию
     if current_value is None and len(setting_info) > 3:
         current_value = setting_info[3]
 
@@ -121,12 +130,19 @@ async def back_to_category_menu(callback: CallbackQuery, db: Database):
 async def toggle_bool_setting(callback: CallbackQuery, db: Database):
     setting_name = callback.data.split(":")[1]
     chat_id = callback.message.chat.id
-    
-    current_value = await db.get_setting(chat_id, setting_name)
-    new_value = not bool(current_value)
-    
+
+    # Получаем значение и гарантированно преобразуем к bool
+    raw_value = await db.get_setting(chat_id, setting_name)
+
+    # Если значение строковое, преобразуем к bool
+    if isinstance(raw_value, str):
+        new_value = raw_value.lower() != "true"  # Инвертируем
+    else:
+        new_value = not bool(raw_value)
+
+    # Сохраняем как булево значение
     await db.set_setting(chat_id, setting_name, new_value)
-    
+
     # Обновляем интерфейс
     try:
         await callback.message.edit_text(
@@ -136,7 +152,7 @@ async def toggle_bool_setting(callback: CallbackQuery, db: Database):
         )
     except TelegramBadRequest:
         pass
-    
+
     await callback.answer(f"Настройка изменена: {'Вкл' if new_value else 'Выкл'}")
 
 
