@@ -24,22 +24,20 @@ RANK_TO_LEVEL = {
 }
 
 DEFAULT_SETTINGS = [
-    ("who",            "Основные",   bool,  True),
-    ("tagall",         "Основные",   bool,  False),
-    ("autovideo",      "Медиа",      bool,  True),
-    ("warn",           "Модерация",  bool,  False),
-    ("mute",           "Модерация",  bool,  False),
-    ("ban",            "Модерация",  bool,  False),
-    ("senddisabledmsg","Уведомления", bool,  True),
-    ("alo",            "Разное",     bool,  False),
-    ("economy",        "Экономика",  bool,  True),
-    ("sendcooldown",   "Основные",   bool,  True),
-    ("auto_delete",    "Модерация",  bool,  False),
-
-    ("max_warnings",   "Модерация",  int,   3),
-    ("cooldown_time",  "Основные",   int,   30),
-
-    ("welcome_message","Приветствия",str,  "Добро пожаловать!")
+    ("who", "Основные", bool, True),
+    ("tagall", "Основные", bool, False),
+    ("autovideo", "Медиа", bool, True),
+    ("warn", "Модерация", bool, False),
+    ("mute", "Модерация", bool, False),
+    ("ban", "Модерация", bool, False),
+    ("senddisabledmsg", "Уведомления", bool, True),
+    ("alo", "Разное", bool, False),
+    ("economy", "Экономика", bool, True),
+    ("sendcooldown", "Основные", bool, True),
+    ("auto_delete", "Модерация", bool, False),
+    ("max_warnings", "Модерация", int, 3),
+    ("cooldown_time", "Основные", int, 30),
+    ("welcome_message", "Приветствия", str, "Добро пожаловать!"),
 ]
 
 CATEGORIES = list({cat for _, cat, *rest in DEFAULT_SETTINGS})
@@ -237,7 +235,9 @@ class Database:
                             VALUES ($1, $2, $3::jsonb)
                             ON CONFLICT (chat_id, feature_name) DO NOTHING
                             """,
-                            chat_id, name, json.dumps(default)
+                            chat_id,
+                            name,
+                            json.dumps(default),
                         )
 
                     # Удаляем устаревшие настройки
@@ -248,7 +248,7 @@ class Database:
                         AND feature_name NOT IN (SELECT unnest($2::text[]))
                         """,
                         chat_id,
-                        setting_names
+                        setting_names,
                     )
 
     async def has_permission(
@@ -407,7 +407,9 @@ class Database:
                     VALUES($1, $2, $3::jsonb)
                     ON CONFLICT DO NOTHING
                     """,
-                    chat_id, name, json.dumps(default)
+                    chat_id,
+                    name,
+                    json.dumps(default),
                 )
 
     async def sync_all_settings(self):
@@ -423,7 +425,8 @@ class Database:
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
                 "SELECT value FROM features WHERE chat_id=$1 AND feature_name=$2",
-                chat_id, name
+                chat_id,
+                name,
             )
 
     async def set_setting(self, chat_id: int, name: str, value):
@@ -431,7 +434,9 @@ class Database:
         async with self.pool.acquire() as conn:
             await conn.execute(
                 "UPDATE features SET value=$1::jsonb WHERE chat_id=$2 AND feature_name=$3",
-                json.dumps(value), chat_id, name
+                json.dumps(value),
+                chat_id,
+                name,
             )
 
     async def is_setting_exists(self, chat_id: int, name: str) -> bool:
@@ -439,19 +444,22 @@ class Database:
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
                 "SELECT EXISTS(SELECT 1 FROM features WHERE chat_id=$1 AND feature_name=$2)",
-                chat_id, name
+                chat_id,
+                name,
             )
 
     async def is_setting_enabled(self, chat_id: int, name: str) -> bool:
         val = await self.get_setting(chat_id, name)
         return bool(val)
 
-    async def toggle_setting(self, chat_id: int, name: str, enable: bool = None) -> bool:
+    async def toggle_setting(
+        self, chat_id: int, name: str, enable: bool = None
+    ) -> bool:
         current = await self.get_setting(chat_id, name)
         new_val = bool(enable) if enable is not None else not bool(current)
         await self.set_setting(chat_id, name, new_val)
         return new_val
-    
+
     async def get_chats_with_setting(self, setting_name: str) -> list[int]:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
