@@ -403,7 +403,7 @@ class Database:
             for name, _, _, default in DEFAULT_SETTINGS:
                 await conn.execute(
                     """
-                    INSERT INTO features(chat_id, name, value)
+                    INSERT INTO features(chat_id, feature_name, value)
                     VALUES($1, $2, $3::jsonb)
                     ON CONFLICT DO NOTHING
                     """,
@@ -422,7 +422,7 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
-                "SELECT value FROM features WHERE chat_id=$1 AND name=$2",
+                "SELECT value FROM features WHERE chat_id=$1 AND feature_name=$2",
                 chat_id, name
             )
 
@@ -430,7 +430,7 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
-                "UPDATE features SET value=$1::jsonb WHERE chat_id=$2 AND name=$3",
+                "UPDATE features SET value=$1::jsonb WHERE chat_id=$2 AND feature_name=$3",
                 json.dumps(value), chat_id, name
             )
 
@@ -438,7 +438,7 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             return await conn.fetchval(
-                "SELECT EXISTS(SELECT 1 FROM features WHERE chat_id=$1 AND name=$2)",
+                "SELECT EXISTS(SELECT 1 FROM features WHERE chat_id=$1 AND feature_name=$2)",
                 chat_id, name
             )
 
