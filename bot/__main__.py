@@ -26,9 +26,9 @@ from .handlers.basic import base_router
 from .handlers.economy import eco_router
 from .handlers.etc import etc_router
 from .handlers.mods import mods_router
-from .handlers.settings import settings_router
 from .handlers.rights import rights_router
 from .handlers.rp import rp_router
+from .handlers.settings import settings_router
 from .handlers.text import text_router
 from .handlers.time import time_router
 from .handlers.video import video_router
