@@ -52,7 +52,6 @@ USERS_COLUMNS = {
     "rank": "TEXT DEFAULT 'Участник'",
     "message_count": "INTEGER DEFAULT 0",
     "history": "JSONB DEFAULT '[]'::JSONB",
-    "warn_limit": "INTEGER DEFAULT 3",
     "default_model": "TEXT DEFAULT ''",
 }
 
