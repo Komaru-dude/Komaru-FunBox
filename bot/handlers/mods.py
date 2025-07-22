@@ -3,14 +3,15 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
-from aiogram import Bot, Router
+from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
-from aiogram.types import ChatPermissions, Message
+from aiogram.types import CallbackQuery, ChatPermissions, Message
 
-from bot.database import Database
+from bot.database import DEFAULT_FEATURES, Database
 from bot.filters.cooldown_filter import CooldownFilter
+from bot.keyboards.settings_keyboard import get_features_keyboard
 from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 
 mods_router = Router()
@@ -26,70 +27,59 @@ def parse_time(time_str: str) -> timedelta:
     return timedelta(**{units[unit]: int(value)})
 
 
-@mods_router.message(Command("enable"), CooldownFilter("func", 5))
-async def cmd_enable_func(message: Message, bot: Bot, db: Database):
+@mods_router.message(Command("settings"))
+async def cmd_settings(message: Message, db: Database):
     chat_id = message.chat.id
     user_id = message.from_user.id
+
     if message.chat.type in ["private", "channel"]:
-        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
-        return
-
-    parts = message.text.split(maxsplit=1)
-    if len(parts) < 2:
-        await message.reply("⛔️ Укажите имя функции.")
-        return
-    func = parts[1]
-
-    if not await db.is_feature_exists(chat_id, func):
-        await message.reply("❌ Функции не существует.")
-        return
+        return await message.reply("❌ Команда доступна только в группах")
 
     if not await db.has_permission(user_id, chat_id, 2):
-        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
-        return
+        return await message.reply("❌ Недостаточно прав")
 
-    if await db.is_feature_enabled(chat_id, func):
-        await message.reply("❌ Функция уже включена.")
-        return
+    # Получаем текущие состояния всех функций
+    features_status = []
+    for feature, _ in DEFAULT_FEATURES:
+        is_enabled = await db.is_feature_enabled(chat_id, feature)
+        features_status.append((feature, is_enabled))
 
-    try:
-        await db.toggle_feature(chat_id, func, enable=True)
-        await message.reply("✅ Функция включена.")
-    except Exception as e:
-        await error_report(message, bot, "enable", traceback.format_exc())
+    await message.reply(
+        "⚙️ <b>Настройки функций чата:</b>\n" "Выберите функцию для переключения:",
+        reply_markup=get_features_keyboard(features_status),
+    )
 
 
-@mods_router.message(Command("disable"), CooldownFilter("func", 5))
-async def cmd_disable_func(message: Message, bot: Bot, db: Database):
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-    if message.chat.type in ["private", "channel"]:
-        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
-        return
-
-    parts = message.text.split(maxsplit=1)
-    if len(parts) < 2:
-        await message.reply("⛔️ Укажите имя функции.")
-        return
-    func = parts[1]
-
-    if not await db.is_feature_exists(chat_id, func):
-        await message.reply("❌ Функции не существует.")
-        return
+@mods_router.callback_query(F.data.startswith("toggle:"))
+async def toggle_feature(callback: CallbackQuery, db: Database):
+    chat_id = callback.message.chat.id
+    user_id = callback.from_user.id
+    feature = callback.data.split(":", 1)[1]
 
     if not await db.has_permission(user_id, chat_id, 2):
-        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
-        return
+        return await callback.answer("❌ Недостаточно прав", show_alert=True)
 
-    if not await db.is_feature_enabled(chat_id, func):
-        await message.reply("❌ Функция уже выключена.")
-        return
+    # Переключаем состояние
+    current_state = await db.is_feature_enabled(chat_id, feature)
+    await db.toggle_feature(chat_id, feature, not current_state)
 
-    try:
-        await db.toggle_feature(chat_id, func)
-        await message.reply("✅ Функция выключена.")
-    except Exception:
-        await error_report(message, bot, "disable", traceback.format_exc())
+    # Обновляем клавиатуру
+    features_status = []
+    for f, _ in DEFAULT_FEATURES:
+        state = await db.is_feature_enabled(chat_id, f)
+        features_status.append((f, state))
+
+    await callback.message.edit_reply_markup(
+        reply_markup=get_features_keyboard(features_status)
+    )
+    await callback.answer(
+        f"Функция {feature} {'включена' if not current_state else 'выключена'}"
+    )
+
+
+@mods_router.callback_query(F.data == "close")
+async def close_settings(callback: CallbackQuery):
+    await callback.message.delete()
 
 
 @mods_router.message(Command("history"), CooldownFilter("moderation", 7))
