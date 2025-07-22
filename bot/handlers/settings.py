@@ -119,13 +119,24 @@ async def back_to_category_menu(callback: CallbackQuery, db: Database):
 
 @settings_router.callback_query(F.data.startswith("toggle_bool:"))
 async def toggle_bool_setting(callback: CallbackQuery, db: Database):
-    _, setting_name, value = callback.data.split(":")
+    _, setting_name, _ = callback.data.split(":")
     chat_id = callback.message.chat.id
-    new_value = bool(int(value))
+    current_value = await db.get_setting(chat_id, setting_name)
+    new_value = not bool(current_value)
 
     await db.set_setting(chat_id, setting_name, new_value)
-    await open_setting(callback, db)  # Обновляем интерфейс
-    await callback.answer(f"Настройка изменена: {new_value}")
+
+    # Обновляем интерфейс
+    try:
+        await callback.message.edit_text(
+            f"⚙️ <b>Настройка: {setting_name}</b>\nТекущее значение: {new_value}",
+            reply_markup=kb_settings.setting_options_keyboard(setting_name, new_value),
+            parse_mode=ParseMode.HTML,
+        )
+    except TelegramBadRequest:
+        pass
+
+    await callback.answer(f"Настройка изменена: {'Вкл' if new_value else 'Выкл'}")
 
 
 @settings_router.callback_query(F.data.startswith("change_int:"))

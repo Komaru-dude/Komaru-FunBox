@@ -47,13 +47,21 @@ def category_settings_keyboard(category: str, settings_state: dict):
 
 def setting_options_keyboard(setting_name: str, current_value):
     builder = InlineKeyboardBuilder()
-    setting = next(s for s in DEFAULT_SETTINGS if s[0] == setting_name)
+    setting = next((s for s in DEFAULT_SETTINGS if s[0] == setting_name), None)
+
+    if not setting:
+        builder.button(text="❌ Ошибка: настройка не найдена", callback_data="noop")
+        return builder.as_markup()
 
     # Булевые настройки
     if setting[2] is bool:
         builder.button(
-            text="✅ Включить" if not current_value else "❌ Выключить",
-            callback_data=f"toggle_bool:{setting_name}:{int(not current_value)}",
+            text="✅ Включено" if current_value else "❌ Выключено",
+            callback_data=f"toggle_bool:{setting_name}",
+        )
+        builder.button(
+            text="🔄 Переключить",
+            callback_data=f"toggle_bool:{setting_name}",
         )
 
     # Числовые настройки
