@@ -237,7 +237,7 @@ async def cmd_restore_settings(message: Message, db: Database):
     )
 
 
-@settings_router.callback_query(F.data.startwith("restore_default_settings:"))
+@settings_router.callback_query(F.data.startswith("restore_default_settings:"))
 async def callback_restore_settings(callback: CallbackQuery, db: Database):
     parts = callback.data.split(":")
     answer = parts[1]
