@@ -39,7 +39,7 @@ DEFAULT_SETTINGS = [
     ("cooldown_time", "Основные", int, 30),
     ("welcome_message", "Приветствия", str, "Добро пожаловать!"),
     ("give_random_rep", "Модерация", bool, True),
-    ("random_rep", "Модерация", float, "0.3"),
+    ("random_rep", "Модерация", float, 0.3),
     ("min_random_rep", "Модерация", int, 1),
     ("max_random_rep", "Модерация", int, 4),
 ]
