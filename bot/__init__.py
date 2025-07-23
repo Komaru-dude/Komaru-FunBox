@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from .utils.find_port import find_port
 from .utils.logger import setup_logger
@@ -10,6 +11,24 @@ PYRO_HOST = "127.0.0.1"
 PYRO_PORT = find_port()
 API_URL = f"{PYRO_HOST}:{PYRO_PORT}"
 logger = setup_logger()
+
+
+def get_git_branch(path):
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "-C", path, "rev-parse", "--abbrev-ref", "HEAD"],
+                stderr=subprocess.DEVNULL,
+            )
+            .decode("utf-8")
+            .strip()
+        )
+    except Exception:
+        return None
+
+
+branch_name = get_git_branch(parent_dir)
+is_test = branch_name == "test"
 
 if not os.path.exists(data_dir):
     os.mkdir(data_dir)
