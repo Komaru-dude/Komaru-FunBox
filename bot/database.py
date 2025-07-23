@@ -448,8 +448,14 @@ class Database:
             )
 
     async def is_setting_enabled(self, chat_id: int, name: str) -> bool:
-        val = await self.get_setting(chat_id, name)
-        return bool(val)
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            result = await conn.fetchval(
+                "SELECT is_enabled FROM features WHERE chat_id=$1 AND feature_name=$2",
+                chat_id,
+                name,
+            )
+            return bool(result)
 
     async def toggle_setting(
         self, chat_id: int, name: str, enable: bool = None
