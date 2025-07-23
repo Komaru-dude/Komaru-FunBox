@@ -91,3 +91,14 @@ def setting_options_keyboard(setting_name: str, current_value):
     builder.button(text="⬅️ Назад", callback_data=f"back_to_category:{setting[1]}")
     builder.adjust(1)
     return builder.as_markup()
+
+
+def restore_settings_keyboard(user_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="❎ Нет", callback_data=f"restore_default_settings:no:{user_id}"
+    )
+    builder.button(
+        text="✅ Да", callback_data=f"restore_default_settings:yes:{user_id}"
+    )
+    return builder.as_markup()

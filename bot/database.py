@@ -414,13 +414,21 @@ class Database:
                     json.dumps(default),
                 )
 
-    async def sync_all_settings(self):
+    async def restore_chat_settings(self, chat_id: int):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            rows = await conn.fetch("SELECT DISTINCT chat_id FROM features")
-            chat_ids = [r["chat_id"] for r in rows]
-            for cid in chat_ids:
-                await self.init_chat_settings(cid)
+            for name, _, _, default in DEFAULT_SETTINGS:
+                await conn.execute(
+                    """
+                    INSERT INTO features (chat_id, feature_name, value)
+                    VALUES ($1, $2, $3::jsonb)
+                    ON CONFLICT (chat_id, feature_name) 
+                    DO UPDATE SET value = EXCLUDED.value
+                    """,
+                    chat_id,
+                    name,
+                    json.dumps(default),
+                )
 
     async def get_setting(self, chat_id: int, name: str):
         await self.ensure_connection()

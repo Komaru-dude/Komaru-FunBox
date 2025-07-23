@@ -220,3 +220,45 @@ async def handle_setting_input(message: Message, state: FSMContext, db: Database
     await db.set_setting(message.chat.id, setting_name, value)
     await message.reply(f"✅ Значение для {setting_name} успешно обновлено!")
     await state.clear()
+
+
+@settings_router.message(Command("restore_default_settings"))
+async def cmd_restore_settings(message: Message, db: Database):
+    user_id = message.from_user.id
+    if not await db.has_permission(user_id, message.chat.id, 3):
+        await message.reply(
+            "❌ Право сбрасывать настройки имеет только владелец чата или персонал бота"
+        )
+        return
+
+    await message.reply(
+        "❓ Вы уверены?\n\n♨️ Это действие необратимо",
+        reply_markup=kb_settings.restore_settings_keyboard(user_id),
+    )
+
+
+@settings_router.callback_query(F.data.startwith("restore_default_settings:"))
+async def callback_restore_settings(callback: CallbackQuery, db: Database):
+    parts = callback.data.split(":")
+    answer = parts[1]
+    callback_user_id = parts[2]
+
+    if callback.from_user.id != int(callback_user_id):
+        await callback.answer(
+            "❌ Комару не разрешает отвечать на чужие колбэки", show_alert=True
+        )
+        return
+
+    if answer == "no":
+        await callback.answer("⛔️ Отменено")
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            await callback.answer("📛 У меня не получилось удалить своё сообщение")
+    else:
+        await db.restore_chat_settings(callback.message.chat.id)
+        try:
+            await callback.message.delete()
+        except TelegramBadRequest:
+            await callback.answer("📛 У меня не получилось удалить своё сообщение")
+        await callback.answer("✅ Успешно сброшено")
