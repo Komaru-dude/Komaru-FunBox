@@ -210,6 +210,8 @@ async def handle_setting_input(message: Message, state: FSMContext, db: Database
             value = int(message.text)
         elif input_type == "str":
             value = message.text
+        elif input_type == "float":
+            value = float(message.text)
         else:
             value = message.text  # По умолчанию строка
     except ValueError:
