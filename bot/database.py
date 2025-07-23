@@ -38,6 +38,10 @@ DEFAULT_SETTINGS = [
     ("max_warnings", "Модерация", int, 3),
     ("cooldown_time", "Основные", int, 30),
     ("welcome_message", "Приветствия", str, "Добро пожаловать!"),
+    ("give_random_rep", "Модерация", bool, True),
+    ("random_rep", "Модерация", float, "0.3"),
+    ("min_random_rep", "Модерация", int, 1),
+    ("max_random_rep", "Модерация", int, 4),
 ]
 
 CATEGORIES = list({cat for _, cat, *rest in DEFAULT_SETTINGS})
@@ -576,7 +580,9 @@ class Database:
             raise ValueError("Invalid mode")
 
         if mode == "auto_add":
-            value = random.randint(1, 6)
+            min_random_rep = await self.get_setting(chat_id, "min_random_rep")
+            max_random_rep = await self.get_setting(chat_id, "max_random_rep")
+            value = random.randint(min_random_rep, max_random_rep)
 
         async with self.pool.acquire() as conn:
             if mode in ["auto_add", "manual_add"]:
