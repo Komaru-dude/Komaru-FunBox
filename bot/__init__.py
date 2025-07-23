@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 
@@ -10,7 +11,6 @@ data_dir = os.path.join(parent_dir, "data")
 PYRO_HOST = "127.0.0.1"
 PYRO_PORT = find_port()
 API_URL = f"{PYRO_HOST}:{PYRO_PORT}"
-logger = setup_logger()
 
 
 def get_git_branch(path):
@@ -29,6 +29,11 @@ def get_git_branch(path):
 
 branch_name = get_git_branch(parent_dir)
 is_test = branch_name == "test"
+if is_test:
+    level = logging.DEBUG
+else:
+    level = logging.INFO
+logger = setup_logger(level)
 
 if not os.path.exists(data_dir):
     os.mkdir(data_dir)
