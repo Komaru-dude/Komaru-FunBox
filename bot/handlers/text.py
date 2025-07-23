@@ -16,6 +16,7 @@ from aiogram.exceptions import TelegramRetryAfter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
+from bot import logger
 from bot.database import Database
 from bot.handlers.ai import ChatState, cmd_ai
 from bot.handlers.video import cmd_video
@@ -200,6 +201,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
         if await db.is_setting_enabled(chat_id, "give_random_rep"):
             if random.random() < await db.get_setting(chat_id, "random_rep"):
                 await db.update_reputation(user1.id, chat_id, "auto_add")
+                logger.debug(f"✅ Пользователю выдана репутация: {user1.id}")
 
         commands = await get_chat_commands(chat_id)
         split_text = text_msg.split(maxsplit=1)
