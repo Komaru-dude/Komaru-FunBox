@@ -62,7 +62,6 @@ USERS_COLUMNS = {
 FEATURES_COLUMNS = {
     "chat_id": "BIGINT",
     "feature_name": "TEXT",
-    "is_enabled": "BOOLEAN DEFAULT FALSE",
     "value": "JSONB NULL",
 }
 
@@ -406,9 +405,9 @@ class Database:
             for name, _, _, default in DEFAULT_SETTINGS:
                 await conn.execute(
                     """
-                    INSERT INTO features(chat_id, feature_name, value)
-                    VALUES($1, $2, $3::jsonb)
-                    ON CONFLICT DO NOTHING
+                    INSERT INTO features (chat_id, feature_name, value)
+                    VALUES ($1, $2, $3::jsonb)
+                    ON CONFLICT (chat_id, feature_name) DO NOTHING
                     """,
                     chat_id,
                     name,
@@ -426,20 +425,28 @@ class Database:
     async def get_setting(self, chat_id: int, name: str):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            return await conn.fetchval(
+            value = await conn.fetchval(
                 "SELECT value FROM features WHERE chat_id=$1 AND feature_name=$2",
                 chat_id,
                 name,
             )
+            if value is None:
+                return None
+            return json.loads(value)
 
     async def set_setting(self, chat_id: int, name: str, value):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
-                "UPDATE features SET value=$1::jsonb WHERE chat_id=$2 AND feature_name=$3",
-                json.dumps(value),
+                """
+                INSERT INTO features (chat_id, feature_name, value)
+                VALUES ($1, $2, $3::jsonb)
+                ON CONFLICT (chat_id, feature_name)
+                DO UPDATE SET value = EXCLUDED.value
+                """,
                 chat_id,
                 name,
+                json.dumps(value),
             )
 
     async def is_setting_exists(self, chat_id: int, name: str) -> bool:
@@ -451,15 +458,9 @@ class Database:
                 name,
             )
 
-    async def is_setting_enabled(self, chat_id: int, name: str) -> bool:
-        await self.ensure_connection()
-        async with self.pool.acquire() as conn:
-            result = await conn.fetchval(
-                "SELECT is_enabled FROM features WHERE chat_id=$1 AND feature_name=$2",
-                chat_id,
-                name,
-            )
-            return bool(result)
+    async def is_setting_enabled(self, chat_id: int, name: str):
+        value = await self.get_setting(chat_id, name)
+        return bool(value)
 
     async def toggle_setting(
         self, chat_id: int, name: str, enable: bool = None
