@@ -248,7 +248,7 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
             f"👤 Информация о {clickable_name}\n"
             f"🆔 ID: {user_info['user_id']}\n\n"
             f"📊 Статистика:\n"
-            f"⚠ Предупреждения: {user_data['warns']}/{user_data['warn_limit']}\n"
+            f"⚠ Предупреждения: {user_data['warns']}/{await db.get_setting(chat_id, "max_warnings")}\n"
             f"🔇 Мьюты: {user_data['mutes']}\n"
             f"🔨 Баны: {user_data['bans']}\n"
             f"💎 Репутация: {user_data['reputation']}\n"
