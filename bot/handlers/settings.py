@@ -78,7 +78,7 @@ async def open_setting(callback: CallbackQuery, db: Database):
 
     try:
         await callback.message.edit_text(
-            f"⚙️ <b>Настройка: {setting_name}</b>\n<b>Описание:</b> {setting_info[4]}\nТекущее значение: {current_value}",
+            f"⚙️ <b>Настройка: {setting_name}</b>\n📒 <b>Описание:</b> {setting_info[4]}\n🔢 Текущее значение: {current_value}",
             reply_markup=kb_settings.setting_options_keyboard(
                 setting_name, current_value
             ),
@@ -152,7 +152,7 @@ async def toggle_bool_setting(callback: CallbackQuery, db: Database):
     # Обновляем интерфейс
     try:
         await callback.message.edit_text(
-            f"⚙️ <b>Настройка: {setting_name}</b>\n<b>Описание:</b> {setting_info[4]}\nТекущее значение: {new_value}",
+            f"⚙️ <b>Настройка: {setting_name}</b>\n📒 <b>Описание:</b> {setting_info[4]}\n🔢 Текущее значение: {new_value}",
             reply_markup=kb_settings.setting_options_keyboard(setting_name, new_value),
             parse_mode=ParseMode.HTML,
         )
