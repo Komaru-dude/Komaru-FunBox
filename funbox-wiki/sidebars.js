@@ -35,15 +35,6 @@ const sidebars = {
       },
       items: ['commands/start', 'commands/status', 'commands/update', 'commands/restart', 'commands/logs', 'commands/help', 'commands/cancel', 'commands/new_year', 'commands/birthdays', 'commands/weather', 'commands/http_cat', 'commands/http_dog', 'commands/cat', 'commands/cat_gif', 'commands/available_models', 'commands/ai', 'commands/agai'],
     },
-    {
-      type: 'category',
-      label: '🧰 Модули',
-      link: {
-        type: 'doc', 
-        id: 'modules/modules'
-      },
-      items: ['modules/who', 'modules/tagall', 'modules/warn', 'modules/mute', 'modules/ban'],
-    },
   ],
 
   // But you can create a sidebar manually
