@@ -78,7 +78,7 @@ async def open_setting(callback: CallbackQuery, db: Database):
 
     try:
         await callback.message.edit_text(
-            f"⚙️ <b>Настройка: {setting_name}</b>\nТекущее значение: {current_value}",
+            f"⚙️ <b>Настройка: {setting_name}</b>\n<b>Описание:</b> {setting_info[4]}\nТекущее значение: {current_value}",
             reply_markup=kb_settings.setting_options_keyboard(
                 setting_name, current_value
             ),
@@ -131,6 +131,12 @@ async def toggle_bool_setting(callback: CallbackQuery, db: Database):
     setting_name = callback.data.split(":")[1]
     chat_id = callback.message.chat.id
 
+    # Получаем информацию о настройке
+    setting_info = next((s for s in DEFAULT_SETTINGS if s[0] == setting_name), None)
+    if not setting_info:
+        await callback.answer("Настройка не найдена!")
+        return
+
     # Получаем значение и гарантированно преобразуем к bool
     raw_value = await db.get_setting(chat_id, setting_name)
 
@@ -146,7 +152,7 @@ async def toggle_bool_setting(callback: CallbackQuery, db: Database):
     # Обновляем интерфейс
     try:
         await callback.message.edit_text(
-            f"⚙️ <b>Настройка: {setting_name}</b>\nТекущее значение: {new_value}",
+            f"⚙️ <b>Настройка: {setting_name}</b>\n<b>Описание:</b> {setting_info[4]}\nТекущее значение: {new_value}",
             reply_markup=kb_settings.setting_options_keyboard(setting_name, new_value),
             parse_mode=ParseMode.HTML,
         )
