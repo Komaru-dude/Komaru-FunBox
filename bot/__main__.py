@@ -28,6 +28,7 @@ from .handlers.etc import etc_router
 from .handlers.mods import mods_router
 from .handlers.rights import rights_router
 from .handlers.rp import rp_router
+from .handlers.service import service_router
 from .handlers.settings import settings_router
 from .handlers.text import text_router
 from .handlers.time import time_router
@@ -135,6 +136,7 @@ async def main():
         ai_router,
         mods_router,
         settings_router,
+        service_router,
         rights_router,
         video_router,
         eco_router,

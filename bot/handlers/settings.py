@@ -8,9 +8,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
+from bot.database import DEFAULT_SETTINGS, Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.database import DEFAULT_SETTINGS, Database
 from bot.keyboards import settings_keyboard as kb_settings
 from bot.utils.aio_tools import error_report
 
@@ -21,7 +21,11 @@ class SettingsStates(StatesGroup):
     waiting_for_input = State()
 
 
-@settings_router.message(Command("settings"), CooldownFilter("settings", 15), ChatTypeFilter(chat_type=["group", "supergroup"]))
+@settings_router.message(
+    Command("settings"),
+    CooldownFilter("settings", 15),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
+)
 async def cmd_settings(message: Message, bot: Bot):
     user_id = message.from_user.id
     try:
@@ -328,7 +332,11 @@ async def handle_setting_input(
         await error_report(message, bot, "settings", format_exc())
 
 
-@settings_router.message(Command("restore_default_settings"), CooldownFilter("restore_default_settings", 300), ChatTypeFilter(chat_type=["group", "supergroup"]))
+@settings_router.message(
+    Command("restore_default_settings"),
+    CooldownFilter("restore_default_settings", 300),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
+)
 async def cmd_restore_settings(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
