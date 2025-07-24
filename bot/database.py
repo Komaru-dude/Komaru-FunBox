@@ -302,7 +302,10 @@ class Database:
                     setting_names = [s[0] for s in DEFAULT_SETTINGS]
 
                     # Добавляем отсутствующие настройки
-                    for name, _, _, default in DEFAULT_SETTINGS:
+                    for setting in DEFAULT_SETTINGS:
+                        name = setting[0]
+                        default = setting[3]
+
                         await conn.execute(
                             """
                             INSERT INTO features (chat_id, feature_name, value)
