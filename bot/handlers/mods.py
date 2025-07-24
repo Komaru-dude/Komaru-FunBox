@@ -179,7 +179,9 @@ async def cmd_warn(message: Message, bot: Bot, db: Database):
         )
 
         if current_warns >= warn_limit:
-            until_date = int(time.time()) + await db.get_setting(chat_id, "max_warnings_mute_time")
+            until_date = int(time.time()) + await db.get_setting(
+                chat_id, "max_warnings_mute_time"
+            )
             await message.answer(
                 f"🔇 Пользователь <b>{target_user_link}</b> был замьючен!\n"
                 f"👤 Модератор: Авто-мод\n📝 Причина: Превышение лимита предупреждений",

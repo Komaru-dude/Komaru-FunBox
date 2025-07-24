@@ -70,7 +70,10 @@ def setting_options_keyboard(setting_name: str, current_value):
 
     # Числа с плавающей точкой
     elif setting[2] is float:
-        builder.button(text="✏️ Ввести число с плавающей точкой", callback_data=f"input_float:{setting_name}")
+        builder.button(
+            text="✏️ Ввести число с плавающей точкой",
+            callback_data=f"input_float:{setting_name}",
+        )
 
     # Список вариантов
     elif setting[2] is list and len(setting) > 3:
