@@ -490,7 +490,7 @@ class Database:
     async def init_chat_settings(self, chat_id: int):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            for name, _, _, default in DEFAULT_SETTINGS:
+            for name, _, _, default, _ in DEFAULT_SETTINGS:
                 await conn.execute(
                     """
                     INSERT INTO features (chat_id, feature_name, value)
@@ -505,7 +505,7 @@ class Database:
     async def restore_chat_settings(self, chat_id: int):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            for name, _, _, default in DEFAULT_SETTINGS:
+            for name, _, _, default, _ in DEFAULT_SETTINGS:
                 await conn.execute(
                     """
                     INSERT INTO features (chat_id, feature_name, value)
