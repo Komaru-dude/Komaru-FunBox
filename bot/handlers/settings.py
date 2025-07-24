@@ -133,7 +133,7 @@ async def close_settings(callback: CallbackQuery, bot: Bot):
     await callback.answer()
 
 
-@settings_router.callback_query(F.data == "back_to_main")
+@settings_router.callback_query(F.data.startswith("back_to_main:"))
 async def back_to_main_menu(callback: CallbackQuery, bot: Bot):
     # callback.data = "back_to_main:<owner_id>"
     _, owner_id_str = callback.data.split(":")
