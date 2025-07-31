@@ -120,7 +120,7 @@ async def open_setting(callback: CallbackQuery, bot: Bot, db: Database):
         await error_report(callback.message, bot, "settings", format_exc())
 
 
-@settings_router.callback_query(F.data == "close_settings")
+@settings_router.callback_query(F.data.startswith("close_settings"))
 async def close_settings(callback: CallbackQuery, bot: Bot):
     # callback.data = "close_settings:<owner_id>"
     data = callback.data.split(":")
