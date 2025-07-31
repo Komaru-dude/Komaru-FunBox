@@ -981,7 +981,7 @@ class Database:
 
     async def get_eco_top(self, limit: int = 10) -> list[dict]:
         """
-        Возвращает топ по банковским
+        Возвращает топ по банковским счетам
         """
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
