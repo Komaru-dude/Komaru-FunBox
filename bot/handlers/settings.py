@@ -26,9 +26,15 @@ class SettingsStates(StatesGroup):
     CooldownFilter("settings", 15),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
 )
-async def cmd_settings(message: Message, bot: Bot):
+async def cmd_settings(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     try:
+        if not await db.has_permission(user_id, message.chat.id, 2):
+            await message.reply(
+                "❌ Редактировать настройки могут только модераторы и выше"
+            )
+            return
+
         await message.reply(
             "⚙️ <b>Главное меню настроек</b>\nВыберите категорию:",
             reply_markup=kb_settings.main_settings_keyboard(owner_id=user_id),
