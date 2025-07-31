@@ -59,6 +59,7 @@ class ChatWatcher(BaseMiddleware):
 
                 if not await db.chat_exists(chat_id):
                     await db.add_chat(chat_id, chat_data={"type": chat_type})
+                    await db.init_chat_settings(chat_id)
                     if chat_type != "private":
                         msg = f"🔔 Новый чат: {chat_id}, имя: {chat_name}"
                         logger.info(msg)
