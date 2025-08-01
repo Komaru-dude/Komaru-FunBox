@@ -11,6 +11,7 @@
   "steal_timeout": 18000,
   "rob_min_percent": 5,
   "rob_max_percent": 25,
+  "rob_bank_percent": 45,
   "min_rob_penalty": 250,
   "max_rob_penalty": 750,
   "rob_protection_penalty": 300,
