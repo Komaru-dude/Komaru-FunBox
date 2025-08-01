@@ -238,8 +238,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await db.set_global_user_param(user_id, "money", new_cash)
         else:
             taken_cash = round(min(target_cash, rob_amount), 2)
-            taken_bank = (
-                round(rob_amount - taken_cash, 2) * eco_config["rob_bank_percent"]
+            taken_bank = round(
+                (rob_amount - taken_cash) * eco_config["rob_bank_percent"], 2
             )
             target_new_cash = round(target_cash - taken_cash, 2)
             target_new_bank = round(target_bank - taken_bank, 2)
