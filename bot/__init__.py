@@ -2,14 +2,17 @@ import logging
 import os
 import subprocess
 
-from .utils.find_port import find_port
+from dotenv import load_dotenv
+
 from .utils.logger import setup_logger
+
+load_dotenv()
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(dir_path)
 data_dir = os.path.join(parent_dir, "data")
 PYRO_HOST = "127.0.0.1"
-PYRO_PORT = find_port()
+PYRO_PORT = os.getenv("PYRO_PORT")
 API_URL = f"{PYRO_HOST}:{PYRO_PORT}"
 
 

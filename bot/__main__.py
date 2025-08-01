@@ -10,7 +10,6 @@ from traceback import format_exc
 
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
-from dotenv import load_dotenv
 
 from bot import PYRO_HOST, PYRO_PORT, logger
 from bot.database import BASE_DIR, Database
@@ -33,8 +32,6 @@ from .handlers.settings import settings_router
 from .handlers.text import text_router
 from .handlers.time import time_router
 from .handlers.video import video_router
-
-load_dotenv()
 
 token = os.getenv("BOT_API_TOKEN")
 bot = Bot(token)
