@@ -243,7 +243,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             )
             target_new_cash = round(target_cash - taken_cash, 2)
             target_new_bank = round(target_bank - taken_bank, 2)
-            new_cash = user_cash + rob_amount
+            new_cash = user_cash + taken_cash + taken_bank
 
             msg = await message.reply(
                 protection_note
