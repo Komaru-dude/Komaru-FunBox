@@ -378,7 +378,7 @@ async def callback_restore_settings(callback: CallbackQuery, bot: Bot, db: Datab
         else:
             await db.restore_chat_settings(callback.message.chat.id)
             await callback.answer("✅ Успешно сброшено")
-        try: 
+        try:
             await callback.message.delete()
         except TelegramBadRequest:
             await callback.answer("📛 У меня не получилось удалить своё сообщение")

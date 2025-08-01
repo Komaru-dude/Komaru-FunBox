@@ -11,6 +11,9 @@ OWNER_ID=your_owner_id
 API_ID=your_api_id
 API_HASH=your_api_hash
 
+# Порт для Pyrogram бота, убедитесь что он ничем не занят
+PYRO_PORT=8000
+
 # Ваш url для апи нейросетей
 API_URL=http://api.onlysq.ru/ai/v2
 OPENAI_SDK_API_URL=http://api.onlysq.ru/ai/openai
