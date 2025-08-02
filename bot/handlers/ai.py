@@ -92,7 +92,6 @@ async def show_working_models(message: Message):
         category_body = []
 
         for model in models:
-            paid_icon = "🔐" if model["paid"] else "🆓"
             stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
             if model["type"] == "provider":
                 type_icon = "🟡"
@@ -103,7 +102,7 @@ async def show_working_models(message: Message):
             display_name = model["id"]
 
             model_line = (
-                f"{paid_icon} {type_icon} "
+                f"{type_icon} "
                 f"<code>{display_name}</code>{stream_icon}\n"
             )
             category_body.append(model_line)
@@ -112,8 +111,6 @@ async def show_working_models(message: Message):
 
     legend_text = (
         "\n❓ Что значат все эти эмодзи?\n\n"
-        "🔐 — Платные модели, могут быть лимиты для бесплатных пользователей\n"
-        "🆓 — Бесплатные модели, лимиты для юзеров отсутствуют/очень большие\n"
         "🟡 — Могут не работать, не рекомендуются к длительному использованию\n"
         "🟢 — Вероятнее всего, будут работать всегда\n"
         "⚡️Стриминг — Могут отправлять ответ 'кусками', не завершая обработку"
