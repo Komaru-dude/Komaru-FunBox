@@ -373,15 +373,15 @@ async def handle_dice_throw(
         if value > 4:
             if value == 6:
                 multiplier = 1.45
-                message_text = f"🎉🎉 Мега-победа! +{bet} (x1.45)\n"
+                message_text = f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
             elif value == 5:
                 multiplier = 1.3
-                message_text = f"🎉 Большая победа! +{bet} (x1.3)\n"
+                message_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
             else:
                 multiplier = 1.15
-                message_text = f"🎉 Победа! +{bet} (x1.15)\n"
+                message_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
 
-            win_amount = bet * multiplier
+            win_amount = round(bet * multiplier, 2)
             new_bal = user_bal + win_amount
             new_bal = round(new_bal, 2)
             msg = await callback.message.answer(
