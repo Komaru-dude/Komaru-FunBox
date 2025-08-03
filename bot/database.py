@@ -86,7 +86,8 @@ DEFAULT_SETTINGS = [
         bool,
         False,
         "Каждый четверг отправляет список бесплатных игр в Epic Games",
-    )("alo", "Разное", bool, False, "???"),
+    ),
+    ("alo", "Разное", bool, False, "???"),
     (
         "economy",
         "Экономика",
