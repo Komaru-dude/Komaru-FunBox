@@ -359,7 +359,7 @@ async def handle_dice_throw(
         if int(user_id_str) != user_id:
             await callback.answer("📛 А комару запретила!", show_alert=True)
             return
-        
+
         await callback.message.edit_reply_markup(reply_markup=None)
 
         await callback.message.answer(f"🎲 Бросаем {emoji}...")
@@ -375,10 +375,14 @@ async def handle_dice_throw(
         if value > 4:
             if value == 6:
                 multiplier = 1.45
-                message_text = f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
+                message_text = (
+                    f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
+                )
             elif value == 5:
                 multiplier = 1.3
-                message_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
+                message_text = (
+                    f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
+                )
             else:
                 multiplier = 1.15
                 message_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
