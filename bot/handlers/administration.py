@@ -378,7 +378,7 @@ async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
             first_name = "Неизвестный"
 
     try:
-        await db.reset_global_user(target_id)
-        await message.reply(f"✅ Пользователь {first_name} был заблокирован")
+        await db.delete_global_user(target_id)
+        await message.reply(f"✅ Пользователь {first_name} был удалён")
     except Exception as e:
         await error_report(message, bot, "ban_media", traceback.format_exc())
