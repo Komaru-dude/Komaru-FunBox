@@ -359,6 +359,8 @@ async def handle_dice_throw(
         if int(user_id_str) != user_id:
             await callback.answer("📛 А комару запретила!", show_alert=True)
             return
+        
+        await callback.message.edit_reply_markup(reply_markup=None)
 
         await callback.message.answer(f"🎲 Бросаем {emoji}...")
 
