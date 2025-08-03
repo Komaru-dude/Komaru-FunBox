@@ -325,12 +325,15 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         await state.update_data(bet=number)
 
         builder = InlineKeyboardBuilder()
-        builder.add(
-            *[
-                (InlineKeyboardButton(text=emoji, callback_data=f"{user_id}|{emoji}"))
-                for emoji in ("🎲", "🎯", "🎳")
-            ]
-        )
+        emojis = ["🎲", "🎯", "🎳", "🏀", "⚽", "🎰"]
+        rows = [emojis[i : i + 3] for i in range(0, len(emojis), 3)]
+        for row in rows:
+            builder.row(
+                *[
+                    InlineKeyboardButton(text=emoji, callback_data=f"{user_id}|{emoji}")
+                    for emoji in row
+                ]
+            )
         await message.reply(
             '⚽️ Хорошо, выберите, что "бросите":',
             reply_markup=builder.as_markup(resize_keyboard=True),
@@ -361,50 +364,89 @@ async def handle_dice_throw(
             return
 
         await callback.message.edit_reply_markup(reply_markup=None)
-
         await callback.message.answer(f"🎲 Бросаем {emoji}...")
 
         dice_message = await callback.message.answer_dice(emoji=emoji)
-
         value = dice_message.dice.value
+
         data = await state.get_data()
         bet = data.get("bet")
         user_bal = await db.get_global_user_param(user_id, "money")
         currency_sign = eco_config["currency_sign"]
 
-        if value > 4:
+        win_amount = 0
+        new_bal = user_bal
+        msg_text = ""
+
+        if emoji in ("🎲", "🎯", "🎳"):
             if value == 6:
                 multiplier = 1.45
-                message_text = (
-                    f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
-                )
+                msg_text = f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
+                win_amount = bet * multiplier
             elif value == 5:
                 multiplier = 1.3
-                message_text = (
-                    f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
-                )
-            else:
+                msg_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
+                win_amount = bet * multiplier
+            elif value == 4:
                 multiplier = 1.15
-                message_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
+                msg_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
+                win_amount = bet * multiplier
+            elif value == 3:
+                msg_text = f"🎲 Ничья. Ваша ставка возвращена.\n"
+                win_amount = bet
+            else:
+                msg_text = f"💸 Проигрыш. -{bet}\n"
+                win_amount = 0
 
-            win_amount = round(bet * multiplier, 2)
-            new_bal = user_bal + win_amount
-            new_bal = round(new_bal, 2)
-            msg = await callback.message.answer(
-                f"{message_text}{currency_sign} Ваш текущий баланс: {new_bal}"
-            )
-            await db.set_global_user_param(user_id, "money", new_bal)
-        elif value == 3:
-            msg = await callback.message.answer(
-                f"🎲 Ничья. Ваша ставка возвращена.\n{currency_sign} Ваш текущий баланс: {user_bal}"
-            )
+        elif emoji in ("🏀", "⚽"):
+            if value == 5:
+                multiplier = 1.4
+                msg_text = f"🏆 Гол! +{round(bet * multiplier, 2)} (x1.4)\n"
+                win_amount = bet * multiplier
+            elif value == 4:
+                multiplier = 1.2
+                msg_text = f"⚽ Почти гол! +{round(bet * multiplier, 2)} (x1.2)\n"
+                win_amount = bet * multiplier
+            elif value == 3:
+                msg_text = f"⚖️ Ничья. Ваша ставка возвращена.\n"
+                win_amount = bet
+            else:
+                msg_text = f"💸 Промах. -{bet}\n"
+                win_amount = 0
+
+        elif emoji == "🎰":
+            if value == 64:
+                multiplier = 2.0
+                msg_text = (
+                    f"🎰 ДЖЕКПОТ! Все семёрки! +{round(bet * multiplier, 2)} (x2)\n"
+                )
+                win_amount = bet * multiplier
+            elif value in (48, 32, 16):
+                multiplier = 1.45
+                msg_text = f"✨ Почти джекпот! Первые две — семёрки! +{round(bet * multiplier, 2)} (x1.45)\n"
+                win_amount = bet * multiplier
+            elif value in (43, 22, 1):
+                multiplier = 1.15
+                msg_text = (
+                    f"🥳 Совпавшие символы! +{round(bet * multiplier, 2)} (x1.15)\n"
+                )
+                win_amount = bet * multiplier
+            else:
+                msg_text = f"💸 Проигрыш. -{bet}\n"
+                win_amount = 0
+
+        if win_amount == bet:
+            new_bal = user_bal
+        elif win_amount > 0:
+            new_bal = round(user_bal + win_amount, 2)
         else:
-            new_bal = user_bal - bet
-            new_bal = round(new_bal, 2)
-            msg = await callback.message.answer(
-                f"💸 Проигрыш. -{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
-            )
-            await db.set_global_user_param(user_id, "money", new_bal)
+            new_bal = round(user_bal - bet, 2)
+
+        await db.set_global_user_param(user_id, "money", new_bal)
+
+        msg = await callback.message.answer(
+            f"{msg_text}{currency_sign} Ваш текущий баланс: {new_bal}"
+        )
 
         await state.clear()
 
