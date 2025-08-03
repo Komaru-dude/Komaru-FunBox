@@ -321,3 +321,64 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception as e:
         await error_report(message, bot, "unban_media", traceback.format_exc())
+
+
+@admin_router.message(Command("delete_user"))
+async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    target_id = None
+    first_name = None
+
+    if message.chat.type in ["private", "channel"]:
+        await message.reply("❌ Эта команда доступна только в группах/супергруппах")
+        return
+
+    if not await db.has_permission(user_id, chat_id, 4):
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+        return
+
+    if message.reply_to_message:
+        target_id = message.reply_to_message.from_user.id
+        first_name = message.reply_to_message.from_user.first_name
+    else:
+        text = message.text
+        split_text = text.split(maxsplit=1)
+
+        if len(split_text) > 1 and split_text[1].startswith("@"):
+            username = split_text[1][1:]
+            try:
+                data = await fetch_json(f"{API_URL}/user/{username}")
+
+                if "user_id" in data:
+                    target_id = int(data["user_id"])
+                else:
+                    await message.reply(
+                        f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
+                    )
+                    return
+
+            except Exception:
+                await error_report(message, bot, "ban_media", traceback.format_exc())
+                return
+        elif len(split_text) > 1 and split_text[1].isdigit():
+            target_id = int(split_text[1])
+        else:
+            await message.reply(
+                "Укажите пользователя через реплай, @username или айди."
+            )
+            return
+
+        try:
+            data = await fetch_json(
+                f"{API_URL}/first_name/{message.chat.id}/{target_id}"
+            )
+            first_name = data.get("first_name", "Неизвестный")
+        except Exception:
+            first_name = "Неизвестный"
+
+    try:
+        await db.reset_global_user(target_id)
+        await message.reply(f"✅ Пользователь {first_name} был заблокирован")
+    except Exception as e:
+        await error_report(message, bot, "ban_media", traceback.format_exc())

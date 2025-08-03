@@ -785,6 +785,16 @@ class Database:
                 user_id,
             )
 
+    async def delete_global_user(self, user_id: int):
+        """
+        Удаляет глобального пользователя.
+        """
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute("""
+                DELETE FROM global_users WHERE user_id = $1
+            """, user_id)
+
     async def cleanup_all_expired_items(self):
         """Очищает все просроченные предметы в инвертаре"""
         await self.ensure_connection()
