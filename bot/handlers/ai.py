@@ -24,7 +24,6 @@ from bot.utils.aio_tools import error_report, make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
 
 ai_router = Router()
-url = os.getenv("API_URL")
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
 
 SUPPORTED_LANGUAGES = {
