@@ -29,7 +29,9 @@ async def check_updates():
             .strip()
         )
 
-        version_path = Path(__file__).resolve().parent.parent / "config" / "version.json"
+        version_path = (
+            Path(__file__).resolve().parent.parent / "config" / "version.json"
+        )
         with version_path.open() as f:
             version_data = json.load(f)
             api_url = version_data.get("repo_api", None)
