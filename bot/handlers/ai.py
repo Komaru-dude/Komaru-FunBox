@@ -468,7 +468,7 @@ async def cmd_image(message: Message, bot: Bot):
             await message.answer("📛 У меня не удалось удалить своё сообщение")
         await message.reply_photo(
             photo=image,
-            caption=f"🧠 Модель: Flux\nЗапрос: {prompt_ru}\n🖼️ Сгенерировано за {response['elapsed_time']} сек.",
+            caption=f"🧠 Модель: Flux\nЗапрос: {prompt_ru}\n🖼️ Сгенерировано за {round(response['elapsed_time'], 2)} сек.",
         )
 
     except Exception:
