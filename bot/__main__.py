@@ -16,6 +16,7 @@ from bot.database import BASE_DIR, Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
 from bot.utils.aio_tools import fetch_json
+from bot.utils.cmd_manager import apply_all_command_sets
 from bot.utils.global_storage import onlysq_models
 from bot.utils.timers import background_checker
 
@@ -121,6 +122,7 @@ async def main():
         clear_cache()
         await load_models()
         await db.connect()
+        await apply_all_command_sets(bot)
     except Exception:
         logger.fatal(f"Не удалось выполнить подготовку.\n\nTraceback: {format_exc()}")
 

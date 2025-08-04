@@ -8,6 +8,7 @@ SHOP_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "items.js
 FREE_GAMES_PATH = (
     Path(__file__).resolve().parent.parent.parent / "data" / "epic_free_games.json"
 )
+COMMANDS_DIR = Path(__file__).resolve().parent.parent / "config"
 
 active_chats = []
 active_chats_lock = asyncio.Lock()
