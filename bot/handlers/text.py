@@ -24,7 +24,7 @@ from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 from bot.utils.global_storage import active_chats, onlysq_models
 
 text_router = Router()
-BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
+BASE_COMMANDS_PATH = Path("bot/config/basic_rp.json")
 PROMPT_TRIGGER_PREFIX = "!"
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
