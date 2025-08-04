@@ -401,11 +401,11 @@ async def handle_dice_throw(
         elif emoji in ("🏀", "⚽"):
             if value == 5:
                 multiplier = 1.4
-                msg_text = f"🏆 Гол! +{round(bet * multiplier, 2)} (x1.4)\n"
+                msg_text = f"🏆 Идеальный гол! +{round(bet * multiplier, 2)} (x1.4)\n"
                 win_amount = bet * multiplier
             elif value == 4:
                 multiplier = 1.2
-                msg_text = f"⚽ Почти гол! +{round(bet * multiplier, 2)} (x1.2)\n"
+                msg_text = f"⚽ Обычный гол! +{round(bet * multiplier, 2)} (x1.2)\n"
                 win_amount = bet * multiplier
             elif value == 3:
                 msg_text = f"⚖️ Ничья. Ваша ставка возвращена.\n"
