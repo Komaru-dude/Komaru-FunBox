@@ -11,7 +11,9 @@ async def apply_all_command_sets(bot: Bot):
         language_code = file.stem  # конвертация в нормальный language_code
 
         with file.open("r", encoding="utf-8") as f:
+            logger.debug(f"🔄 Загружаю файл: {f.name}")
             data = json.load(f)
+            logger.debug(f"Тип data: {type(data)}, ключи: {list(data.keys())}")
 
         commands = [types.BotCommand(**cmd) for cmd in data["commands"]]
 
