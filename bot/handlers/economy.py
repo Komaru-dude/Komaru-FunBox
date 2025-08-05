@@ -23,6 +23,7 @@ from bot.keyboards.duel_keyboard import (
     make_duel_actions_keyboard,
     make_duel_keyboard,
 )
+from bot.keyboards.math_keyboard import make_math_kb
 from bot.keyboards.shop_keyboard import ShopCallback, make_shop_keyboard
 from bot.utils.aio_tools import error_report, get_user_id
 from bot.utils.global_storage import (
@@ -75,6 +76,101 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
                     await msg.delete()
             except Exception as e:
                 logger.debug(f"Не удалось удалить сообщение: {e}")
+
+
+class MathStates(StatesGroup):
+    choosing_difficulty = State()
+    waiting_for_answer = State()
+
+
+@eco_router.message(
+    Command("math"),
+    ChatTypeFilter("group", "supergroup"),
+    FuncEnabled("economy"),
+    CooldownFilter("math", eco_config["math_timeout"]),
+)
+async def cmd_math(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        kb = make_math_kb(message.from_user.id)
+        msg = await message.answer("📊 Выберите уровень сложности:", reply_markup=kb)
+        await state.set_state(MathStates.choosing_difficulty)
+        await state.update_data(menu_msg_id=msg.message_id)
+
+    except Exception:
+        await db.reset_cooldown(message.from_user.id, "math")
+        await error_report(message, bot, "math", traceback.format_exc())
+
+
+@eco_router.callback_query(MathStates.choosing_difficulty, F.data.startswith("math_"))
+async def process_difficulty(
+    callback: CallbackQuery, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        difficulty = callback.data.split("_")[1]
+
+        if difficulty == "easy":
+            a, b = random.randint(1, 50), random.randint(1, 50)
+            op = random.choice(["+", "-", "*"])
+        elif difficulty == "medium":
+            a, b = random.randint(10, 100), random.randint(10, 100)
+            op = random.choice(["+", "-", "*"])
+        else:
+            a, b = random.randint(100, 1000), random.randint(100, 1000)
+            op = random.choice(["+", "-", "*", "//"])
+            if op == "/":
+                a = a - (a % b)
+
+        expr = f"{a} {op} {b}"
+        if op == "//":
+            answer = a // b
+        else:
+            answer = int(eval(expr))
+
+        await state.update_data(answer=answer)
+
+        await callback.message.edit_text(f"🧠 Пример:\n❓ Сколько будет {expr}?")
+        await state.set_state(MathStates.waiting_for_answer)
+
+    except Exception:
+        await db.reset_cooldown(callback.from_user.id, "math")
+        await error_report(
+            callback.message, bot, "math_difficulty", traceback.format_exc()
+        )
+
+
+@eco_router.message(MathStates.waiting_for_answer)
+async def process_math_answer(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        user_id = message.from_user.id
+        data = await state.get_data()
+        correct = data.get("answer")
+
+        try:
+            user_answer = int(message.text.strip())
+        except ValueError:
+            await message.reply("❌ Введите целое число.")
+            return
+
+        if user_answer == correct:
+            reward = random.randint(10, 30)
+            await db.increment_global_user_param(user_id, "money", reward)
+            await message.reply(
+                f"✅ Верно! Вы получили {eco_config['currency_sign']} {reward}."
+            )
+        else:
+            fine = random.randint(5, 15)
+            await db.increment_global_user_param(user_id, "money", -fine)
+            await message.reply(
+                f"❌ Неверно! Правильный ответ: {correct}. Штраф: {eco_config['currency_sign']} {fine}."
+            )
+
+        await state.clear()
+
+    except Exception:
+        await db.reset_cooldown(message.from_user.id, "math")
+        await error_report(message, bot, "math_answer", traceback.format_exc())
 
 
 @eco_router.message(

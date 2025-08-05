@@ -47,6 +47,7 @@
     { "command": "delete_user", "description": "Удалить глобального юзера" },
     { "command": "reset_cooldown", "description": "Сброс кулдауна юзера" },
     { "command": "work", "description": "Работа (экономика)" },
+    { "command": "math", "description": "Математика (экономика)" },
     { "command": "steal", "description": "Кража (экономика)" },
     { "command": "rob", "description": "Ограбление (экономика)" },
     { "command": "dice", "description": "Казино" },
