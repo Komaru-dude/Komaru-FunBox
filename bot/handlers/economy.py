@@ -85,7 +85,7 @@ class MathStates(StatesGroup):
 
 @eco_router.message(
     Command("math"),
-    ChatTypeFilter("group", "supergroup"),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
     FuncEnabled("economy"),
     CooldownFilter("math", eco_config["math_timeout"]),
 )
