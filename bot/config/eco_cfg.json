@@ -20,5 +20,6 @@
   "rob_timeout": 25200,
   "dice_timeout": 300,
   "dice_min_bet": 50,
-  "dice_max_bet": 10000
+  "dice_max_bet": 10000,
+  "math_timeout": 5400
 }
