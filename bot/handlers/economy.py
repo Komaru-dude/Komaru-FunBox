@@ -158,18 +158,19 @@ async def process_math_answer(
         if user_answer == correct:
             reward_range = eco_config["math_rewards"].get(difficulty, [10, 30])
             reward = random.randint(*reward_range)
-            await db.set_global_user_param(user_id, "money", money + reward)
+            final_money = money + reward
             await message.reply(
-                f"✅ Верно!\nВы получили {eco_config['currency_sign']} {reward}."
+                f"✅ Верно!\nВы получили {eco_config['currency_sign']} {reward}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
             )
         else:
             fine_range = eco_config["math_fines"].get(difficulty, [5, 15])
             fine = random.randint(*fine_range)
-            await db.set_global_user_param(user_id, "money", money - fine)
+            final_money = money - fine
             await message.reply(
-                f"❌ Неверно! Правильный ответ: {correct}.\nШтраф: {eco_config['currency_sign']} {fine}."
+                f"❌ Неверно! Правильный ответ: {correct}.\nШтраф: {eco_config['currency_sign']} {fine}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
             )
 
+        await db.set_global_user_param(user_id, "money", final_money)
         await state.clear()
 
     except Exception:
