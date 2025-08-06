@@ -151,7 +151,7 @@ async def process_math_answer(
         try:
             user_answer = int(message.text.strip())
         except ValueError:
-            await message.reply("❌ Введите целое число.")
+            await message.reply("❌ Введите целое число или /cancel для отмены")
             return
 
         if user_answer == correct:
