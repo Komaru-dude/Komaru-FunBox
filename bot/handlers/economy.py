@@ -153,21 +153,21 @@ async def process_math_answer(
         try:
             user_answer = int(message.text.strip())
         except ValueError:
-            await message.reply("❌ Введите целое число или /cancel для отмены")
+            msg = await message.reply("❌ Введите целое число или /cancel для отмены")
             return
 
         if user_answer == correct:
             reward_range = eco_config["math_rewards"].get(difficulty, [10, 30])
             reward = random.randint(*reward_range)
             final_money = money + reward
-            await message.reply(
+            msg = await message.reply(
                 f"✅ Верно!\n💵 Вы получили {eco_config['currency_sign']} {reward}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
             )
         else:
             fine_range = eco_config["math_fines"].get(difficulty, [5, 15])
             fine = random.randint(*fine_range)
             final_money = money - fine
-            await message.reply(
+            msg = await message.reply(
                 f"❌ Неверно! Правильный ответ: {correct}.\n💸 Штраф: {eco_config['currency_sign']} {fine}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
             )
 
@@ -177,6 +177,15 @@ async def process_math_answer(
     except Exception:
         await db.reset_cooldown(message.from_user.id, "math")
         await error_report(message, bot, "math_answer", traceback.format_exc())
+    finally:
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
+            await asyncio.sleep(15)
+            try:
+                await message.delete()
+                if "msg" in locals():
+                    await msg.delete()
+            except Exception as e:
+                logger.debug(f"Не удалось удалить сообщение: {e}")
 
 
 @eco_router.message(
