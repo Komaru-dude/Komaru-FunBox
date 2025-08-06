@@ -1074,10 +1074,10 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
 
             if action == "attack":
                 # Критический удар
-                crit = random.random() < 0.1
+                crit = random.random() < 0.05
                 dmg = random.randint(18, 28)
                 if crit:
-                    dmg *= 2
+                    dmg *= 1.8
                     hp[opponent_id] -= dmg
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Критический удар!</a> -{dmg} HP противнику"
                 elif duel.get("dodge") == opponent_id:
