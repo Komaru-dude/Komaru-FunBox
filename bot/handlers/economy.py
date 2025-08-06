@@ -4,6 +4,7 @@ import os
 import random
 import traceback
 import uuid
+from html import escape
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
@@ -767,13 +768,16 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
             total = user["total"]
             try:
                 user_info = await db.get_global_user(user_id)
-                username = f"{user_info.get('name')}".strip()
+                raw_name = f"{user_info.get('name')}".strip()
+                if not raw_name:
+                    raw_name = f"ID {user_id}"
             except Exception:
-                username = f"ID {user_id}"
+                raw_name = f"ID {user_id}"
 
-            top_message += f"{idx}. {username} — {total} {currency_sign}\n"
-
-        msg = await message.reply(top_message)
+            safe_name = escape(raw_name)
+            user_link = f'<a href="tg://user?id={user_id}">{safe_name}</a>'
+            top_message += f"{idx}. {user_link} — {total} {currency_sign}\n"
+        msg = await message.reply(top_message, parse_mode="HTML")
 
     except Exception:
         await error_report(message, bot, "top", traceback.format_exc())
