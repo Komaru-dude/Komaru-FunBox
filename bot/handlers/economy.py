@@ -160,14 +160,14 @@ async def process_math_answer(
             reward = random.randint(*reward_range)
             final_money = money + reward
             await message.reply(
-                f"✅ Верно!\nВы получили {eco_config['currency_sign']} {reward}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
+                f"✅ Верно!\n💵 Вы получили {eco_config['currency_sign']} {reward}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
             )
         else:
             fine_range = eco_config["math_fines"].get(difficulty, [5, 15])
             fine = random.randint(*fine_range)
             final_money = money - fine
             await message.reply(
-                f"❌ Неверно! Правильный ответ: {correct}.\nШтраф: {eco_config['currency_sign']} {fine}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
+                f"❌ Неверно! Правильный ответ: {correct}.\n💸 Штраф: {eco_config['currency_sign']} {fine}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
             )
 
         await db.set_global_user_param(user_id, "money", final_money)
