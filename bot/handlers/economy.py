@@ -946,7 +946,7 @@ async def duel_choose_bet(message: Message, bot: Bot, state: FSMContext, db: Dat
                 "challenger_id": user_id,
                 "target_id": target_id,
                 "bet": bet,
-                "hp": {user_id: 100, target_id: 100},
+                "hp": {user_id: 150, target_id: 150},
                 "turn": user_id,
                 "log": [],
                 "state": "wait_for_accept",
@@ -1105,7 +1105,7 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
                 if duel["heals"][user_id] >= 2:
                     msg = f"💊 <a href='tg://user?id={user_id}'>Лечение недоступно! (макс. 2 за дуэль)</a>"
                 else:
-                    heal = random.randint(10, 18)
+                    heal = random.randint(15, 25)
                     hp[user_id] = min(100, hp[user_id] + heal)
                     duel["heals"][user_id] += 1
                     msg = f"💊 <a href='tg://user?id={user_id}'>Лечится!</a> +{heal} HP\n⚠️ Следующий ход пропущен!"
