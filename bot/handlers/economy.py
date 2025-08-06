@@ -156,15 +156,15 @@ async def process_math_answer(
 
         if user_answer == correct:
             reward = random.randint(10, 30)
-            await db.set_global_user_param(user_id, money + reward)
+            await db.set_global_user_param(user_id, "money", money + reward)
             await message.reply(
-                f"✅ Верно! Вы получили {eco_config['currency_sign']} {reward}."
+                f"✅ Верно!\nВы получили {eco_config['currency_sign']} {reward}."
             )
         else:
             fine = random.randint(5, 15)
-            await db.set_global_user_param(user_id, money - fine)
+            await db.set_global_user_param(user_id, "money", money - fine)
             await message.reply(
-                f"❌ Неверно! Правильный ответ: {correct}. Штраф: {eco_config['currency_sign']} {fine}."
+                f"❌ Неверно! Правильный ответ: {correct}.\nШтраф: {eco_config['currency_sign']} {fine}."
             )
 
         await state.clear()
