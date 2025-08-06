@@ -1,5 +1,6 @@
 import asyncio
 import os
+import traceback
 import uuid
 from datetime import datetime, timedelta
 
@@ -41,6 +42,7 @@ async def get_user_id(message: Message) -> tuple[int | None, str | None]:
                 if data and "user_id" in data:
                     return data["user_id"], None
                 error_msg = "Пользователь не найден"
+                logger.debug("Не удалось найти пользователя")
                 break
 
     if text:
@@ -56,6 +58,7 @@ async def get_user_id(message: Message) -> tuple[int | None, str | None]:
             return data["user_id"], None
 
     error_msg = error_msg or "Не указан пользователь"
+    logger.debug("Не указан пользователь (проблема в вызове?)")
     return None, error_msg
 
 

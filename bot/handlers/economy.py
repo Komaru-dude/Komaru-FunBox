@@ -4,6 +4,7 @@ import os
 import random
 import traceback
 import uuid
+from html import escape
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
@@ -23,6 +24,7 @@ from bot.keyboards.duel_keyboard import (
     make_duel_actions_keyboard,
     make_duel_keyboard,
 )
+from bot.keyboards.math_keyboard import make_math_kb
 from bot.keyboards.shop_keyboard import ShopCallback, make_shop_keyboard
 from bot.utils.aio_tools import error_report, get_user_id
 from bot.utils.global_storage import (
@@ -77,6 +79,115 @@ async def cmd_work(message: Message, bot: Bot, db: Database):
                 logger.debug(f"Не удалось удалить сообщение: {e}")
 
 
+class MathStates(StatesGroup):
+    choosing_difficulty = State()
+    waiting_for_answer = State()
+
+
+@eco_router.message(
+    Command("math"),
+    ChatTypeFilter(chat_type=["group", "supergroup"]),
+    FuncEnabled("economy"),
+    CooldownFilter("math", eco_config["math_timeout"]),
+)
+async def cmd_math(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        kb = make_math_kb(message.from_user.id)
+        msg = await message.answer("📊 Выберите уровень сложности:", reply_markup=kb)
+        await state.set_state(MathStates.choosing_difficulty)
+        await state.update_data(menu_msg_id=msg.message_id)
+
+    except Exception:
+        await db.reset_cooldown(message.from_user.id, "math")
+        await error_report(message, bot, "math", traceback.format_exc())
+
+
+@eco_router.callback_query(MathStates.choosing_difficulty, F.data.startswith("math_"))
+async def process_difficulty(
+    callback: CallbackQuery, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        difficulty = callback.data.split("_")[1]
+
+        if difficulty == "easy":
+            a, b = random.randint(1, 50), random.randint(1, 50)
+            op = random.choice(["+", "-", "*"])
+        elif difficulty == "medium":
+            a, b = random.randint(10, 100), random.randint(10, 100)
+            op = random.choice(["+", "-", "*"])
+        else:
+            a, b = random.randint(100, 1000), random.randint(100, 1000)
+            op = random.choice(["+", "-", "*", "//"])
+            if op == "/":
+                a = a - (a % b)
+
+        expr = f"{a} {op} {b}"
+        if op == "//":
+            answer = a // b
+        else:
+            answer = int(eval(expr))
+
+        await state.update_data(answer=answer, difficulty=difficulty)
+
+        await callback.message.edit_text(f"🧠 Пример:\n❓ Сколько будет {expr}?")
+        await state.set_state(MathStates.waiting_for_answer)
+
+    except Exception:
+        await db.reset_cooldown(callback.from_user.id, "math")
+        await error_report(
+            callback.message, bot, "math_difficulty", traceback.format_exc()
+        )
+
+
+@eco_router.message(MathStates.waiting_for_answer)
+async def process_math_answer(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        user_id = message.from_user.id
+        data = await state.get_data()
+        difficulty = data.get("difficulty", "easy")
+        correct = data.get("answer")
+        money = await db.get_global_user_param(user_id, "money")
+
+        try:
+            user_answer = int(message.text.strip())
+        except ValueError:
+            msg = await message.reply("❌ Введите целое число или /cancel для отмены")
+            return
+
+        if user_answer == correct:
+            reward_range = eco_config["math_rewards"].get(difficulty, [10, 30])
+            reward = random.randint(*reward_range)
+            final_money = money + reward
+            msg = await message.reply(
+                f"✅ Верно!\n💵 Вы получили {eco_config['currency_sign']} {reward}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
+            )
+        else:
+            fine_range = eco_config["math_fines"].get(difficulty, [5, 15])
+            fine = random.randint(*fine_range)
+            final_money = money - fine
+            msg = await message.reply(
+                f"❌ Неверно! Правильный ответ: {correct}.\n💸 Штраф: {eco_config['currency_sign']} {fine}.\n{eco_config['currency_sign']} Текущий баланс: {final_money} {eco_config['currency_sign']}"
+            )
+
+        await db.set_global_user_param(user_id, "money", final_money)
+        await state.clear()
+
+    except Exception:
+        await db.reset_cooldown(message.from_user.id, "math")
+        await error_report(message, bot, "math_answer", traceback.format_exc())
+    finally:
+        if await db.is_setting_enabled(message.chat.id, "auto_delete"):
+            await asyncio.sleep(15)
+            try:
+                await message.delete()
+                if "msg" in locals():
+                    await msg.delete()
+            except Exception as e:
+                logger.debug(f"Не удалось удалить сообщение: {e}")
+
+
 @eco_router.message(
     Command("steal"),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
@@ -107,7 +218,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         has_fake_passport = await db.has_valid_item(user_id, "fake_passport")
 
         if has_fake_passport:
-            fail_percent = max(0, fail_percent - 20)  # уменьшаем шанс неудачи на 20%
+            fail_percent = max(0, fail_percent - 50)  # уменьшаем шанс неудачи на 20%
             await db.use_item(user_id, "fake_passport")
             passport_used_msg = (
                 "🛡 Фейковый паспорт был использован, шанс неудачи снижен!"
@@ -238,10 +349,12 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await db.set_global_user_param(user_id, "money", new_cash)
         else:
             taken_cash = round(min(target_cash, rob_amount), 2)
-            taken_bank = round(rob_amount - taken_cash, 2) * eco_config["rob_bank_percent"]
+            taken_bank = round(
+                (rob_amount - taken_cash) * eco_config["rob_bank_percent"], 2
+            )
             target_new_cash = round(target_cash - taken_cash, 2)
             target_new_bank = round(target_bank - taken_bank, 2)
-            new_cash = user_cash + rob_amount
+            new_cash = user_cash + taken_cash + taken_bank
 
             msg = await message.reply(
                 protection_note
@@ -323,12 +436,15 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
         await state.update_data(bet=number)
 
         builder = InlineKeyboardBuilder()
-        builder.add(
-            *[
-                (InlineKeyboardButton(text=emoji, callback_data=f"{user_id}|{emoji}"))
-                for emoji in ("🎲", "🎯", "🎳")
-            ]
-        )
+        emojis = ["🎲", "🎯", "🎳", "🏀", "⚽", "🎰"]
+        rows = [emojis[i : i + 3] for i in range(0, len(emojis), 3)]
+        for row in rows:
+            builder.row(
+                *[
+                    InlineKeyboardButton(text=emoji, callback_data=f"{user_id}|{emoji}")
+                    for emoji in row
+                ]
+            )
         await message.reply(
             '⚽️ Хорошо, выберите, что "бросите":',
             reply_markup=builder.as_markup(resize_keyboard=True),
@@ -358,45 +474,90 @@ async def handle_dice_throw(
             await callback.answer("📛 А комару запретила!", show_alert=True)
             return
 
+        await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.answer(f"🎲 Бросаем {emoji}...")
 
         dice_message = await callback.message.answer_dice(emoji=emoji)
-
         value = dice_message.dice.value
+
         data = await state.get_data()
         bet = data.get("bet")
         user_bal = await db.get_global_user_param(user_id, "money")
         currency_sign = eco_config["currency_sign"]
 
-        if value > 4:
+        win_amount = 0
+        new_bal = user_bal
+        msg_text = ""
+
+        if emoji in ("🎲", "🎯", "🎳"):
             if value == 6:
                 multiplier = 1.45
-                message_text = f"🎉🎉 Мега-победа! +{bet} (x1.45)\n"
+                msg_text = f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
+                win_amount = bet * multiplier
             elif value == 5:
                 multiplier = 1.3
-                message_text = f"🎉 Большая победа! +{bet} (x1.3)\n"
-            else:
+                msg_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
+                win_amount = bet * multiplier
+            elif value == 4:
                 multiplier = 1.15
-                message_text = f"🎉 Победа! +{bet} (x1.15)\n"
+                msg_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
+                win_amount = bet * multiplier
+            elif value == 3:
+                msg_text = f"🎲 Ничья. Ваша ставка возвращена.\n"
+                win_amount = bet
+            else:
+                msg_text = f"💸 Проигрыш. -{bet}\n"
+                win_amount = 0
 
-            win_amount = bet * multiplier
-            new_bal = user_bal + win_amount
-            new_bal = round(new_bal, 2)
-            msg = await callback.message.answer(
-                f"{message_text}{currency_sign} Ваш текущий баланс: {new_bal}"
-            )
-            await db.set_global_user_param(user_id, "money", new_bal)
-        elif value == 3:
-            msg = await callback.message.answer(
-                f"🎲 Ничья. Ваша ставка возвращена.\n{currency_sign} Ваш текущий баланс: {user_bal}"
-            )
+        elif emoji in ("🏀", "⚽"):
+            if value == 5:
+                multiplier = 1.4
+                msg_text = f"🏆 Идеальный гол! +{round(bet * multiplier, 2)} (x1.4)\n"
+                win_amount = bet * multiplier
+            elif value == 4:
+                multiplier = 1.2
+                msg_text = f"⚽ Обычный гол! +{round(bet * multiplier, 2)} (x1.2)\n"
+                win_amount = bet * multiplier
+            elif value == 3:
+                msg_text = f"⚖️ Ничья. Ваша ставка возвращена.\n"
+                win_amount = bet
+            else:
+                msg_text = f"💸 Промах. -{bet}\n"
+                win_amount = 0
+
+        elif emoji == "🎰":
+            if value == 64:
+                multiplier = 2.0
+                msg_text = (
+                    f"🎰 ДЖЕКПОТ! Все семёрки! +{round(bet * multiplier, 2)} (x2)\n"
+                )
+                win_amount = bet * multiplier
+            elif value in (48, 32, 16):
+                multiplier = 1.45
+                msg_text = f"✨ Почти джекпот! Первые две — семёрки! +{round(bet * multiplier, 2)} (x1.45)\n"
+                win_amount = bet * multiplier
+            elif value in (43, 22, 1):
+                multiplier = 1.15
+                msg_text = (
+                    f"🥳 Совпавшие символы! +{round(bet * multiplier, 2)} (x1.15)\n"
+                )
+                win_amount = bet * multiplier
+            else:
+                msg_text = f"💸 Проигрыш. -{bet}\n"
+                win_amount = 0
+
+        if win_amount == bet:
+            new_bal = user_bal
+        elif win_amount > 0:
+            new_bal = round(user_bal + win_amount, 2)
         else:
-            new_bal = user_bal - bet
-            new_bal = round(new_bal, 2)
-            msg = await callback.message.answer(
-                f"💸 Проигрыш. -{bet}\n{currency_sign} Ваш текущий баланс: {new_bal}"
-            )
-            await db.set_global_user_param(user_id, "money", new_bal)
+            new_bal = round(user_bal - bet, 2)
+
+        await db.set_global_user_param(user_id, "money", new_bal)
+
+        msg = await callback.message.answer(
+            f"{msg_text}{currency_sign} Ваш текущий баланс: {new_bal}"
+        )
 
         await state.clear()
 
@@ -616,13 +777,16 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
             total = user["total"]
             try:
                 user_info = await db.get_global_user(user_id)
-                username = f"{user_info.get('name')}".strip()
+                raw_name = f"{user_info.get('name')}".strip()
+                if not raw_name:
+                    raw_name = f"ID {user_id}"
             except Exception:
-                username = f"ID {user_id}"
+                raw_name = f"ID {user_id}"
 
-            top_message += f"{idx}. {username} — {total} {currency_sign}\n"
-
-        msg = await message.reply(top_message)
+            safe_name = escape(raw_name)
+            user_link = f'<a href="tg://user?id={user_id}">{safe_name}</a>'
+            top_message += f"{idx}. {user_link} — {total} {currency_sign}\n"
+        msg = await message.reply(top_message, parse_mode="HTML")
 
     except Exception:
         await error_report(message, bot, "top", traceback.format_exc())
@@ -696,7 +860,7 @@ class Duel(StatesGroup):
 
 @eco_router.message(
     Command("duel"),
-    CooldownFilter("duel", 30),
+    CooldownFilter("duel", 3600),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
 )
 async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
@@ -782,7 +946,7 @@ async def duel_choose_bet(message: Message, bot: Bot, state: FSMContext, db: Dat
                 "challenger_id": user_id,
                 "target_id": target_id,
                 "bet": bet,
-                "hp": {user_id: 100, target_id: 100},
+                "hp": {user_id: 150, target_id: 150},
                 "turn": user_id,
                 "log": [],
                 "state": "wait_for_accept",
@@ -910,21 +1074,21 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
 
             if action == "attack":
                 # Критический удар
-                crit = random.random() < 0.1
+                crit = random.random() < 0.05
                 dmg = random.randint(18, 28)
                 if crit:
-                    dmg *= 2
+                    dmg *= 1.8
                     hp[opponent_id] -= dmg
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Критический удар!</a> -{dmg} HP противнику"
                 elif duel.get("dodge") == opponent_id:
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> Но <a href='tg://user?id={opponent_id}'>увернулся!</a> 💨"
                     duel["dodge"] = None
                 elif duel.get("failed_dodge") == opponent_id:
-                    dmg = int(dmg * 1.5)
+                    dmg = int(dmg * 1.25)
                     hp[opponent_id] -= dmg
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> (штраф за провал уворота) -{dmg} HP противнику"
                     duel["failed_dodge"] = None
-                elif random.random() < 0.2:
+                elif random.random() < 0.1:
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Промахнулся!</a>"
                 else:
                     hp[opponent_id] -= dmg
@@ -941,7 +1105,7 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
                 if duel["heals"][user_id] >= 2:
                     msg = f"💊 <a href='tg://user?id={user_id}'>Лечение недоступно! (макс. 2 за дуэль)</a>"
                 else:
-                    heal = random.randint(10, 18)
+                    heal = random.randint(15, 25)
                     hp[user_id] = min(100, hp[user_id] + heal)
                     duel["heals"][user_id] += 1
                     msg = f"💊 <a href='tg://user?id={user_id}'>Лечится!</a> +{heal} HP\n⚠️ Следующий ход пропущен!"

@@ -11,7 +11,7 @@
   "steal_timeout": 18000,
   "rob_min_percent": 5,
   "rob_max_percent": 25,
-  "rob_bank_percent": 45,
+  "rob_bank_percent": 0.45,
   "min_rob_penalty": 250,
   "max_rob_penalty": 750,
   "rob_protection_penalty": 300,
@@ -20,5 +20,16 @@
   "rob_timeout": 25200,
   "dice_timeout": 300,
   "dice_min_bet": 50,
-  "dice_max_bet": 10000
+  "dice_max_bet": 10000,
+  "math_timeout": 5400,
+  "math_rewards": {
+    "easy": [10, 30],
+    "medium": [31, 60],
+    "hard": [61, 100]
+  },
+  "math_fines": {
+    "easy": [5, 15],
+    "medium": [16, 30],
+    "hard": [31, 50]
+  }
 }

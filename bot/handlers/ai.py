@@ -1,24 +1,22 @@
 import asyncio
+import base64
 import os
 import re
 import time
 import traceback
-import urllib.parse
-import uuid
-from collections import deque
-from datetime import datetime
 from html import escape
 
 import aiohttp
 import openai
 from aiogram import Bot, Router
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramRetryAfter
+from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import FSInputFile, Message
+from aiogram.types import BufferedInputFile, Message
 
+from bot import logger
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
@@ -26,7 +24,6 @@ from bot.utils.aio_tools import error_report, make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
 
 ai_router = Router()
-url = os.getenv("API_URL")
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
 
 SUPPORTED_LANGUAGES = {
@@ -57,14 +54,60 @@ SUPPORTED_LANGUAGES = {
     "uk": "Украинский",
 }
 
-image_generation_queue = deque()
-last_generation_time = datetime.min
-rate_limit_seconds = 6
-is_generating = False
+
+ALLOWED_RATIOS = {
+    "1:1",
+    "16:9",
+    "21:9",
+    "3:2",
+    "2:3",
+    "4:5",
+    "5:4",
+    "3:4",
+    "4:3",
+    "9:16",
+    "9:21",
+}
 
 
 class ChatState(StatesGroup):
     active = State()
+
+
+async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
+    if ratio not in ALLOWED_RATIOS:
+        return {
+            "error": True,
+            "msg": f"Недопустимое соотношение сторон: {ratio}. Допустимые: {', '.join(ALLOWED_RATIOS)}",
+        }
+
+    request_data = {"model": model, "prompt": prompt, "ratio": ratio}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                os.getenv("IMAGEN_API_URL"), json=request_data
+            ) as response:
+                response.raise_for_status()
+                j = await response.json()
+                return {
+                    "error": False,
+                    "file": base64.b64decode(j["files"][0]),
+                    "elapsed_time": j.get("elapsed-time", 0),
+                }
+
+    except aiohttp.ClientResponseError as e:
+        logger.debug(f"Ошибка генерации изображения: {e.status} {e.message}")
+        return {"error": True, "msg": f"Ошибка генерации: {e.status} {e.message}"}
+
+    except Exception:
+        logger.debug(
+            f"Неизвестная ошибка во время генерации изображения: {traceback.format_exc()}"
+        )
+        return {
+            "error": True,
+            "msg": f"Неизвестная ошибка генерации: {traceback.format_exc()}",
+        }
 
 
 @ai_router.message(Command("available_models"))
@@ -92,7 +135,6 @@ async def show_working_models(message: Message):
         category_body = []
 
         for model in models:
-            paid_icon = "🔐" if model["paid"] else "🆓"
             stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
             if model["type"] == "provider":
                 type_icon = "🟡"
@@ -102,18 +144,13 @@ async def show_working_models(message: Message):
                 type_icon = ""
             display_name = model["id"]
 
-            model_line = (
-                f"{paid_icon} {type_icon} "
-                f"<code>{display_name}</code>{stream_icon}\n"
-            )
+            model_line = f"{type_icon} " f"<code>{display_name}</code>{stream_icon}\n"
             category_body.append(model_line)
 
         message_text += category_header + "".join(category_body) + "\n"
 
     legend_text = (
         "\n❓ Что значат все эти эмодзи?\n\n"
-        "🔐 — Платные модели, могут быть лимиты для бесплатных пользователей\n"
-        "🆓 — Бесплатные модели, лимиты для юзеров отсутствуют/очень большие\n"
         "🟡 — Могут не работать, не рекомендуются к длительному использованию\n"
         "🟢 — Вероятнее всего, будут работать всегда\n"
         "⚡️Стриминг — Могут отправлять ответ 'кусками', не завершая обработку"
@@ -416,99 +453,26 @@ async def cmd_image(message: Message, bot: Bot):
             await processing_message.delete()
             return
 
-        queue_id = uuid.uuid4().hex
-        position = len(image_generation_queue) + (1 if is_generating else 0)
-        await processing_message.edit_text(
-            f"📡 Запрос добавлен в очередь. Ваше место: {position}"
+        await processing_message.edit_text("🎨 Генерация началась...")
+
+        response = await generate_image(model="flux", prompt=prompt_en)
+        if response["error"]:
+            raise RuntimeError(response["msg"])
+
+        image_bytes = response["file"]
+        image = BufferedInputFile(image_bytes, filename="generated.png")
+
+        try:
+            await processing_message.delete()
+        except TelegramBadRequest:
+            await message.answer("📛 У меня не удалось удалить своё сообщение")
+        await message.reply_photo(
+            photo=image,
+            caption=f"🧠 Модель: Flux\n🔍 Запрос: {prompt_ru}\n🖼️ Сгенерировано за {round(response['elapsed_time'], 2)} сек.",
         )
-
-        task = {
-            "id": queue_id,
-            "message": message,
-            "bot": bot,
-            "prompt_ru": prompt_ru,
-            "prompt_en": prompt_en,
-            "processing_message": processing_message,
-        }
-
-        image_generation_queue.append(task)
-        asyncio.create_task(process_image_queue())
 
     except Exception:
         await error_report(message, bot, "image", traceback.format_exc())
-
-
-async def process_image_queue():
-    global is_generating, last_generation_time
-
-    if is_generating:
-        return
-
-    is_generating = True
-
-    while image_generation_queue:
-        task = image_generation_queue.popleft()
-        try:
-            message = task["message"]
-            bot = task["bot"]
-            prompt_ru = (
-                task["prompt_ru"][:1020]
-                if len(task["prompt_ru"]) > 1020
-                else task["prompt_ru"]
-            )
-            prompt_en = task["prompt_en"]
-            processing_message = task["processing_message"]
-
-            # Обновим статус позиции в очереди (если ещё есть очередь)
-            position = 1 + sum(
-                1 for t in image_generation_queue if t["id"] != task["id"]
-            )
-            if position > 0:
-                await processing_message.edit_text(
-                    f"📡 Запрос в очереди, ваше место: {position}"
-                )
-            else:
-                await processing_message.edit_text("🎨 Генерация началась...")
-
-            now = datetime.now()
-            delta = (now - last_generation_time).total_seconds()
-            if delta < rate_limit_seconds:
-                await asyncio.sleep(rate_limit_seconds - delta)
-
-            last_generation_time = datetime.now()
-
-            prompt_encoded = urllib.parse.quote(prompt_en)
-            url = f"https://image.pollinations.ai/prompt/{prompt_encoded}?width=1024&height=1024&nologo=true&model=flux"
-
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=300) as response:
-                    if response.status != 200:
-                        await message.answer(
-                            f"❌ Ошибка генерации. Код: {response.status}"
-                        )
-                        continue
-
-                    image_bytes = await response.read()
-                    filename = (
-                        f"/tmp/image_{message.from_user.id}_{uuid.uuid4().hex[:8]}.jpg"
-                    )
-
-                    with open(filename, "wb") as f:
-                        f.write(image_bytes)
-
-            await message.reply_photo(
-                photo=FSInputFile(filename), caption=f"🖼️ {prompt_ru}"
-            )
-            os.remove(filename)
-
-            await processing_message.delete()
-
-        except Exception:
-            await error_report(
-                task["message"], task["bot"], "image", traceback.format_exc()
-            )
-
-    is_generating = False
 
 
 @ai_router.message(Command("translate"), CooldownFilter("ai", 15))

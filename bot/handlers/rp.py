@@ -15,7 +15,7 @@ from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 
 rp_router = Router()
-BASE_COMMANDS_PATH = Path("bot/basic_rp.json")
+BASE_COMMANDS_PATH = Path("bot/config/basic_rp.json")
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
 

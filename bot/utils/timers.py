@@ -29,7 +29,9 @@ async def check_updates():
             .strip()
         )
 
-        version_path = Path(__file__).resolve().parent.parent / "version.json"
+        version_path = (
+            Path(__file__).resolve().parent.parent / "config" / "version.json"
+        )
         with version_path.open() as f:
             version_data = json.load(f)
             api_url = version_data.get("repo_api", None)
@@ -38,7 +40,7 @@ async def check_updates():
                 return
 
         api_branches_url = f"{api_url}/branches/{branch}"
-        api_content_url = f"{api_url}/contents/bot/version.json?ref=test"
+        api_content_url = f"{api_url}/contents/bot/config/version.json?ref=test"
 
         headers = {"User-Agent": "KomaruBot/1.0"}
 

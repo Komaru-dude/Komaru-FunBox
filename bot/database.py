@@ -42,8 +42,15 @@ DEFAULT_SETTINGS = [
         "autovideo",
         "Медиа",
         bool,
-        True,
+        False,
         "Автоматически загружает видео с поддерживаемых хостингов",
+    ),
+    (
+        "user_prompts",
+        "Медиа",
+        bool,
+        True,
+        "Разрешает пользователям создавать и использовать свои промпты",
     ),
     (
         "warn",
@@ -72,6 +79,13 @@ DEFAULT_SETTINGS = [
         bool,
         True,
         "Отправляет уведомление о том что функция выключена",
+    ),
+    (
+        "auto_eg_free",
+        "Уведомления",
+        bool,
+        False,
+        "Каждый четверг отправляет список бесплатных игр в Epic Games",
     ),
     ("alo", "Разное", bool, False, "???"),
     (
@@ -782,6 +796,19 @@ class Database:
                 WHERE user_id = $2
             """,
                 value,
+                user_id,
+            )
+
+    async def delete_global_user(self, user_id: int):
+        """
+        Удаляет глобального пользователя.
+        """
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """
+                DELETE FROM global_users WHERE user_id = $1
+            """,
                 user_id,
             )
 
