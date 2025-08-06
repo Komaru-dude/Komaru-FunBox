@@ -1084,7 +1084,7 @@ async def duel_fight_callback(callback: CallbackQuery, db: Database, bot: Bot):
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> Но <a href='tg://user?id={opponent_id}'>увернулся!</a> 💨"
                     duel["dodge"] = None
                 elif duel.get("failed_dodge") == opponent_id:
-                    dmg = int(dmg * 1.5)
+                    dmg = int(dmg * 1.25)
                     hp[opponent_id] -= dmg
                     msg = f"🗡 <a href='tg://user?id={user_id}'>Атакует!</a> (штраф за провал уворота) -{dmg} HP противнику"
                     duel["failed_dodge"] = None
