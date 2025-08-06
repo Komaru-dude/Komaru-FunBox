@@ -860,7 +860,7 @@ class Duel(StatesGroup):
 
 @eco_router.message(
     Command("duel"),
-    CooldownFilter("duel", 30),
+    CooldownFilter("duel", 3600),
     ChatTypeFilter(chat_type=["group", "supergroup"]),
 )
 async def cmd_duel(message: Message, bot: Bot, state: FSMContext, db: Database):
