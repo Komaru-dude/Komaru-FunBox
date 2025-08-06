@@ -21,5 +21,15 @@
   "dice_timeout": 300,
   "dice_min_bet": 50,
   "dice_max_bet": 10000,
-  "math_timeout": 5400
+  "math_timeout": 5400,
+  "math_rewards": {
+    "easy": [10, 30],
+    "medium": [31, 60],
+    "hard": [61, 100]
+  },
+  "math_fines": {
+    "easy": [5, 15],
+    "medium": [16, 30],
+    "hard": [31, 50]
+  }
 }

@@ -126,7 +126,7 @@ async def process_difficulty(
         else:
             answer = int(eval(expr))
 
-        await state.update_data(answer=answer)
+        await state.update_data(answer=answer, difficulty=difficulty)
 
         await callback.message.edit_text(f"🧠 Пример:\n❓ Сколько будет {expr}?")
         await state.set_state(MathStates.waiting_for_answer)
@@ -145,6 +145,7 @@ async def process_math_answer(
     try:
         user_id = message.from_user.id
         data = await state.get_data()
+        difficulty = data.get("difficulty", "easy")
         correct = data.get("answer")
         money = await db.get_global_user_param(user_id, "money")
 
@@ -155,13 +156,15 @@ async def process_math_answer(
             return
 
         if user_answer == correct:
-            reward = random.randint(10, 30)
+            reward_range = eco_config["math_rewards"].get(difficulty, [10, 30])
+            reward = random.randint(*reward_range)
             await db.set_global_user_param(user_id, "money", money + reward)
             await message.reply(
                 f"✅ Верно!\nВы получили {eco_config['currency_sign']} {reward}."
             )
         else:
-            fine = random.randint(5, 15)
+            fine_range = eco_config["math_fines"].get(difficulty, [5, 15])
+            fine = random.randint(*fine_range)
             await db.set_global_user_param(user_id, "money", money - fine)
             await message.reply(
                 f"❌ Неверно! Правильный ответ: {correct}.\nШтраф: {eco_config['currency_sign']} {fine}."
