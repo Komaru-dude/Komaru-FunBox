@@ -103,22 +103,34 @@ def find_best_format(
     formats: List[dict],
     duration_s: Optional[int],
     size_limit_mb: Optional[float],
+    quality: str = "medium",
 ) -> Optional[str]:
     """
     Выбирает наилучший формат видео на основе явного списка приоритетов.
     """
     # Список приоритетов: (макс. высота, кодек). От лучшего к худшему.
-    SEARCH_PRIORITIES = [
-        (1080, "av01"),
-        (1080, "vp9"),
-        (1080, "h264"),
-        (720, "av01"),
-        (720, "vp9"),
-        (720, "h264"),
-        (480, "av01"),
-        (480, "vp9"),
-        (480, "h264"),
-    ]
+    SEARCH_PRIORITIES = {
+        "low": [(480, "h264"), (360, "h264")],
+        "medium": [(720, "h264"), (480, "h264")],
+        "high": [(1080, "h264"), (720, "h264")],
+    }
+
+    if quality == "audio":
+        audio_only = sorted(
+            [
+                f
+                for f in formats
+                if f.get("acodec") and f.get("acodec") != "none" and not f.get("vcodec")
+            ],
+            key=lambda x: x.get("abr", 0),
+            reverse=True,
+        )
+        if audio_only:
+            best_audio = audio_only[0]
+            est_size = estimate_size_mb_from_format(best_audio, duration_s)
+            if size_limit_mb is None or (est_size and est_size <= size_limit_mb):
+                return str(best_audio["format_id"])
+        return None
 
     video_only, audio_only, muxed = [], [], []
     for fmt in formats:
@@ -136,7 +148,7 @@ def find_best_format(
         estimate_size_mb_from_format(best_audio, duration_s) if best_audio else 0
     )
 
-    for max_height, codec in SEARCH_PRIORITIES:
+    for max_height, codec in SEARCH_PRIORITIES.get(quality, []):
         codec_check = CODEC_ALIASES.get(codec, [codec])
 
         candidates = sorted(
@@ -269,7 +281,15 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                             url_id=video_id, quality="high"
                         ).pack(),
                     ),
-                ]
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="Audio Only",
+                        callback_data=VideoQualityCallback(
+                            url_id=video_id, quality="audio"
+                        ).pack(),
+                    )
+                ],
             ]
         )
 
@@ -296,6 +316,7 @@ async def quality_chosen_handler(
 
     await callback.answer("⏳ Начинаю обработку...")
     temp_file = None
+    is_audio = quality == "audio"
 
     try:
         await callback.message.edit_text("🔍 Получение информации...")
@@ -305,7 +326,7 @@ async def quality_chosen_handler(
             return await callback.message.edit_text("❌ Ошибка получения данных")
 
         duration_min = (info.get("duration") or 0) // 60
-        if duration_min > MAX_DURATION_MINUTES and quality != "low":
+        if duration_min > MAX_DURATION_MINUTES and quality != "low" and not is_audio:
             quality = "low"
             await callback.message.answer(
                 f"⚠️ Видео слишком длинное. Установлено качество: Low"
@@ -315,24 +336,15 @@ async def quality_chosen_handler(
             formats=info.get("formats", []),
             duration_s=info.get("duration"),
             size_limit_mb=TELEGRAM_MAX_MB,
+            quality=quality,
         )
 
         if not format_spec:
-            await callback.message.edit_text("📛 Формат до 50 МБ не найден.\n")
-            return
-
-        if not format_spec:
-            return await callback.message.edit_text(
-                "😓 Нет подходящих форматов.\n✍️ Попробуйте выбрать другой"
-            )
-
-        if not format_spec:
-            return await callback.message.edit_text(
-                "😓 Нет подходящих форматов.\n✍️ Попробуйте выбрать другой"
-            )
+            return await callback.message.edit_text("📛 Формат до 50 МБ не найден.")
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
-        temp_file = CACHE_DIR / f"{uuid.uuid4()}.mp4"
+        file_ext = ".mp3" if is_audio else ".mp4"
+        temp_file = CACHE_DIR / f"{uuid.uuid4()}{file_ext}"
 
         success, log = await download_with_format(url, format_spec, temp_file)
         if not success:
@@ -347,9 +359,14 @@ async def quality_chosen_handler(
             )
 
         await callback.message.edit_text("📤 Отправка...")
-        await callback.message.reply_video(
-            FSInputFile(temp_file), caption=f"✅ {quality.capitalize()} качество"
-        )
+        if is_audio:
+            await callback.message.reply_audio(
+                FSInputFile(temp_file), caption=f"✅ Audio Only"
+            )
+        else:
+            await callback.message.reply_video(
+                FSInputFile(temp_file), caption=f"✅ {quality.capitalize()} качество"
+            )
 
     except Exception as e:
         await error_report(callback.message, bot, "video_download", str(e))
