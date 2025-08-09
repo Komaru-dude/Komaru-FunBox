@@ -59,6 +59,7 @@ async def yt_dlp_json(url: str) -> Optional[dict]:
     """Получение метаданных видео через yt-dlp."""
     proc = await asyncio.create_subprocess_exec(
         "yt-dlp",
+        "--no-cache-dir",
         "-j",
         url,
         stdout=asyncio.subprocess.PIPE,
@@ -208,6 +209,7 @@ async def download_with_format(
     try:
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
+            "--no-cache-dir",
             "-f",
             format_spec,
             "-o",
