@@ -338,7 +338,7 @@ async def quality_chosen_handler(
         )
 
         if not format_spec:
-            return await callback.message.edit_text("❌ Нет подходящих форматов")
+            return await callback.message.edit_text("😓 Нет подходящих форматов.\n✍️ Попробуйте выбрать другой")
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
         temp_file = CACHE_DIR / f"{uuid.uuid4()}.mp4"
@@ -346,7 +346,7 @@ async def quality_chosen_handler(
         success, log = await download_with_format(url, format_spec, temp_file)
         if not success:
             return await callback.message.edit_text(
-                f"❌ Ошибка скачивания: {log[:300]}"
+                f"❌ Ошибка скачивания, обратитесь к разработчику"
             )
 
         file_size = temp_file.stat().st_size / (1024**2)
