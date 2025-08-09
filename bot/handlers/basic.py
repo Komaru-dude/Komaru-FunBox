@@ -1,3 +1,4 @@
+import re
 import time
 import traceback
 from urllib.parse import quote
@@ -134,16 +135,26 @@ async def cmd_set_name(message: Message, bot: Bot, db: Database):
             )
 
         user = message.from_user
-        new_name = (
-            message.text.split(maxsplit=1)[1] if len(message.text.split()) > 1 else None
-        )
+        parts = message.text.split(maxsplit=1)
+        new_name = parts[1] if len(parts) > 1 else None
 
         if not new_name:
             await message.reply("📛 Укажите новое имя после команды /set_name")
             return
 
+        if not (5 <= len(new_name) <= 32):
+            await message.reply("📛 Имя должно быть от 5 до 32 символов.")
+            return
+
+        if not re.fullmatch(r"[A-Za-zА-Яа-яЁё\s\-]+", new_name):
+            await message.reply(
+                "📛 Имя может содержать только русские и английские буквы, пробелы и дефисы."
+            )
+            return
+
         await db.set_global_user_param(user.id, "name", new_name)
         await message.reply(f"✅ Ваше имя в боте изменено на {new_name}")
+
     except Exception:
         await error_report(message, bot, "set_name", traceback.format_exc())
 
