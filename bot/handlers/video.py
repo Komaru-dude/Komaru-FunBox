@@ -210,19 +210,22 @@ async def download_with_format(
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
             "--no-cache-dir",
-            "-f",
-            format_spec,
-            "-o",
-            str(output_path),
+            "-f", format_spec,
+            "-o", str(output_path),
             url,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
         )
-        stdout, stderr = await proc.communicate()
+
+        stdout, _ = await proc.communicate()
+        output_text = stdout.decode(errors="replace")
+        logger.debug(f"🌀 Вывод yt-dlp:\n{output_text}")
 
         if proc.returncode == 0 and output_path.exists():
-            return True, stdout.decode()
-        return False, stderr.decode()
+            return True, stdout.decode(errors="ignore") or "OK"
+        else:
+            return False, stdout.decode(errors="ignore") or "Неизвестная ошибка"
+        
     except Exception as e:
         return False, str(e)
 
