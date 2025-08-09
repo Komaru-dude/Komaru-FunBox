@@ -28,11 +28,10 @@ video_router = Router()
 # Настройки
 MAX_DURATION_MINUTES = 5
 TELEGRAM_MAX_MB = 50
-CODEC_PRIORITY = ["av01", "vp9", "h264"]
-QUALITY_PRESETS = {
-    "low": {"max_height": 480},
-    "medium": {"max_height": 720},
-    "high": {"max_height": None},
+CODEC_ALIASES = {
+    "h264": ["avc1", "h264"],
+    "vp9": ["vp9"],
+    "av01": ["av01"],
 }
 
 
@@ -100,106 +99,89 @@ def estimate_size_mb_from_format(
     return None
 
 
-def choose_best_format_pair(
+def find_best_format(
     formats: List[dict],
-    preferred_codecs: List[str],
-    max_height: Optional[int],
     duration_s: Optional[int],
     size_limit_mb: Optional[float],
 ) -> Optional[str]:
-    """Выбор оптимального формата видео."""
+    """
+    Выбирает наилучший формат видео на основе явного списка приоритетов.
+    """
+    # Список приоритетов: (макс. высота, кодек). От лучшего к худшему.
+    SEARCH_PRIORITIES = [
+        (1080, "av01"),
+        (1080, "vp9"),
+        (1080, "h264"),
+        (720, "av01"),
+        (720, "vp9"),
+        (720, "h264"),
+        (480, "av01"),
+        (480, "vp9"),
+        (480, "h264"),
+    ]
 
-    def is_suitable_format(fmt: dict, codec: str) -> bool:
-        """Проверка соответствия формата требованиям."""
-        if fmt.get("acodec", "none") == "none" and fmt.get("vcodec") == "none":
-            return False
-
-        vcodec = fmt.get("vcodec", "")
-        height = fmt.get("height")
-
-        # Проверка кодека
-        if codec not in vcodec:
-            return False
-
-        # Проверка высоты
-        if max_height is not None and height and height > max_height:
-            return False
-
-        return True
-
-    # Поиск муксованных форматов
-    for codec in preferred_codecs:
-        candidates = []
-        for fmt in formats:
-            if not is_suitable_format(fmt, codec):
-                continue
-
-            # Отбор муксованных форматов
-            if fmt.get("acodec") != "none":
-                est_size = estimate_size_mb_from_format(fmt, duration_s)
-                candidates.append((fmt, est_size))
-
-        if not candidates:
-            continue
-
-        # Сортировка по размеру/качеству
-        if size_limit_mb:
-            candidates = [c for c in candidates if c[1] and c[1] <= size_limit_mb]
-            if not candidates:
-                continue
-            candidates.sort(key=lambda x: x[1])
-        else:
-            candidates.sort(key=lambda x: x[0].get("height", 0), reverse=True)
-
-        return str(candidates[0][0]["format_id"])
-
-    # Поиск раздельных форматов (видео + аудио)
-    video_candidates = []
-    audio_candidates = []
-
+    video_only, audio_only, muxed = [], [], []
     for fmt in formats:
-        if fmt.get("vcodec") not in (None, "none") and fmt.get("acodec") == "none":
-            video_candidates.append(fmt)
-        elif fmt.get("acodec") not in (None, "none") and fmt.get("vcodec") in (
-            None,
-            "none",
-        ):
-            audio_candidates.append(fmt)
+        has_video = fmt.get("vcodec") and fmt.get("vcodec") != "none"
+        has_audio = fmt.get("acodec") and fmt.get("acodec") != "none"
+        if has_video and has_audio:
+            muxed.append(fmt)
+        elif has_video:
+            video_only.append(fmt)
+        elif has_audio:
+            audio_only.append(fmt)
 
-    if not video_candidates or not audio_candidates:
-        return None
-
-    # Выбор лучшего аудио
-    audio_candidates.sort(
-        key=lambda a: a.get("asr", 0) or a.get("abr", 0), reverse=True
+    best_audio = max(audio_only, key=lambda x: x.get("abr", 0), default=None)
+    best_audio_size_mb = (
+        estimate_size_mb_from_format(best_audio, duration_s) if best_audio else 0
     )
-    best_audio_id = audio_candidates[0]["format_id"]
 
-    # Выбор видео с учетом ограничений
-    suitable_videos = []
-    for video in video_candidates:
-        # Проверка кодека и высоты
-        if not any(c in video.get("vcodec", "") for c in preferred_codecs):
-            continue
-        if max_height is not None and video.get("height", 0) > max_height:
-            continue
+    for max_height, codec in SEARCH_PRIORITIES:
+        codec_check = CODEC_ALIASES.get(codec, [codec])
 
-        # Проверка размера
-        video_size = estimate_size_mb_from_format(video, duration_s)
-        audio_size = estimate_size_mb_from_format(audio_candidates[0], duration_s)
-        total_size = (video_size or 0) + (audio_size or 0)
+        candidates = sorted(
+            [
+                f
+                for f in muxed
+                if any(c in f.get("vcodec", "") for c in codec_check)
+                and f.get("height", 0) <= max_height
+            ],
+            key=lambda x: x.get("height", 0),
+            reverse=True,
+        )
+        if candidates:
+            best_candidate = candidates[0]
+            est_size = estimate_size_mb_from_format(best_candidate, duration_s)
+            if size_limit_mb is None or (est_size and est_size <= size_limit_mb):
+                return str(best_candidate["format_id"])
 
-        if size_limit_mb and total_size > size_limit_mb:
-            continue
+        if best_audio:
+            candidates = sorted(
+                [
+                    v
+                    for v in video_only
+                    if any(c in v.get("vcodec", "") for c in codec_check)
+                    and v.get("height", 0) <= max_height
+                ],
+                key=lambda x: x.get("height", 0),
+                reverse=True,
+            )
+            if candidates:
+                best_video = candidates[0]
+                video_size_mb = estimate_size_mb_from_format(best_video, duration_s)
+                if not video_size_mb:
+                    continue
 
-        suitable_videos.append((video, total_size))
+                total_size = video_size_mb + (best_audio_size_mb or 0)
+                if size_limit_mb is None or total_size <= size_limit_mb:
+                    return f"{best_video['format_id']}+{best_audio['format_id']}"
 
-    if not suitable_videos:
-        return None
+    if best_audio:
+        audio_size_mb = estimate_size_mb_from_format(best_audio, duration_s)
+        if size_limit_mb is None or (audio_size_mb and audio_size_mb <= size_limit_mb):
+            return str(best_audio["format_id"])
 
-    # Сортировка по качеству
-    suitable_videos.sort(key=lambda x: x[0].get("height", 0), reverse=True)
-    return f"{suitable_videos[0][0]['format_id']}+{best_audio_id}"
+    return None
 
 
 async def download_with_format(
@@ -329,16 +311,25 @@ async def quality_chosen_handler(
                 f"⚠️ Видео слишком длинное. Установлено качество: Low"
             )
 
-        format_spec = choose_best_format_pair(
+        format_spec = find_best_format(
             formats=info.get("formats", []),
-            preferred_codecs=CODEC_PRIORITY,
-            max_height=QUALITY_PRESETS[quality]["max_height"],
             duration_s=info.get("duration"),
             size_limit_mb=TELEGRAM_MAX_MB,
         )
 
         if not format_spec:
-            return await callback.message.edit_text("😓 Нет подходящих форматов.\n✍️ Попробуйте выбрать другой")
+            await callback.message.edit_text("📛 Формат до 50 МБ не найден.\n")
+            return
+
+        if not format_spec:
+            return await callback.message.edit_text(
+                "😓 Нет подходящих форматов.\n✍️ Попробуйте выбрать другой"
+            )
+
+        if not format_spec:
+            return await callback.message.edit_text(
+                "😓 Нет подходящих форматов.\n✍️ Попробуйте выбрать другой"
+            )
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
         temp_file = CACHE_DIR / f"{uuid.uuid4()}.mp4"
