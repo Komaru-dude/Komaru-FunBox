@@ -341,7 +341,7 @@ async def quality_chosen_handler(
         )
 
         if not format_spec:
-            return await callback.message.edit_text("📛 Формат до 50 МБ не найден.")
+            return await callback.message.edit_text("📛 Формат до 50 МБ не найден.\n💡 Попробуйте выбрать другое качество")
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
         file_ext = ".mp3" if is_audio else ".mp4"
