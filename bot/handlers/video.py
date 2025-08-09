@@ -30,7 +30,7 @@ MAX_DURATION_MINUTES = 5
 TELEGRAM_MAX_MB = 50
 CODEC_PRIORITY = ["av01", "vp9", "h264"]
 QUALITY_PRESETS = {
-    "low": {"max_height": 360},
+    "low": {"max_height": 480},
     "medium": {"max_height": 720},
     "high": {"max_height": None},
 }
@@ -210,8 +210,10 @@ async def download_with_format(
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
             "--no-cache-dir",
-            "-f", format_spec,
-            "-o", str(output_path),
+            "-f",
+            format_spec,
+            "-o",
+            str(output_path),
             url,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
@@ -225,7 +227,7 @@ async def download_with_format(
             return True, stdout.decode(errors="ignore") or "OK"
         else:
             return False, stdout.decode(errors="ignore") or "Неизвестная ошибка"
-        
+
     except Exception as e:
         return False, str(e)
 
@@ -248,7 +250,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
     clean_url = f"https://www.youtube.com/watch?v={video_id}"
 
     try:
-        msg = await message.answer("⏳ Анализ видео...")
+        await message.answer("⏳ Анализ видео...")
         info = await yt_dlp_json(clean_url)
 
         if not info:
@@ -297,9 +299,6 @@ async def cmd_video(message: Message, bot: Bot, url=None):
         await message.reply(text, reply_markup=keyboard)
     except Exception:
         await error_report(message, bot, "video_cmd", traceback.format_exc())
-    finally:
-        if "msg" in locals():
-            await msg.delete()
 
 
 @video_router.callback_query(VideoQualityCallback.filter())
@@ -317,7 +316,7 @@ async def quality_chosen_handler(
     temp_file = None
 
     try:
-        msg = await callback.message.edit_text("🔍 Получение информации...")
+        await callback.message.edit_text("🔍 Получение информации...")
         info = await yt_dlp_json(url)
 
         if not info:
@@ -366,8 +365,6 @@ async def quality_chosen_handler(
     finally:
         if temp_file and temp_file.exists():
             temp_file.unlink()
-        if "msg" in locals() and msg:
-            await msg.delete()
 
 
 @video_router.message(Command("gif"), CooldownFilter("gif", 300))
@@ -384,7 +381,7 @@ async def cmd_gif(message: Message, bot: Bot):
     temp_files = []
     try:
         # Скачивание видео
-        msg = await message.reply("🔄 Обработка...")
+        await message.reply("🔄 Обработка...")
         file = await bot.get_file(video.file_id)
         video_path = CACHE_DIR / f"{video.file_id}.mp4"
         temp_files.append(video_path)
@@ -444,5 +441,3 @@ async def cmd_gif(message: Message, bot: Bot):
                     path.unlink()
             except Exception:
                 pass
-        if "msg" in locals():
-            await msg.delete()
