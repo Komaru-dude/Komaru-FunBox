@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import shutil
 import traceback
 import uuid
@@ -36,8 +37,22 @@ QUALITY_PRESETS = {
 
 
 class VideoQualityCallback(CallbackData, prefix="vidq", sep="|"):
-    url: str
+    url_id: str
     quality: str
+
+
+def extract_youtube_id(url: str) -> Optional[str]:
+    """Извлекает уникальный ID видео из YouTube-ссылки."""
+    patterns = [
+        r"(?:v=|\/)([0-9A-Za-z_-]{11}).*",  # Стандартные ссылки
+        r"youtu\.be\/([0-9A-Za-z_-]{11}).*",  # Ссылки youtu.be
+        r"shorts\/([0-9A-Za-z_-]{11}).*",  # Ссылки Shorts
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    return None
 
 
 async def yt_dlp_json(url: str) -> Optional[dict]:
@@ -210,10 +225,8 @@ async def download_with_format(
         return False, str(e)
 
 
-@video_router.message(Command("video"), CooldownFilter("video", 150))
+@video_router.message(Command("youtube"), CooldownFilter("video", 150))
 async def cmd_video(message: Message, bot: Bot, url=None):
-    """Обработчик команды /video."""
-    # Извлечение URL из сообщения
     if not url:
         parts = message.text.split(maxsplit=1)
         url = parts[1] if len(parts) > 1 else None
@@ -221,39 +234,56 @@ async def cmd_video(message: Message, bot: Bot, url=None):
     if not url:
         return await message.reply("❌ Укажите URL видео: /video <ссылка>")
 
+    # Извлекаем ID видео
+    video_id = extract_youtube_id(url)
+    if not video_id:
+        return await message.reply("❌ Некорректная ссылка на YouTube-видео.")
+
+    # Создаём "чистый" URL для yt-dlp, чтобы избежать проблем
+    clean_url = f"https://www.youtube.com/watch?v={video_id}"
+
     try:
-        # Получение метаданных
         msg = await message.answer("⏳ Анализ видео...")
-        info = await yt_dlp_json(url)
+        info = await yt_dlp_json(clean_url)
 
         if not info:
             await error_report(message, bot, "video_info", "Ошибка получения данных")
             return await message.reply("❌ Не удалось получить информацию о видео")
 
-        # Формирование клавиатуры
+        if info.get("is_live"):
+            return await message.reply("❌ Нельзя загружать прямые трансляции.")
+
+        if "/shorts/" in url:
+            return await message.reply("❌ Нельзя загружать YouTube Shorts.")
+
         duration = int(info.get("duration", 0))
         duration_min = duration // 60
 
         keyboard = InlineKeyboardMarkup(
-            [
-                InlineKeyboardButton(
-                    text="Low",
-                    callback_data=VideoQualityCallback(url=url, quality="low").pack(),
-                ),
-                InlineKeyboardButton(
-                    text="Medium",
-                    callback_data=VideoQualityCallback(
-                        url=url, quality="medium"
-                    ).pack(),
-                ),
-                InlineKeyboardButton(
-                    text="High",
-                    callback_data=VideoQualityCallback(url=url, quality="high").pack(),
-                ),
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="Low",
+                        callback_data=VideoQualityCallback(
+                            url=video_id, quality="low"
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="Medium",
+                        callback_data=VideoQualityCallback(
+                            url=video_id, quality="medium"
+                        ).pack(),
+                    ),
+                    InlineKeyboardButton(
+                        text="High",
+                        callback_data=VideoQualityCallback(
+                            url=video_id, quality="high"
+                        ).pack(),
+                    ),
+                ]
             ]
         )
 
-        # Информационное сообщение
         text = f"🎬 *{info.get('title', 'Без названия')}*\n"
         text += f"⏱ Длительность: {duration_min} мин\n"
         if duration_min > MAX_DURATION_MINUTES:
@@ -272,21 +302,22 @@ async def quality_chosen_handler(
     callback: CallbackQuery, callback_data: VideoQualityCallback, bot: Bot
 ):
     """Обработка выбора качества."""
-    url = callback_data.url
+    # Получаем ID из колбэк-данных
+    video_id = callback_data.url
+    # Создаём полный URL для yt-dlp
+    url = f"https://www.youtube.com/watch?v={video_id}"
     quality = callback_data.quality
 
     await callback.answer("⏳ Начинаю обработку...")
     temp_file = None
 
     try:
-        # Получение метаданных
         msg = await callback.message.edit_text("🔍 Получение информации...")
         info = await yt_dlp_json(url)
 
         if not info:
             return await callback.message.edit_text("❌ Ошибка получения данных")
 
-        # Автопонижение качества для длинных видео
         duration_min = (info.get("duration") or 0) // 60
         if duration_min > MAX_DURATION_MINUTES and quality != "low":
             quality = "low"
@@ -294,7 +325,6 @@ async def quality_chosen_handler(
                 f"⚠️ Видео слишком длинное. Установлено качество: Low"
             )
 
-        # Выбор формата
         format_spec = choose_best_format_pair(
             formats=info.get("formats", []),
             preferred_codecs=CODEC_PRIORITY,
@@ -306,7 +336,6 @@ async def quality_chosen_handler(
         if not format_spec:
             return await callback.message.edit_text("❌ Нет подходящих форматов")
 
-        # Скачивание
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
         temp_file = CACHE_DIR / f"{uuid.uuid4()}.mp4"
 
@@ -316,14 +345,12 @@ async def quality_chosen_handler(
                 f"❌ Ошибка скачивания: {log[:300]}"
             )
 
-        # Проверка размера
         file_size = temp_file.stat().st_size / (1024**2)
         if file_size > TELEGRAM_MAX_MB:
             return await callback.message.edit_text(
                 f"⚠️ Файл слишком большой ({file_size:.1f}MB > {TELEGRAM_MAX_MB}MB)"
             )
 
-        # Отправка видео
         await callback.message.edit_text("📤 Отправка...")
         await callback.message.reply_video(
             FSInputFile(temp_file), caption=f"✅ {quality.capitalize()} качество"
@@ -334,7 +361,7 @@ async def quality_chosen_handler(
     finally:
         if temp_file and temp_file.exists():
             temp_file.unlink()
-        if "msg" in locals():
+        if "msg" in locals() and msg:
             await msg.delete()
 
 

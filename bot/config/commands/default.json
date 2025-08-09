@@ -29,7 +29,7 @@
     { "command": "rp_list", "description": "Список рп команд" },
     { "command": "rp_remove", "description": "Удалить рп команду" },
     { "command": "rp_wipe", "description": "Удалить все рп команды" },
-    { "command": "video", "description": "Скачать видео" },
+    { "command": "youtube", "description": "Скачать видео с youtube" },
     { "command": "gif", "description": "Конвертировать видео в гифку" },
     { "command": "set_rank", "description": "Установить ранг" },
     { "command": "info", "description": "Инфо о пользователе" },
