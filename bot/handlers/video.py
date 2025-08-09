@@ -35,7 +35,7 @@ QUALITY_PRESETS = {
 }
 
 
-class VideoQualityCallback(CallbackData, prefix="vidq"):
+class VideoQualityCallback(CallbackData, prefix="vidq", sep="|"):
     url: str
     quality: str
 
