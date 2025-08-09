@@ -192,7 +192,9 @@ def find_best_format(
         audio_size_mb = estimate_size_mb_from_format(best_audio, duration_s)
         if size_limit_mb is None or (audio_size_mb and audio_size_mb <= size_limit_mb):
             return str(best_audio["format_id"])
-
+        
+    logger.debug(f"Качество: {quality}, Форматов: {len(formats)}")
+    logger.debug(f"Видео-только: {len(video_only)}, Аудио-только: {len(audio_only)}")
     return None
 
 
