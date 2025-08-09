@@ -265,19 +265,19 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                     InlineKeyboardButton(
                         text="Low",
                         callback_data=VideoQualityCallback(
-                            url=video_id, quality="low"
+                            url_id=video_id, quality="low"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="Medium",
                         callback_data=VideoQualityCallback(
-                            url=video_id, quality="medium"
+                            url_id=video_id, quality="medium"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="High",
                         callback_data=VideoQualityCallback(
-                            url=video_id, quality="high"
+                            url_id=video_id, quality="high"
                         ).pack(),
                     ),
                 ]
