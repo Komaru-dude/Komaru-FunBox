@@ -120,7 +120,8 @@ def find_best_format(
             [
                 f
                 for f in formats
-                if f.get("acodec") and f.get("acodec") != "none" and not f.get("vcodec")
+                if f.get("acodec") != "none"
+                and (not f.get("vcodec") or f.get("vcodec") == "none")
             ],
             key=lambda x: x.get("abr", 0),
             reverse=True,
@@ -192,7 +193,7 @@ def find_best_format(
         audio_size_mb = estimate_size_mb_from_format(best_audio, duration_s)
         if size_limit_mb is None or (audio_size_mb and audio_size_mb <= size_limit_mb):
             return str(best_audio["format_id"])
-        
+
     logger.debug(f"Качество: {quality}, Форматов: {len(formats)}")
     logger.debug(f"Видео-только: {len(video_only)}, Аудио-только: {len(audio_only)}")
     return None
@@ -343,7 +344,9 @@ async def quality_chosen_handler(
         )
 
         if not format_spec:
-            return await callback.message.edit_text("📛 Формат до 50 МБ не найден.\n💡 Попробуйте выбрать другое качество")
+            return await callback.message.edit_text(
+                "📛 Формат до 50 МБ не найден.\n💡 Попробуйте выбрать другое качество"
+            )
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
         file_ext = ".mp3" if is_audio else ".mp4"
