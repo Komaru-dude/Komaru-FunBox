@@ -29,15 +29,6 @@ PROMPT_TRIGGER_PREFIX = "!"
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
 SUPPORTED_DOMAINS = [
-    "soundcloud.com",
-    "vimeo.com",
-    "twitch.tv",
-    "bilibili.com",
-    "facebook.com",
-    "rumble.com",
-    "odysee.com",
-    "dailymotion.com",
-    "vk.com",
     "youtube.com",
     "youtu.be",
     # добавить позже ещё
