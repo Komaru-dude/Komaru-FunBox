@@ -265,19 +265,19 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                     InlineKeyboardButton(
                         text="Low",
                         callback_data=VideoQualityCallback(
-                            url=video_id, quality="low"
+                            url_id=video_id, quality="low"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="Medium",
                         callback_data=VideoQualityCallback(
-                            url=video_id, quality="medium"
+                            url_id=video_id, quality="medium"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="High",
                         callback_data=VideoQualityCallback(
-                            url=video_id, quality="high"
+                            url_id=video_id, quality="high"
                         ).pack(),
                     ),
                 ]
@@ -303,7 +303,7 @@ async def quality_chosen_handler(
 ):
     """Обработка выбора качества."""
     # Получаем ID из колбэк-данных
-    video_id = callback_data.url
+    video_id = callback_data.url_id
     # Создаём полный URL для yt-dlp
     url = f"https://www.youtube.com/watch?v={video_id}"
     quality = callback_data.quality
