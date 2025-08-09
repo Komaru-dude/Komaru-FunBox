@@ -264,19 +264,19 @@ async def cmd_video(message: Message, bot: Bot, url=None):
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="Low",
+                        text="💾 Низкое",
                         callback_data=VideoQualityCallback(
                             url_id=video_id, quality="low"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
-                        text="Medium",
+                        text="💿 Среднее",
                         callback_data=VideoQualityCallback(
                             url_id=video_id, quality="medium"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
-                        text="High",
+                        text="📀 Высокое",
                         callback_data=VideoQualityCallback(
                             url_id=video_id, quality="high"
                         ).pack(),
@@ -284,7 +284,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                 ],
                 [
                     InlineKeyboardButton(
-                        text="Audio Only",
+                        text="🎧 Только аудио",
                         callback_data=VideoQualityCallback(
                             url_id=video_id, quality="audio"
                         ).pack(),
@@ -293,8 +293,9 @@ async def cmd_video(message: Message, bot: Bot, url=None):
             ]
         )
 
-        text = f"🎬 *{info.get('title', 'Без названия')}*\n"
+        text = f"🎬 {info.get('title', 'Без названия')}\n"
         text += f"⏱ Длительность: {duration_min} мин\n"
+        text += "📝 Выберите качество:\n"
         if duration_min > MAX_DURATION_MINUTES:
             text += f"⚠️ Видео >{MAX_DURATION_MINUTES} мин - качество будет понижено\n"
 
@@ -314,7 +315,7 @@ async def quality_chosen_handler(
     url = f"https://www.youtube.com/watch?v={video_id}"
     quality = callback_data.quality
 
-    await callback.answer("⏳ Начинаю обработку...")
+    await callback.message.edit_text("⏳ Начинаю обработку...")
     temp_file = None
     is_audio = quality == "audio"
 
