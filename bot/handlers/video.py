@@ -387,7 +387,7 @@ async def quality_chosen_handler(
         await callback.message.edit_text("📤 Отправка...")
         if is_audio:
             await callback.message.reply_audio(
-                FSInputFile(temp_file), caption=f"✅ Audio Only"
+                FSInputFile(temp_file), caption=f"✅ Только аудио"
             )
         else:
             await callback.message.reply_video(
