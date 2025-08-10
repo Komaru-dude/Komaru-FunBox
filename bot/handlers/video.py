@@ -237,7 +237,7 @@ async def download_with_format(
         return False, str(e)
 
 
-@video_router.message(Command("youtube"), CooldownFilter("video", 150))
+@video_router.message(Command("youtube"), CooldownFilter("video", 300))
 async def cmd_video(message: Message, bot: Bot, url=None):
     if not url:
         parts = message.text.split(maxsplit=1)
