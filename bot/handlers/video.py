@@ -375,7 +375,7 @@ async def quality_chosen_handler(
         success, log = await download_with_format(url, format_spec, temp_file)
         if not success:
             return await callback.message.edit_text(
-                f"❌ Ошибка скачивания, обратитесь к разработчику"
+                f"❌ Ошибка скачивания, попробуйте через несколько часов или обратитесь к разработчику"
             )
 
         file_size = temp_file.stat().st_size / (1024**2)
