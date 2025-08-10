@@ -108,27 +108,56 @@ async def process_difficulty(
 ):
     try:
         difficulty = callback.data.split("_")[1]
+        op = None
+        a, b = 0, 0
 
         if difficulty == "easy":
-            a, b = random.randint(1, 50), random.randint(1, 50)
             op = random.choice(["+", "-", "*"])
-        elif difficulty == "medium":
-            a, b = random.randint(10, 100), random.randint(10, 100)
-            op = random.choice(["+", "-", "*"])
-        else:
-            a, b = random.randint(100, 1000), random.randint(100, 1000)
-            op = random.choice(["+", "-", "*", "//"])
-            if op == "/":
-                a = a - (a % b)
+            if op == "+":
+                a = random.randint(1, 50)
+                b = random.randint(1, 50)
+            elif op == "-":
+                a = random.randint(20, 50)
+                b = random.randint(1, a - 1)
+            else:  # умножение
+                a = random.randint(1, 10)
+                b = random.randint(1, 10)
 
-        expr = f"{a} {op} {b}"
-        if op == "//":
+        elif difficulty == "medium":
+            op = random.choice(["+", "-", "*", "/"])
+            if op in ["+", "-"]:
+                a = random.randint(10, 100)
+                b = random.randint(10, 100)
+                if op == "-" and a < b:
+                    a, b = b, a
+            elif op == "*":
+                a = random.randint(5, 25)
+                b = random.randint(5, 25)
+            else:  # деление
+                b = random.randint(2, 12)
+                a = b * random.randint(3, 15)
+
+        else:  # hard
+            op = random.choice(["+", "-", "*", "/"])
+            if op in ["+", "-"]:
+                a = random.randint(100, 1000)
+                b = random.randint(100, 1000)
+                if op == "-" and a < b:
+                    a, b = b, a
+            elif op == "*":
+                a = random.randint(50, 150)
+                b = random.randint(50, 150)
+            else:  # деление
+                b = random.randint(10, 100)
+                a = b * random.randint(10, 100)
+
+        expr = f"{a} {op} {b}" if op != "/" else f"{a} ÷ {b}"
+        if op == "/":
             answer = a // b
         else:
             answer = int(eval(expr))
 
         await state.update_data(answer=answer, difficulty=difficulty)
-
         await callback.message.edit_text(f"🧠 Пример:\n❓ Сколько будет {expr}?")
         await state.set_state(MathStates.waiting_for_answer)
 
