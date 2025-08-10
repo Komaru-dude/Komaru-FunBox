@@ -210,6 +210,7 @@ async def download_with_format(
 ) -> Tuple[bool, str]:
     """Скачивание видео с указанным форматом."""
     try:
+        logger.debug(f"🎛 Используем формат: {format_spec}")
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
             "--no-cache-dir",
