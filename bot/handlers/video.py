@@ -122,15 +122,14 @@ def find_best_format(
                 for f in formats
                 if f.get("acodec") != "none"
                 and (not f.get("vcodec") or f.get("vcodec") == "none")
+                and f.get("filesize") is not None
+                and f["filesize"] <= 50 * 1024 * 1024  # <= 50 МБ в байтах
             ],
             key=lambda x: x.get("abr", 0),
             reverse=True,
         )
         if audio_only:
-            best_audio = audio_only[0]
-            est_size = estimate_size_mb_from_format(best_audio, duration_s)
-            if size_limit_mb is None or (est_size is not None and est_size <= size_limit_mb):
-                return str(best_audio["format_id"])
+            return str(audio_only[0]["format_id"])
         return None
 
     video_only, audio_only, muxed = [], [], []
@@ -165,7 +164,9 @@ def find_best_format(
         if candidates:
             best_candidate = candidates[0]
             est_size = estimate_size_mb_from_format(best_candidate, duration_s)
-            if size_limit_mb is None or (est_size is not None and est_size <= size_limit_mb):
+            if size_limit_mb is None or (
+                est_size is not None and est_size <= size_limit_mb
+            ):
                 return str(best_candidate["format_id"])
 
         if best_audio:
@@ -191,7 +192,9 @@ def find_best_format(
 
     if best_audio:
         audio_size_mb = estimate_size_mb_from_format(best_audio, duration_s)
-        if size_limit_mb is None or (est_size is not None and est_size <= size_limit_mb):
+        if size_limit_mb is None or (
+            est_size is not None and est_size <= size_limit_mb
+        ):
             return str(best_audio["format_id"])
 
     logger.debug(f"Качество: {quality}, Форматов: {len(formats)}")
