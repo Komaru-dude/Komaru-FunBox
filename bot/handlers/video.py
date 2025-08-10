@@ -212,6 +212,8 @@ async def download_with_format(
             "--no-cache-dir",
             "-f",
             format_spec,
+            "--embed-metadata",
+            "--embed-thumbnail",
             "-o",
             str(output_path),
             url,
