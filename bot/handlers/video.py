@@ -38,7 +38,6 @@ CODEC_ALIASES = {
 class VideoQualityCallback(CallbackData, prefix="vidq", sep="|"):
     url_id: str
     quality: str
-    is_music: bool
 
 
 def extract_youtube_id(url: str) -> Optional[str]:
@@ -240,17 +239,12 @@ async def download_with_format(
 
 @video_router.message(Command("youtube"), CooldownFilter("video", 150))
 async def cmd_video(message: Message, bot: Bot, url=None):
-    is_music = False
-
     if not url:
         parts = message.text.split(maxsplit=1)
         url = parts[1] if len(parts) > 1 else None
 
     if not url:
         return await message.reply("❌ Укажите URL видео: /youtube <ссылка>")
-    
-    if "music." in url:
-        is_music = True
 
     # Извлекаем ID видео
     video_id = extract_youtube_id(url)
@@ -258,10 +252,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
         return await message.reply("❌ Некорректная ссылка на YouTube-видео.")
 
     # Создаём "чистый" URL для yt-dlp, чтобы избежать проблем
-    if is_music:
-        clean_url = f"https://music.youtube.com/watch?v={video_id}"
-    else:
-        clean_url = f"https://www.youtube.com/watch?v={video_id}"
+    clean_url = f"https://www.youtube.com/watch?v={video_id}"
 
     try:
         await message.answer("⏳ Анализ видео...")
@@ -286,19 +277,19 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                     InlineKeyboardButton(
                         text="💾 Низкое",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="low", is_music=is_music
+                            url_id=video_id, quality="low"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="💿 Среднее",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="medium", is_music=is_music
+                            url_id=video_id, quality="medium"
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="📀 Высокое",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="high", is_music=is_music
+                            url_id=video_id, quality="high"
                         ).pack(),
                     ),
                 ],
@@ -306,7 +297,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                     InlineKeyboardButton(
                         text="🎧 Только аудио",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="audio", is_music=is_music
+                            url_id=video_id, quality="audio"
                         ).pack(),
                     )
                 ],
@@ -332,10 +323,7 @@ async def quality_chosen_handler(
     # Получаем ID из колбэк-данных
     video_id = callback_data.url_id
     # Создаём полный URL для yt-dlp
-    if callback_data.is_music:
-        url = f"https://music.youtube.com/watch?v={video_id}"
-    else:
-        url = f"https://www.youtube.com/watch?v={video_id}"
+    url = f"https://www.youtube.com/watch?v={video_id}"
     quality = callback_data.quality
 
     await callback.message.edit_text("⏳ Начинаю обработку...")
