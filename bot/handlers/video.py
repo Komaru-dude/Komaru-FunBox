@@ -246,7 +246,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
         url = parts[1] if len(parts) > 1 else None
 
     if not url:
-        return await message.reply("❌ Укажите URL видео: /video <ссылка>")
+        return await message.reply("❌ Укажите URL видео: /youtube <ссылка>")
     
     if "music." in url:
         is_music = True
