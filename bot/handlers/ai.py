@@ -25,7 +25,7 @@ from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_mod
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
-DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_MODEL = "qwen"
 
 SUPPORTED_LANGUAGES = {
     "zh": "Китайский",
