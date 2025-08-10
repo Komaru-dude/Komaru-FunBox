@@ -65,15 +65,17 @@ async def yt_dlp_json(url: str) -> Optional[dict]:
         stderr=asyncio.subprocess.PIPE,
     )
     stdout, stderr = await proc.communicate()
+    output_text = stdout.decode(errors="replace")
+    logger.debug(f"🔄 yt-dlp -j вывод: {output_text}")
 
     if proc.returncode != 0:
-        logger.warning(f"yt-dlp error: {stderr.decode(errors='ignore')[:200]}")
+        logger.warning(f"📛 Ошибка yt-dlp: {stderr.decode(errors='ignore')[:200]}")
         return None
 
     try:
         return json.loads(stdout)
     except json.JSONDecodeError as e:
-        logger.exception(f"JSON decode error: {e}")
+        logger.exception(f"📛 Не удалось декодировать JSON: {e}")
         return None
 
 
@@ -115,6 +117,20 @@ def find_best_format(
         "high": [(1080, "h264"), (720, "h264")],
     }
 
+    video_only, audio_only, muxed = [], [], []
+    for fmt in formats:
+        has_video = fmt.get("vcodec") and fmt.get("vcodec") != "none"
+        has_audio = fmt.get("acodec") and fmt.get("acodec") != "none"
+        if has_video and has_audio:
+            muxed.append(fmt)
+        elif has_video:
+            video_only.append(fmt)
+        elif has_audio:
+            audio_only.append(fmt)
+
+    logger.debug(f"Качество: {quality}, Форматов: {len(formats)}")
+    logger.debug(f"Видео-только: {len(video_only)}, Аудио-только: {len(audio_only)}")
+
     if quality == "audio":
         audio_only = sorted(
             [
@@ -131,17 +147,6 @@ def find_best_format(
         if audio_only:
             return str(audio_only[0]["format_id"])
         return None
-
-    video_only, audio_only, muxed = [], [], []
-    for fmt in formats:
-        has_video = fmt.get("vcodec") and fmt.get("vcodec") != "none"
-        has_audio = fmt.get("acodec") and fmt.get("acodec") != "none"
-        if has_video and has_audio:
-            muxed.append(fmt)
-        elif has_video:
-            video_only.append(fmt)
-        elif has_audio:
-            audio_only.append(fmt)
 
     best_audio = max(audio_only, key=lambda x: x.get("abr", 0), default=None)
     best_audio_size_mb = (
@@ -196,9 +201,6 @@ def find_best_format(
             est_size is not None and est_size <= size_limit_mb
         ):
             return str(best_audio["format_id"])
-
-    logger.debug(f"Качество: {quality}, Форматов: {len(formats)}")
-    logger.debug(f"Видео-только: {len(video_only)}, Аудио-только: {len(audio_only)}")
     return None
 
 
