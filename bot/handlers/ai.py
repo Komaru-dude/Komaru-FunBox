@@ -25,6 +25,7 @@ from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_mod
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 SUPPORTED_LANGUAGES = {
     "zh": "Китайский",
@@ -173,8 +174,6 @@ async def cmd_ai(
     db: Database = None,
 ):
     try:
-        default_model = "gemini-2.5-flash"
-
         if not cli_mode and (message is None or bot is None or db is None):
             raise TypeError("Вне cli_mode обязателен message, bot и db")
 
@@ -237,11 +236,11 @@ async def cmd_ai(
             base_url=os.getenv("OPENAI_SDK_API_URL"),
         )
 
-        model = model or user_default_model or default_model
+        model = model or user_default_model or DEFAULT_MODEL
 
         model_info = onlysq_models["models"].get(model, {})
         model_display_name = model_info.get("name", model)
-        if not cli_mode and model == user_default_model and model != default_model:
+        if not cli_mode and model == user_default_model and model != DEFAULT_MODEL:
             model_display_name += " (пользовательская модель по умолчанию)"
 
         messages = messages or [
@@ -654,7 +653,6 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         args_text = " ".join(args)
         argue_mode = "-argue" in split_text[1:]
         aggressive_mode = "-aggressive" in split_text[1:] and not argue_mode
-        default_model = "gemini-2.5-flash"
         model_name = None
         model = None
 
@@ -692,7 +690,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         user_data = await db.get_user_data(user_id, message.chat.id)
         user_default_model = user_data.get("default_model", None)
 
-        model = model or user_default_model or default_model
+        model = model or user_default_model or DEFAULT_MODEL
 
         model_display_name = (
             onlysq_models["models"][model]["name"]
@@ -700,7 +698,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             else model
         )
         if (
-            model == user_default_model and not model == default_model
+            model == user_default_model and not model == DEFAULT_MODEL
         ):  # Добавляем пояснение, если используется дефолтная модель пользователя
             model_display_name += " (пользовательская модель по умолчанию)"
 
@@ -721,7 +719,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         messages = [{"role": "system", "content": system_message}]
 
         await state.update_data(
-            model=model or user_default_model or default_model,
+            model=model or user_default_model or DEFAULT_MODEL,
             messages=messages,
         )
         await state.set_state(ChatState.active)
