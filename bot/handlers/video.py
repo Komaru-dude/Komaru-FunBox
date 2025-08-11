@@ -38,6 +38,7 @@ CODEC_ALIASES = {
 class VideoQualityCallback(CallbackData, prefix="vidq", sep="|"):
     url_id: str
     quality: str
+    user_id: int
 
 
 def extract_youtube_id(url: str) -> Optional[str]:
@@ -239,6 +240,7 @@ async def download_with_format(
 
 @video_router.message(Command("youtube"), CooldownFilter("video", 300))
 async def cmd_video(message: Message, bot: Bot, url=None):
+    user_id = message.from_user.id
     if not url:
         parts = message.text.split(maxsplit=1)
         url = parts[1] if len(parts) > 1 else None
@@ -277,19 +279,19 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                     InlineKeyboardButton(
                         text="💾 Низкое",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="low"
+                            url_id=video_id, quality="low", user_id=user_id
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="💿 Среднее",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="medium"
+                            url_id=video_id, quality="medium", user_id=user_id
                         ).pack(),
                     ),
                     InlineKeyboardButton(
                         text="📀 Высокое",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="high"
+                            url_id=video_id, quality="high", user_id=user_id
                         ).pack(),
                     ),
                 ],
@@ -297,7 +299,7 @@ async def cmd_video(message: Message, bot: Bot, url=None):
                     InlineKeyboardButton(
                         text="🎧 Только аудио",
                         callback_data=VideoQualityCallback(
-                            url_id=video_id, quality="audio"
+                            url_id=video_id, quality="audio", user_id=user_id
                         ).pack(),
                     )
                 ],
@@ -325,6 +327,11 @@ async def quality_chosen_handler(
     # Создаём полный URL для yt-dlp
     url = f"https://www.youtube.com/watch?v={video_id}"
     quality = callback_data.quality
+    user_id = callback.from_user.id
+
+    if callback_data.user_id != user_id:
+        await callback.answer("📛 Не ваш колбэк", show_alert=True)
+        return
 
     await callback.message.edit_text("⏳ Начинаю обработку...")
     temp_file = None
