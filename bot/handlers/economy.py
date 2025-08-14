@@ -437,7 +437,7 @@ async def cmd_dice(message: Message, bot: Bot, state: FSMContext):
     try:
         currency_sign = eco_config["currency_sign"]
         await message.reply(
-            f"💸 Выберите ставку.\nОт {currency_sign} {eco_config["dice_min_bet"]} до {currency_sign} {eco_config["dice_max_bet"]}"
+            f"💸 Выберите ставку.\nОт {currency_sign} {eco_config["dice_min_bet"]} или {currency_sign} 0 до {currency_sign} {eco_config["dice_max_bet"]}"
         )
         await state.set_state(Dice.choose_bet)
     except Exception:
@@ -449,10 +449,10 @@ async def bet_chosen(message: Message, bot: Bot, db: Database, state: FSMContext
     currency_sign = eco_config["currency_sign"]
     user_id = message.from_user.id
     try:
-        number = float(message.text)
-        if number < eco_config["dice_min_bet"]:
+        number = round(float(message.text), 2)
+        if number < eco_config["dice_min_bet"] and number != 0:
             await message.reply(
-                f"❌ Минимальная ставка - {currency_sign} {eco_config['dice_min_bet']}"
+                f"❌ Минимальная ставка - {currency_sign} {eco_config['dice_min_bet']} или {currency_sign} 0"
             )
             return
         if number > eco_config["dice_max_bet"]:
