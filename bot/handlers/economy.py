@@ -317,6 +317,12 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         user_cash = await db.get_global_user_param(user_id, "money")
         user_bank = await db.get_global_user_param(user_id, "bank")
         user_total = user_cash + user_bank
+
+        if user_total < 1000:
+            await message.reply(
+                f"📛 Ваш баланс должен быть более 1000 {eco_config["currency_sign"]}"
+            )
+            return
         if user_total < 5000:
             await message.reply(
                 "⚠️ При вашем балансе менее 5000💰 ограбления нерентабельны!"
