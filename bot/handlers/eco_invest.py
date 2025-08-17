@@ -9,7 +9,7 @@ from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.keyboards.callback_data import InvestMenuCallback
-from bot.keyboards.invest_keyboard import make_menu_kb, make_stocks_kb, load_stocks
+from bot.keyboards.invest_keyboard import load_stocks, make_menu_kb, make_stocks_kb
 from bot.utils.aio_tools import error_report
 
 invest_router = Router()
@@ -37,15 +37,16 @@ async def cb_show_stocks(callback: CallbackQuery, bot: Bot):
     try:
         user_id = callback.from_user.id
         await callback.message.edit_text(
-            "📈 Доступные акции для покупки:",
-            reply_markup=make_stocks_kb(user_id)
+            "📈 Доступные акции для покупки:", reply_markup=make_stocks_kb(user_id)
         )
     except Exception:
         await error_report(callback.message, bot, "buy_stock", traceback.format_exc())
 
 
 @invest_router.callback_query(InvestMenuCallback.action("buy_stock_item"))
-async def cb_buy_stock_item(callback: CallbackQuery, bot: Bot, db: Database, callback_data: InvestMenuCallback):
+async def cb_buy_stock_item(
+    callback: CallbackQuery, bot: Bot, db: Database, callback_data: InvestMenuCallback
+):
     try:
         user_id = callback.from_user.id
         stock_id = callback_data.stock_id
@@ -67,10 +68,14 @@ async def cb_buy_stock_item(callback: CallbackQuery, bot: Bot, db: Database, cal
         items.append({"type": "stock", "id": stock_id, "price": price})
         await db.set_global_user_param(user_id, "items", items)
 
-        await callback.answer(f"✅ Куплено: {stock['name']} за {price}$", show_alert=True)
+        await callback.answer(
+            f"✅ Куплено: {stock['name']} за {price}$", show_alert=True
+        )
 
     except Exception:
-        await error_report(callback.message, bot, "buy_stock_item", traceback.format_exc())
+        await error_report(
+            callback.message, bot, "buy_stock_item", traceback.format_exc()
+        )
 
 
 @invest_router.callback_query(InvestMenuCallback.action("sell_stock"))
@@ -94,7 +99,6 @@ async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
                     f"(куплено за {s['price']}$, текущая цена {stock_info['price']}$)\n"
                 )
 
-
         await callback.message.edit_text(text)
 
     except Exception:
@@ -113,7 +117,7 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
             return
 
         market = load_stocks()
-        total_value = 0,0
+        total_value = 0, 0
         text = "💼 Ваш портфель:\n"
         for s in stocks:
             stock_info = market.get(str(s["id"]))
@@ -126,4 +130,6 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
         await callback.message.edit_text(text, reply_markup=make_menu_kb(user_id))
 
     except Exception:
-        await error_report(callback.message, bot, "my_portfolio", traceback.format_exc())
+        await error_report(
+            callback.message, bot, "my_portfolio", traceback.format_exc()
+        )

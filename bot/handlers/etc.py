@@ -16,6 +16,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.types import Message, URLInputFile
 from aiohttp import ClientSession
+
 from bot import FREE_GAMES_PATH
 from bot.database import Database
 from bot.filters.chat_type import ChatTypeFilter

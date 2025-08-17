@@ -18,7 +18,7 @@ from aiogram.types import (
     Message,
 )
 
-from bot import logger, CACHE_DIR
+from bot import CACHE_DIR, logger
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 

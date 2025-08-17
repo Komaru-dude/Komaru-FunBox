@@ -1,7 +1,11 @@
 import json
+
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from .callback_data import InvestMenuCallback
+
 from bot import STOCKS_PATH, logger
+
+from .callback_data import InvestMenuCallback
+
 
 def load_stocks() -> dict:
     try:

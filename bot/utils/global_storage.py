@@ -1,5 +1,6 @@
 import asyncio
 import json
+
 from bot import ECONOMY_CONFIG_PATH, SHOP_CONFIG_PATH
 
 active_chats = []

@@ -2,7 +2,7 @@ import json
 
 from aiogram import Bot, types
 
-from bot import logger, COMMANDS_DIR
+from bot import COMMANDS_DIR, logger
 
 
 async def apply_all_command_sets(bot: Bot):
