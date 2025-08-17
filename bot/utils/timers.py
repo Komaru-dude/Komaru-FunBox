@@ -10,7 +10,7 @@ import aiofiles
 import aiohttp
 from aiogram import Bot
 
-from bot import BASE_DIR, DATA_DIR, FREE_GAMES_PATH, logger
+from bot import BASE_DIR, STOCKS_PATH, FREE_GAMES_PATH, logger
 from bot.database import Database
 from bot.utils.get_free_epic_games import get_free_games
 
@@ -207,18 +207,17 @@ async def check_free_games(bot: Bot):
 async def change_stocks():
     try:
         basic_stocks_path = BASE_DIR / "config" / "basic_stocks.json"
-        stocks_path = DATA_DIR / "stocks.json"
 
-        if not os.path.exists(stocks_path):
+        if not os.path.exists(STOCKS_PATH):
             logger.info("🔄 Создаём цены акций с нуля")
             async with aiofiles.open(basic_stocks_path, "rb") as file:
                 data = await file.read()
-            async with aiofiles.open(stocks_path, "wb") as file:
+            async with aiofiles.open(STOCKS_PATH, "wb") as file:
                 await file.write(data)
             return
 
         logger.debug("🔄 Начинаем обновление цен акций...")
-        async with aiofiles.open(stocks_path, "rb") as file:
+        async with aiofiles.open(STOCKS_PATH, "rb") as file:
             data = await file.read()
 
         json_data = json.loads(data)
@@ -229,7 +228,7 @@ async def change_stocks():
             change = price * volatility * (random.random() * 2 - 1)
             stock["price"] = round(max(price + change, 0), 2)
 
-        async with aiofiles.open(stocks_path, "w") as file:
+        async with aiofiles.open(STOCKS_PATH, "w") as file:
             await file.write(json.dumps(json_data, ensure_ascii=False, indent=2))
 
         logger.info("✅ Цены акций обновлены")
