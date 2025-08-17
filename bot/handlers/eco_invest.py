@@ -1,6 +1,7 @@
+import json
 import traceback
 
-from aiogram import Bot, Router, F
+from aiogram import Bot, F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
@@ -63,10 +64,18 @@ async def cb_buy_stock_item(
         if user_bal < price:
             await callback.answer("💸 Недостаточно денег", show_alert=True)
             return
+
         await db.set_global_user_param(user_id, "money", user_bal - price)
-        items = await db.get_global_user_param(user_id, "items") or []
+
+        items_raw = await db.get_global_user_param(user_id, "items") or "[]"
+        try:
+            items = json.loads(items_raw)
+        except Exception:
+            items = []
+
         items.append({"type": "stock", "id": stock_id, "price": price})
-        await db.set_global_user_param(user_id, "items", items)
+
+        await db.set_global_user_param(user_id, "items", json.dumps(items))
 
         await callback.answer(
             f"✅ Куплено: {stock['name']} за {price}$", show_alert=True
@@ -82,7 +91,13 @@ async def cb_buy_stock_item(
 async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
     try:
         user_id = callback.from_user.id
-        items = await db.get_global_user_param(user_id, "items") or []
+
+        items_raw = await db.get_global_user_param(user_id, "items") or "[]"
+        try:
+            items = json.loads(items_raw)
+        except Exception:
+            items = []
+
         stocks = [i for i in items if i.get("type") == "stock"]
 
         if not stocks:
@@ -109,7 +124,13 @@ async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
 async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
     try:
         user_id = callback.from_user.id
-        items = await db.get_global_user_param(user_id, "items") or []
+
+        items_raw = await db.get_global_user_param(user_id, "items") or "[]"
+        try:
+            items = json.loads(items_raw)
+        except Exception:
+            items = []
+
         stocks = [i for i in items if i.get("type") == "stock"]
 
         if not stocks:
@@ -117,7 +138,7 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
             return
 
         market = load_stocks()
-        total_value = 0, 0
+        total_value = 0
         text = "💼 Ваш портфель:\n"
         for s in stocks:
             stock_info = market.get(str(s["id"]))

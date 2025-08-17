@@ -10,7 +10,7 @@ import aiofiles
 import aiohttp
 from aiogram import Bot
 
-from bot import BASE_DIR, STOCKS_PATH, FREE_GAMES_PATH, logger
+from bot import BASE_DIR, FREE_GAMES_PATH, STOCKS_PATH, logger
 from bot.database import Database
 from bot.utils.get_free_epic_games import get_free_games
 
