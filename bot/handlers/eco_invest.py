@@ -10,7 +10,7 @@ from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.keyboards.callback_data import InvestMenuCallback
-from bot.keyboards.invest_keyboard import load_stocks, make_menu_kb, make_stocks_kb
+from bot.keyboards.invest_keyboard import load_stocks, make_menu_kb, make_stocks_kb, make_portfolio_kb
 from bot.utils.aio_tools import error_report
 
 invest_router = Router()
@@ -148,7 +148,7 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
                 text += f"- {stock_info['name']}: {value}$ (куплено за {s['price']}$)\n"
 
         text += f"\n💰 Общая стоимость: {total_value}$"
-        await callback.message.edit_text(text, reply_markup=make_menu_kb(user_id))
+        await callback.message.edit_text(text, reply_markup=make_portfolio_kb(user_id))
 
     except Exception:
         await error_report(
@@ -166,4 +166,3 @@ async def cb_switch_to_menu(callback: CallbackQuery, bot: Bot):
         )
     except Exception:
         await error_report(callback.message, bot, "invest_menu", traceback.format_exc())
-
