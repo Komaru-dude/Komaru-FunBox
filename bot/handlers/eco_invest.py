@@ -10,7 +10,12 @@ from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.keyboards.callback_data import InvestMenuCallback
-from bot.keyboards.invest_keyboard import load_stocks, make_menu_kb, make_stocks_kb, make_portfolio_kb
+from bot.keyboards.invest_keyboard import (
+    load_stocks,
+    make_menu_kb,
+    make_portfolio_kb,
+    make_stocks_kb,
+)
 from bot.utils.aio_tools import error_report
 
 invest_router = Router()
@@ -34,9 +39,14 @@ async def cmd_invest_menu(message: Message, bot: Bot):
 
 
 @invest_router.callback_query(InvestMenuCallback.filter(F.action == "buy_stock"))
-async def cb_show_stocks(callback: CallbackQuery, bot: Bot):
+async def cb_show_stocks(
+    callback: CallbackQuery, bot: Bot, callback_data: InvestMenuCallback
+):
     try:
         user_id = callback.from_user.id
+        if user_id != callback_data.user_id:
+            await callback.answer("📛 Не ваш колбэк!")
+            return
         await callback.message.edit_text(
             "📈 Доступные акции для покупки:", reply_markup=make_stocks_kb(user_id)
         )
@@ -53,6 +63,10 @@ async def cb_buy_stock_item(
         stock_id = callback_data.stock_id
         stocks = load_stocks()
         stock = stocks.get(str(stock_id))
+
+        if user_id != callback_data.user_id:
+            await callback.answer("📛 Не ваш колбэк!")
+            return
 
         if not stock:
             await callback.answer("❌ Акция не найдена", show_alert=True)
@@ -88,9 +102,15 @@ async def cb_buy_stock_item(
 
 
 @invest_router.callback_query(InvestMenuCallback.filter(F.action == "sell_stock"))
-async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
+async def cb_sell_stock(
+    callback: CallbackQuery, bot: Bot, db: Database, callback_data: InvestMenuCallback
+):
     try:
         user_id = callback.from_user.id
+
+        if user_id != callback_data.user_id:
+            await callback.answer("📛 Не ваш колбэк!")
+            return
 
         items_raw = await db.get_global_user_param(user_id, "items") or "[]"
         try:
@@ -121,9 +141,15 @@ async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
 
 
 @invest_router.callback_query(InvestMenuCallback.filter(F.action == "my_portfolio"))
-async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
+async def cb_my_portfolio(
+    callback: CallbackQuery, bot: Bot, db: Database, callback_data: InvestMenuCallback
+):
     try:
         user_id = callback.from_user.id
+
+        if user_id != callback_data.user_id:
+            await callback.answer("📛 Не ваш колбэк!")
+            return
 
         items_raw = await db.get_global_user_param(user_id, "items") or "[]"
         try:
@@ -157,9 +183,16 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
 
 
 @invest_router.callback_query(InvestMenuCallback.filter(F.action == "back_to_menu"))
-async def cb_switch_to_menu(callback: CallbackQuery, bot: Bot):
+async def cb_switch_to_menu(
+    callback: CallbackQuery, bot: Bot, callback_data: InvestMenuCallback
+):
     try:
         user_id = callback.from_user.id
+
+        if user_id != callback_data.user_id:
+            await callback.answer("📛 Не ваш колбэк!")
+            return
+
         await callback.message.edit_text(
             f"👋 Привет, {callback.from_user.first_name}, выбери опцию ниже для продолжения",
             reply_markup=make_menu_kb(user_id),
