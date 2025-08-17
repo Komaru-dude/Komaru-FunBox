@@ -17,13 +17,13 @@ PYRO_PORT = os.getenv("PYRO_PORT")
 API_URL = f"http://{PYRO_HOST}:{PYRO_PORT}"
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
-CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
-ECONOMY_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "eco_cfg.json"
-SHOP_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "items.json"
+CACHE_DIR = Path(__file__).resolve().parent / "cache"
+ECONOMY_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "eco_cfg.json"
+SHOP_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "items.json"
 FREE_GAMES_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "data" / "epic_free_games.json"
+    Path(__file__).resolve().parent.parent / "data" / "epic_free_games.json"
 )
-COMMANDS_DIR = Path(__file__).resolve().parent.parent / "config" / "commands"
+COMMANDS_DIR = Path(__file__).resolve().parent / "config" / "commands"
 STOCKS_PATH = DATA_DIR / "stocks.json"
 
 
