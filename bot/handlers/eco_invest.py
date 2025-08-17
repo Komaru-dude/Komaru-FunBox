@@ -158,4 +158,12 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
 
 @invest_router.callback_query(InvestMenuCallback.filter(F.action == "back_to_menu"))
 async def cb_switch_to_menu(callback: CallbackQuery, bot: Bot):
-    await cmd_invest_menu(callback.message, bot)
+    try:
+        user_id = callback.from_user.id
+        await callback.message.edit_text(
+            f"👋 Привет, {callback.from_user.first_name}, выбери опцию ниже для продолжения",
+            reply_markup=make_menu_kb(user_id),
+        )
+    except Exception:
+        await error_report(callback.message, bot, "invest_menu", traceback.format_exc())
+
