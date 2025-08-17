@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import datetime
 import json
 import os
@@ -62,7 +63,9 @@ async def check_updates():
                 headers["Accept"] = "application/vnd.github.v3.raw"
                 async with session.get(api_content_url, headers=headers) as resp:
                     if resp.status != 200:
-                        logger.error(f"Ошибка API (version.json), статус: {resp.status}")
+                        logger.error(
+                            f"Ошибка API (version.json), статус: {resp.status}"
+                        )
                         return
                     text = await resp.text()
                     data = json.loads(text)
@@ -200,35 +203,57 @@ async def check_free_games(bot: Bot):
 
 
 async def change_stocks():
-    try:
-        basic_stocks_path = BASE_DIR / "config" / "basic_stocks.json"
+    while True:
+        try:
+            basic_stocks_path = BASE_DIR / "config" / "basic_stocks.json"
 
-        if not os.path.exists(STOCKS_PATH):
-            logger.info("🔄 Создаём цены акций с нуля")
-            async with aiofiles.open(basic_stocks_path, "rb") as file:
-                data = await file.read()
-            async with aiofiles.open(STOCKS_PATH, "wb") as file:
-                await file.write(data)
-            return
+            async with aiofiles.open(basic_stocks_path, "r", encoding="utf-8") as file:
+                basic_data = json.loads(await file.read())
 
-        logger.debug("🔄 Начинаем обновление цен акций...")
-        async with aiofiles.open(STOCKS_PATH, "rb") as file:
-            data = await file.read()
+            current_data = {}
+            file_exists = os.path.exists(STOCKS_PATH)
 
-        json_data = json.loads(data)
+            if file_exists:
+                async with aiofiles.open(STOCKS_PATH, "r", encoding="utf-8") as file:
+                    current_data = json.loads(await file.read())
+                logger.debug("🔄 Начинаем обновление цен акций...")
+            else:
+                logger.info("🔄 Создаём цены акций с нуля")
+                current_data = copy.deepcopy(basic_data)
 
-        for _, stock in json_data.items():
-            price = stock["price"]
-            volatility = stock["volatility"]
-            change = price * volatility * (random.random() * 2 - 1)
-            stock["price"] = round(max(price + change, 0), 2)
+            basic_keys = set(basic_data.keys())
+            current_keys = set(current_data.keys())
 
-        async with aiofiles.open(STOCKS_PATH, "w") as file:
-            await file.write(json.dumps(json_data, ensure_ascii=False, indent=2))
+            for key in current_keys - basic_keys:
+                del current_data[key]
 
-        logger.info("✅ Цены акций обновлены")
-    except Exception:
-        logger.critical("❌ Не удалось обновить цены на акции: ", exc_info=True)
+            for key in basic_keys:
+                if key not in current_data:
+                    current_data[key] = copy.deepcopy(basic_data[key])
+                    continue
+
+                current_stock = current_data[key]
+                basic_stock = basic_data[key]
+
+                current_price = current_stock["price"]
+                current_data[key] = copy.deepcopy(basic_stock)
+                current_data[key]["price"] = current_price
+
+            for stock in current_data.values():
+                price = stock["price"]
+                volatility = stock["volatility"]
+                change = price * volatility * (random.random() * 2 - 1)
+                stock["price"] = round(max(price + change, 0.01), 2)
+
+            async with aiofiles.open(STOCKS_PATH, "w", encoding="utf-8") as file:
+                await file.write(json.dumps(current_data, ensure_ascii=False, indent=2))
+
+            logger.info(f"✅ Цены {len(current_data)} акций обновлены")
+        except Exception as e:
+            logger.critical(
+                f"❌ Не удалось обновить цены на акции: {str(e)}", exc_info=True
+            )
+        await asyncio.sleep(1800)
 
 
 async def background_checker(bot: Bot):
