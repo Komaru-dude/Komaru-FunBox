@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -14,6 +15,16 @@ data_dir = os.path.join(parent_dir, "data")
 PYRO_HOST = "127.0.0.1"
 PYRO_PORT = os.getenv("PYRO_PORT")
 API_URL = f"http://{PYRO_HOST}:{PYRO_PORT}"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
+CACHE_DIR = Path(__file__).resolve().parent.parent / "cache"
+ECONOMY_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "eco_cfg.json"
+SHOP_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "items.json"
+FREE_GAMES_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "data" / "epic_free_games.json"
+)
+COMMANDS_DIR = Path(__file__).resolve().parent.parent / "config" / "commands"
+STOCKS_PATH = DATA_DIR / "stocks.json"
 
 
 def get_git_branch(path):
@@ -38,5 +49,5 @@ else:
     level = logging.INFO
 logger = setup_logger(level)
 
-if not os.path.exists(data_dir):
-    os.mkdir(data_dir)
+for path in (DATA_DIR, CACHE_DIR, COMMANDS_DIR):
+    path.mkdir(parents=True, exist_ok=True)

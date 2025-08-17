@@ -11,8 +11,8 @@ from traceback import format_exc
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
-from bot import PYRO_HOST, PYRO_PORT, logger
-from bot.database import BASE_DIR, Database
+from bot import DATA_DIR, PYRO_HOST, PYRO_PORT, logger
+from bot.database import Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
 from bot.utils.aio_tools import fetch_json
@@ -23,6 +23,7 @@ from bot.utils.timers import background_checker
 from .handlers.administration import admin_router
 from .handlers.ai import ai_router
 from .handlers.basic import base_router
+from .handlers.eco_invest import invest_router
 from .handlers.economy import eco_router
 from .handlers.etc import etc_router
 from .handlers.mods import mods_router
@@ -41,7 +42,6 @@ dp.message.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(SpecificChat())
 db = Database()
 dp["db"] = db
-DATA_DIR = BASE_DIR / "data"
 
 
 async def load_models():
@@ -139,6 +139,7 @@ async def main():
         rights_router,
         video_router,
         eco_router,
+        invest_router,
         text_router,
     )
 

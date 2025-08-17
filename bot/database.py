@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 from bot import logger
 
 load_dotenv()
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 RANK_TO_LEVEL = {
     "Участник": 0,

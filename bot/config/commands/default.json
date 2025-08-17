@@ -58,6 +58,7 @@
     { "command": "transfer", "description": "Перевод между счетами" },
     { "command": "shop", "description": "Магазин предметов" },
     { "command": "duel", "description": "Дуэль с другим игроком" },
+    { "command": "invest_menu", "description": "Меню инвестиций" },
     { "command": "cowsay", "description": "Корова говорит фразу" },
     { "command": "free_epic_games", "description": "Бесплатные игры в EG" },
     { "command": "add_prompt", "description": "Добавить кастомный промпт" },

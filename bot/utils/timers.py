@@ -1,17 +1,20 @@
 import asyncio
 import datetime
 import json
+import os
+import random
 import subprocess
 from pathlib import Path
 
+import aiofiles
 import aiohttp
 from aiogram import Bot
 
-from bot import logger
+from bot import BASE_DIR, DATA_DIR, FREE_GAMES_PATH, logger
 from bot.database import Database
 from bot.utils.get_free_epic_games import get_free_games
 
-from .global_storage import FREE_GAMES_PATH, update_cache
+from .global_storage import update_cache
 
 db = Database()
 
@@ -201,11 +204,45 @@ async def check_free_games(bot: Bot):
             await asyncio.sleep(600)
 
 
+async def change_stocks():
+    try:
+        basic_stocks_path = BASE_DIR / "config" / "basic_stocks.json"
+        stocks_path = DATA_DIR / "stocks.json"
+
+        if not os.path.exists(stocks_path):
+            logger.info("🔄 Создаём цены акций с нуля")
+            async with aiofiles.open(basic_stocks_path, "rb") as file:
+                data = await file.read()
+            async with aiofiles.open(stocks_path, "wb") as file:
+                await file.write(data)
+            return
+
+        logger.debug("🔄 Начинаем обновление цен акций...")
+        async with aiofiles.open(stocks_path, "rb") as file:
+            data = await file.read()
+
+        json_data = json.loads(data)
+
+        for _, stock in json_data.items():
+            price = stock["price"]
+            volatility = stock["volatility"]
+            change = price * volatility * (random.random() * 2 - 1)
+            stock["price"] = round(max(price + change, 0), 2)
+
+        async with aiofiles.open(stocks_path, "w") as file:
+            await file.write(json.dumps(json_data, ensure_ascii=False, indent=2))
+
+        logger.info("✅ Цены акций обновлены")
+    except Exception:
+        logger.critical("❌ Не удалось обновить цены на акции: ", exc_info=True)
+
+
 async def background_checker(bot: Bot):
     """Главная функция для запуска фоновых задач"""
     update_task = asyncio.create_task(check_updates_task())
     cleanup_task = asyncio.create_task(cleanup_expired_items_task())
     epic_task = asyncio.create_task(check_free_games(bot))
+    update_stocks = asyncio.create_task(change_stocks())
 
     # Ждём того чего не случится
-    await asyncio.gather(update_task, cleanup_task, epic_task)
+    await asyncio.gather(update_task, cleanup_task, epic_task, update_stocks)
