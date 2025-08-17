@@ -76,12 +76,15 @@ def make_stocks_kb(user_id: int):
 def make_portfolio_kb(user_id: int):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            InlineKeyboardButton(
-                text="◀️ Назад",
-                callback_data=InvestMenuCallback(
-                    action="back_to_menu", user_id=user_id
-                ).pack(),
-            )
+            [
+                InlineKeyboardButton(
+                    text="◀️ Назад",
+                    callback_data=InvestMenuCallback(
+                        action="back_to_menu",
+                        user_id=user_id
+                    ).pack()
+                )
+            ]
         ]
     )
     return keyboard
