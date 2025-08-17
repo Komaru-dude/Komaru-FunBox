@@ -1,6 +1,6 @@
 import traceback
 
-from aiogram import Bot, Router
+from aiogram import Bot, Router, F
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
@@ -32,7 +32,7 @@ async def cmd_invest_menu(message: Message, bot: Bot):
         await error_report(message, bot, "invest_menu", traceback.format_exc())
 
 
-@invest_router.callback_query(InvestMenuCallback.action("buy_stock"))
+@invest_router.callback_query(InvestMenuCallback.filter(F.action == "buy_stock"))
 async def cb_show_stocks(callback: CallbackQuery, bot: Bot):
     try:
         user_id = callback.from_user.id
@@ -43,7 +43,7 @@ async def cb_show_stocks(callback: CallbackQuery, bot: Bot):
         await error_report(callback.message, bot, "buy_stock", traceback.format_exc())
 
 
-@invest_router.callback_query(InvestMenuCallback.action("buy_stock_item"))
+@invest_router.callback_query(InvestMenuCallback.filter(F.action == "buy_stock_item"))
 async def cb_buy_stock_item(
     callback: CallbackQuery, bot: Bot, db: Database, callback_data: InvestMenuCallback
 ):
@@ -78,7 +78,7 @@ async def cb_buy_stock_item(
         )
 
 
-@invest_router.callback_query(InvestMenuCallback.action("sell_stock"))
+@invest_router.callback_query(InvestMenuCallback.filter(F.action == "sell_stock"))
 async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
     try:
         user_id = callback.from_user.id
@@ -105,7 +105,7 @@ async def cb_sell_stock(callback: CallbackQuery, bot: Bot, db: Database):
         await error_report(callback.message, bot, "sell_stock", traceback.format_exc())
 
 
-@invest_router.callback_query(InvestMenuCallback.action("my_portfolio"))
+@invest_router.callback_query(InvestMenuCallback.filter(F.action == "my_portfolio"))
 async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
     try:
         user_id = callback.from_user.id
