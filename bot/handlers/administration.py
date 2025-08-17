@@ -14,12 +14,12 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
 
-from bot import API_URL, CACHE_DIR, database
+from bot import API_URL, CACHE_DIR, DATA_DIR, database
 from bot.database import Database
 from bot.utils.aio_tools import error_report, fetch_json
 
 admin_router = Router()
-models_path = database.BASE_DIR / "data" / "models.json"
+models_path = DATA_DIR / "models.json"
 
 
 def get_service_name() -> str:
