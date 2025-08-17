@@ -1,6 +1,12 @@
 {
-  "1": {"name": "Акция А", "price": 100, "volatility": 0.05},
-  "2": {"name": "Акция B", "price": 200, "volatility": 0.1},
-  "3": {"name": "Акция C", "price": 300, "volatility": 0.2},
-  "4": {"name": "Акция D", "price": 150, "volatility": 0.07}
+  "1": {"name": "🏢 Joja Corp", "price": 100, "volatility": 0.05},
+  "2": {"name": "🌐 GlobalTech", "price": 200, "volatility": 0.1},
+  "4": {"name": "🌱 GreenGrowth", "price": 150, "volatility": 0.07},
+  "5": {"name": "⚡ NorthEnergy", "price": 180, "volatility": 0.08},
+  "6": {"name": "🚚 Logistics", "price": 90, "volatility": 0.12},
+  "7": {"name": "🏭 IronWorks", "price": 160, "volatility": 0.09},
+  "8": {"name": "🛒 Gigamart", "price": 120, "volatility": 0.11},
+  "9": {"name": "📡 SkyNetics", "price": 220, "volatility": 0.15},
+  "10": {"name": "🏥 HealthPlus", "price": 140, "volatility": 0.06},
+  "12": {"name": "🔋 Voltix", "price": 170, "volatility": 0.14}
 }
