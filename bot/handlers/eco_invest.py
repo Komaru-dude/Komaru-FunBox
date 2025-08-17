@@ -133,3 +133,8 @@ async def cb_my_portfolio(callback: CallbackQuery, bot: Bot, db: Database):
         await error_report(
             callback.message, bot, "my_portfolio", traceback.format_exc()
         )
+
+
+@invest_router.callback_query(InvestMenuCallback.filter(F.action == "back_to_menu"))
+async def cb_switch_to_menu(callback: CallbackQuery, bot: Bot):
+    await cmd_invest_menu(callback.message, bot)
