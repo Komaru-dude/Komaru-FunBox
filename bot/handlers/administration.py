@@ -14,10 +14,9 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
 
-from bot import API_URL, database
+from bot import API_URL, database, CACHE_DIR
 from bot.database import Database
 from bot.utils.aio_tools import error_report, fetch_json
-from bot.utils.global_storage import CACHE_DIR
 
 admin_router = Router()
 models_path = database.BASE_DIR / "data" / "models.json"

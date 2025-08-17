@@ -2,8 +2,7 @@ import json
 
 from aiogram import Bot, types
 
-from bot import logger
-from bot.utils.global_storage import COMMANDS_DIR
+from bot import logger, COMMANDS_DIR
 
 
 async def apply_all_command_sets(bot: Bot):

@@ -18,10 +18,9 @@ from aiogram.types import (
     Message,
 )
 
-from bot import logger
+from bot import logger, CACHE_DIR
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
-from bot.utils.global_storage import CACHE_DIR
 
 video_router = Router()
 

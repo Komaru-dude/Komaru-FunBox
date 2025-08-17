@@ -16,12 +16,11 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command
 from aiogram.types import Message, URLInputFile
 from aiohttp import ClientSession
-
+from bot import FREE_GAMES_PATH
 from bot.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
-from bot.utils.global_storage import FREE_GAMES_PATH
 
 etc_router = Router()
 
