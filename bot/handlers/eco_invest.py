@@ -144,12 +144,7 @@ async def cb_my_portfolio(
             await callback.answer("📛 Не ваш колбэк!")
             return
 
-        items_raw = await db.get_global_user_param(user_id, "items") or "[]"
-        try:
-            items = json.loads(items_raw)
-        except Exception:
-            items = []
-
+        items = await db.get_global_user_param(user_id, "items") or []
         stocks = [i for i in items if i.get("type") == "stock"]
 
         if not stocks:
