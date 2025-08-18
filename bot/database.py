@@ -771,25 +771,31 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
-                """SELECT * FROM global_users WHERE user_id = $1""",
+                "SELECT * FROM global_users WHERE user_id = $1",
                 user_id,
             )
             if not row:
                 await self.add_global_user(user_id)
                 row = await conn.fetchrow(
-                    """SELECT * FROM global_users WHERE user_id = $1""",
+                    "SELECT * FROM global_users WHERE user_id = $1",
                     user_id,
                 )
                 if not row:
-                    return {}
-                value = row.get(param)
-                if param == "items" and isinstance(value, str):
+                    logger.error(f"Не удалось создать пользователя {user_id}")
+                    return None
+
+            value = row.get(param)
+
+            if param == "items":
+                if isinstance(value, str):
                     try:
                         return json.loads(value)
                     except json.JSONDecodeError:
                         return []
-                return value
+                elif value is None:
+                    return []
 
+            return value
 
     async def set_global_user_param(self, user_id: int, param: str, value):
         """Устанавливает параметр пользователю глобально"""
@@ -823,28 +829,29 @@ class Database:
             )
 
     async def cleanup_all_expired_items(self):
-        """Очищает все просроченные предметы в инвертаре"""
         await self.ensure_connection()
         now = int(time.time())
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("SELECT user_id, items FROM global_users")
-            
+
             for row in rows:
                 user_id = row["user_id"]
                 items = row["items"]
-                
+
                 if isinstance(items, str):
                     try:
                         items = json.loads(items)
                     except json.JSONDecodeError:
                         items = []
-                
+                elif items is None:
+                    items = []
+
                 filtered = [
                     item
                     for item in items
                     if isinstance(item, dict) and item.get("expires", now + 1) > now
                 ]
-                
+
                 if filtered != items:
                     await self.set_global_user_param(user_id, "items", filtered)
 

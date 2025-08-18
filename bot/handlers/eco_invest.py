@@ -82,6 +82,8 @@ async def cb_buy_stock_item(
         await db.set_global_user_param(user_id, "money", user_bal - price)
 
         items = await db.get_global_user_param(user_id, "items") or []
+        if not isinstance(items, list):
+            items = []
         items.append({"type": "stock", "id": stock_id, "price": price})
 
         await db.set_global_user_param(user_id, "items", items)
