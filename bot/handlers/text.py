@@ -197,8 +197,18 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 logger.debug(f"✅ Пользователю выдана репутация: {user1.id}")
 
         commands = await get_chat_commands(chat_id)
-        split_text = text_msg.split(maxsplit=1)
-        command = split_text[0].lstrip("/").lower()
+        clean_text = text_msg.lstrip('/').strip().lower()
+        
+        sorted_commands = sorted(commands.keys(), key=len, reverse=True)
+        matched_command = None
+        
+        for cmd in sorted_commands:
+            if clean_text.startswith(cmd):
+                end_pos = len(cmd)
+                if len(clean_text) > end_pos and not clean_text[end_pos].isspace():
+                    continue
+                matched_command = cmd
+                break
 
         if (
             text_msg.lower() == "это что?"
@@ -254,8 +264,10 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
                 await cmd_video(message, bot, url=message.text)
                 return
-        elif command in commands:
-            if not message.reply_to_message and len(split_text) < 2:
+        elif matched_command:
+            remaining_text = clean_text[len(matched_command):].strip()
+            
+            if not message.reply_to_message and not remaining_text:
                 await message.reply(
                     "Укажи пользователя после команды или ответь на его сообщение."
                 )
@@ -274,7 +286,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             user1_link = f'<a href="tg://user?id={user1.id}">{user1.first_name}</a>'
             user2_link = f'<a href="tg://user?id={target_user_id}">{user_data.get("first_name", "Пользователь")}</a>'
 
-            cmd = commands[command]
+            cmd = commands[matched_command]
             text_template = random.choice(cmd["messages"])
             result_text = text_template.format(user1=user1_link, user2=user2_link)
 
