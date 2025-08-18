@@ -81,15 +81,10 @@ async def cb_buy_stock_item(
 
         await db.set_global_user_param(user_id, "money", user_bal - price)
 
-        items_raw = await db.get_global_user_param(user_id, "items") or "[]"
-        try:
-            items = json.loads(items_raw)
-        except Exception:
-            items = []
-
+        items = await db.get_global_user_param(user_id, "items") or []
         items.append({"type": "stock", "id": stock_id, "price": price})
 
-        await db.set_global_user_param(user_id, "items", json.dumps(items))
+        await db.set_global_user_param(user_id, "items", items)
 
         await callback.answer(
             f"✅ Куплено: {stock['name']} за {price}$", show_alert=True
@@ -112,11 +107,7 @@ async def cb_sell_stock(
             await callback.answer("📛 Не ваш колбэк!")
             return
 
-        items_raw = await db.get_global_user_param(user_id, "items") or "[]"
-        try:
-            items = json.loads(items_raw)
-        except Exception:
-            items = []
+        items = await db.get_global_user_param(user_id, "items") or []
 
         stocks = [i for i in items if i.get("type") == "stock"]
 

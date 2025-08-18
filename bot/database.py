@@ -782,10 +782,21 @@ class Database:
                 )
                 if not row:
                     return {}
-            return row.get(param)
+                value = row.get(param)
+                if param == "items" and isinstance(value, str):
+                    try:
+                        return json.loads(value)
+                    except json.JSONDecodeError:
+                        return []
+                return value
+
 
     async def set_global_user_param(self, user_id: int, param: str, value):
         """Устанавливает параметр пользователю глобально"""
+
+        if param == "items" and isinstance(value, list):
+            value = json.dumps(value, ensure_ascii=False)
+
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute(
@@ -817,22 +828,25 @@ class Database:
         now = int(time.time())
         async with self.pool.acquire() as conn:
             rows = await conn.fetch("SELECT user_id, items FROM global_users")
-
+            
             for row in rows:
                 user_id = row["user_id"]
-                items = row["items"] or []
+                items = row["items"]
+                
+                if isinstance(items, str):
+                    try:
+                        items = json.loads(items)
+                    except json.JSONDecodeError:
+                        items = []
+                
                 filtered = [
                     item
                     for item in items
                     if isinstance(item, dict) and item.get("expires", now + 1) > now
                 ]
-
+                
                 if filtered != items:
-                    await conn.execute(
-                        "UPDATE global_users SET items = $1 WHERE user_id = $2",
-                        json.dumps(filtered),
-                        user_id,
-                    )
+                    await self.set_global_user_param(user_id, "items", filtered)
 
     async def chat_exists(self, chat_id: int) -> bool:
         """Проверяет существование чата в базе"""
