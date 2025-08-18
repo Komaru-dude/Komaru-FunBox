@@ -197,11 +197,11 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 logger.debug(f"✅ Пользователю выдана репутация: {user1.id}")
 
         commands = await get_chat_commands(chat_id)
-        clean_text = text_msg.lstrip('/').strip().lower()
-        
+        clean_text = text_msg.lstrip("/").strip().lower()
+
         sorted_commands = sorted(commands.keys(), key=len, reverse=True)
         matched_command = None
-        
+
         for cmd in sorted_commands:
             if clean_text.startswith(cmd):
                 end_pos = len(cmd)
@@ -265,8 +265,8 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 await cmd_video(message, bot, url=message.text)
                 return
         elif matched_command:
-            remaining_text = clean_text[len(matched_command):].strip()
-            
+            remaining_text = clean_text[len(matched_command) :].strip()
+
             if not message.reply_to_message and not remaining_text:
                 await message.reply(
                     "Укажи пользователя после команды или ответь на его сообщение."

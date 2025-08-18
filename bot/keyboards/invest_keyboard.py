@@ -80,9 +80,8 @@ def make_portfolio_kb(user_id: int):
                 InlineKeyboardButton(
                     text="◀️ Назад",
                     callback_data=InvestMenuCallback(
-                        action="back_to_menu",
-                        user_id=user_id
-                    ).pack()
+                        action="back_to_menu", user_id=user_id
+                    ).pack(),
                 )
             ]
         ]
