@@ -14,6 +14,7 @@ from bot.keyboards.invest_keyboard import (
     load_stocks,
     make_menu_kb,
     make_portfolio_kb,
+    make_sell_stocks_kb,
     make_stocks_kb,
 )
 from bot.utils.aio_tools import error_report
@@ -104,33 +105,77 @@ async def cb_sell_stock(
 ):
     try:
         user_id = callback.from_user.id
+        if user_id != callback_data.user_id:
+            await callback.answer("📛 Не ваш колбэк!")
+            return
+
+        items = await db.get_global_user_param(user_id, "items") or []
+        user_stocks = [i for i in items if i.get("type") == "stock"]
+
+        if not user_stocks:
+            await callback.answer("📭 У вас нет акций", show_alert=True)
+            return
+
+        market = load_stocks()
+        kb = make_sell_stocks_kb(user_id, user_stocks, market)
+
+        await callback.message.edit_text(
+            "📤 Выберите акцию для продажи:", reply_markup=kb
+        )
+
+    except Exception:
+        await error_report(callback.message, bot, "sell_stock", traceback.format_exc())
+
+
+@invest_router.callback_query(InvestMenuCallback.filter(F.action == "sell_stock_item"))
+async def cb_sell_stock_item(
+    callback: CallbackQuery, bot: Bot, db: Database, callback_data: InvestMenuCallback
+):
+    try:
+        user_id = callback.from_user.id
+        stock_id = callback_data.stock_id
+        item_idx = callback_data.item_idx
 
         if user_id != callback_data.user_id:
             await callback.answer("📛 Не ваш колбэк!")
             return
 
         items = await db.get_global_user_param(user_id, "items") or []
+        user_stocks = [i for i in items if i.get("type") == "stock"]
 
-        stocks = [i for i in items if i.get("type") == "stock"]
-
-        if not stocks:
-            await callback.answer("📭 У вас нет акций", show_alert=True)
+        try:
+            stock_to_sell = user_stocks[item_idx]
+        except IndexError:
+            await callback.answer("❌ Акция не найдена", show_alert=True)
             return
 
         market = load_stocks()
-        text = "📤 Ваши акции для продажи:\n"
-        for s in stocks:
-            stock_info = market.get(str(s["id"]))
-            if stock_info:
-                text += (
-                    f"- {stock_info['name']} "
-                    f"(куплено за {s['price']}$, текущая цена {stock_info['price']}$)\n"
-                )
+        current_price = market.get(str(stock_id), {}).get("price", 0)
 
-        await callback.message.edit_text(text)
+        # Обновляем баланс
+        user_bal = await db.get_global_user_param(user_id, "money")
+        await db.set_global_user_param(user_id, "money", user_bal + current_price)
+
+        # Удаляем проданную акцию
+        new_items = [
+            item
+            for i, item in enumerate(items)
+            if not (item.get("type") == "stock" and i == item_idx)
+        ]
+
+        await db.set_global_user_param(user_id, "items", new_items)
+
+        await callback.answer(f"✅ Продано за {current_price}$", show_alert=True)
+        # Возвращаем в меню
+        await callback.message.edit_text(
+            f"👋 Привет, {callback.from_user.first_name}, выбери опцию:",
+            reply_markup=make_menu_kb(user_id),
+        )
 
     except Exception:
-        await error_report(callback.message, bot, "sell_stock", traceback.format_exc())
+        await error_report(
+            callback.message, bot, "sell_stock_item", traceback.format_exc()
+        )
 
 
 @invest_router.callback_query(InvestMenuCallback.filter(F.action == "my_portfolio"))

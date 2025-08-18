@@ -73,6 +73,37 @@ def make_stocks_kb(user_id: int):
     return InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 
 
+def make_sell_stocks_kb(user_id: int, stocks: list, market_data: dict):
+    keyboard_rows = []
+    for idx, stock in enumerate(stocks):
+        stock_info = market_data.get(str(stock["id"]))
+        if stock_info:
+            keyboard_rows.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{stock_info['name']} (купл: {stock['price']}$)",
+                        callback_data=InvestMenuCallback(
+                            action="sell_stock_item",
+                            user_id=user_id,
+                            stock_id=stock["id"],
+                            item_idx=idx,  # Индекс в списке акций
+                        ).pack(),
+                    )
+                ]
+            )
+    keyboard_rows.append(
+        [
+            InlineKeyboardButton(
+                text="◀️ Назад",
+                callback_data=InvestMenuCallback(
+                    action="back_to_menu", user_id=user_id
+                ).pack(),
+            )
+        ]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
+
+
 def make_portfolio_kb(user_id: int):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
