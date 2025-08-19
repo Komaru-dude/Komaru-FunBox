@@ -528,18 +528,14 @@ async def handle_dice_throw(
 
         if emoji in ("🎲", "🎯", "🎳"):
             if value == 6:
-                multiplier = 1.45
-                msg_text = f"🎉🎉 Мега-победа! +{round(bet * multiplier, 2)} (x1.45)\n"
-                win_amount = bet * multiplier
-            elif value == 5:
                 multiplier = 1.3
                 msg_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
                 win_amount = bet * multiplier
-            elif value == 4:
+            elif value == 5:
                 multiplier = 1.15
                 msg_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
                 win_amount = bet * multiplier
-            elif value == 3:
+            elif value == 4:
                 msg_text = f"🎲 Ничья. Ваша ставка возвращена.\n"
                 win_amount = bet
             else:
@@ -548,14 +544,10 @@ async def handle_dice_throw(
 
         elif emoji in ("🏀", "⚽"):
             if value == 5:
-                multiplier = 1.35
-                msg_text = f"🏆 Идеальный гол! +{round(bet * multiplier, 2)} (x1.35)\n"
+                multiplier = 1.25
+                msg_text = f"🏆 Гол! +{round(bet * multiplier, 2)} (x1.35)\n"
                 win_amount = bet * multiplier
             elif value == 4:
-                multiplier = 1.1
-                msg_text = f"⚽ Обычный гол! +{round(bet * multiplier, 2)} (x1.1)\n"
-                win_amount = bet * multiplier
-            elif value == 3:
                 msg_text = f"⚖️ Ничья. Ваша ставка возвращена.\n"
                 win_amount = bet
             else:
