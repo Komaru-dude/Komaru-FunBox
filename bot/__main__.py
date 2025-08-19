@@ -11,7 +11,7 @@ from traceback import format_exc
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
-from bot import DATA_DIR, PYRO_HOST, PYRO_PORT, logger, IS_TEST
+from bot import DATA_DIR, IS_TEST, PYRO_HOST, PYRO_PORT, logger
 from bot.database import Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
@@ -127,7 +127,9 @@ async def main():
         await db.connect()
         await apply_all_command_sets(bot)
     except Exception:
-        logger.fatal(f"📛 Не удалось выполнить подготовку.\n\nTraceback: {format_exc()}")
+        logger.fatal(
+            f"📛 Не удалось выполнить подготовку.\n\nTraceback: {format_exc()}"
+        )
 
     dp.include_routers(
         admin_router,

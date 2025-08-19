@@ -119,7 +119,9 @@ async def check_free_games(bot: Bot):
                 )
                 await asyncio.sleep(sleep_seconds)
             else:
-                logger.info("🔄 Файл не найден — выполняем немедленное первое обновление.")
+                logger.info(
+                    "🔄 Файл не найден — выполняем немедленное первое обновление."
+                )
                 clean_run = False
 
             # Обновление данных
@@ -138,7 +140,9 @@ async def check_free_games(bot: Bot):
                 json.dump(games_to_save, f, indent=2, ensure_ascii=False)
             tmp_path.replace(FREE_GAMES_PATH)
 
-            logger.info("⌛️ Бесплатные игры успешно обновлены, запускаем рассылку в чаты.")
+            logger.info(
+                "⌛️ Бесплатные игры успешно обновлены, запускаем рассылку в чаты."
+            )
             msg_lines = []
 
             if games_to_save["available"]:
