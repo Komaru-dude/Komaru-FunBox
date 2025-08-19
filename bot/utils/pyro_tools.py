@@ -106,7 +106,7 @@ async def get_chat_members(chat_id: str):
 async def start_pyrogram():
     """Запуск Pyrogram-бота в фоне"""
     await app.start()
-    logger.info("Pyrogram бот запущен.")
+    logger.info("📡 Pyrogram бот запущен.")
     await asyncio.Event().wait()
 
 

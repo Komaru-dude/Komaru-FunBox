@@ -52,7 +52,7 @@ async def check_updates():
             async with aiohttp.ClientSession() as session:
                 async with session.get(api_branches_url, headers=headers) as resp:
                     if resp.status != 200:
-                        logger.error(f"Ошибка API (branches), статус: {resp.status}")
+                        logger.error(f"📛 Ошибка API (branches), статус: {resp.status}")
                         return
                     data = await resp.json()
                     latest_commit = data["commit"]["sha"][:7]
@@ -64,7 +64,7 @@ async def check_updates():
                 async with session.get(api_content_url, headers=headers) as resp:
                     if resp.status != 200:
                         logger.error(
-                            f"Ошибка API (version.json), статус: {resp.status}"
+                            f"📛 Ошибка API (version.json), статус: {resp.status}"
                         )
                         return
                     text = await resp.text()
@@ -75,12 +75,12 @@ async def check_updates():
             update_cache["branch"] = branch
 
             if update_cache["has_update"]:
-                logger.info(f"Доступно обновление: {commit} -> {latest_commit}")
+                logger.info(f"⚡️ Доступно обновление: {commit} -> {latest_commit}")
             else:
-                logger.info("Обновлений нет")
+                logger.info("☃️ Обновлений нет")
 
         except Exception as e:
-            logger.exception(f"Ошибка при проверке обновлений: {e}")
+            logger.exception(f"📛 Ошибка при проверке обновлений: {e}")
         await asyncio.sleep(1200)
 
 
@@ -92,7 +92,7 @@ async def cleanup_expired_items_task():
 
 
 async def check_free_games(bot: Bot):
-    logger.info("Служба обновления игр запущена.")
+    logger.info("🔄 Служба обновления игр запущена.")
 
     clean_run = not FREE_GAMES_PATH.exists()
 
@@ -115,15 +115,15 @@ async def check_free_games(bot: Bot):
             if not clean_run:
                 sleep_seconds = (next_run - now_utc).total_seconds()
                 logger.info(
-                    f"Следующее обновление: {next_run.isoformat()}. Сон на {sleep_seconds:.0f} секунд."
+                    f"Следующее обновление: {next_run.isoformat()}. 🔄 Сон на {sleep_seconds:.0f} секунд."
                 )
                 await asyncio.sleep(sleep_seconds)
             else:
-                logger.info("Файл не найден — выполняем немедленное первое обновление.")
+                logger.info("🔄 Файл не найден — выполняем немедленное первое обновление.")
                 clean_run = False
 
             # Обновление данных
-            logger.info("Начинаем обновление бесплатных игр.")
+            logger.info("🔄 Начинаем обновление бесплатных игр.")
             games_available, games_unavailable = await get_free_games()
 
             games_to_save = {
@@ -138,7 +138,7 @@ async def check_free_games(bot: Bot):
                 json.dump(games_to_save, f, indent=2, ensure_ascii=False)
             tmp_path.replace(FREE_GAMES_PATH)
 
-            logger.info("Бесплатные игры успешно обновлены, запускаем рассылку в чаты.")
+            logger.info("⌛️ Бесплатные игры успешно обновлены, запускаем рассылку в чаты.")
             msg_lines = []
 
             if games_to_save["available"]:
@@ -189,15 +189,15 @@ async def check_free_games(bot: Bot):
                     )
                 except Exception as e:
                     logger.warning(
-                        f"Не удалось отправить сообщение в чат {chat_id}: {e}"
+                        f"⚠️ Не удалось отправить сообщение в чат {chat_id}: {e}"
                     )
 
         except asyncio.CancelledError:
-            logger.info("Задача обновления игр отменена.")
+            logger.info("🛑 Задача обновления игр отменена.")
             break
         except Exception as e:
             logger.exception(
-                f"Произошла ошибка при обновлении игр: {e}\nПовторная попытка через 10 минут..."
+                f"📛 Произошла ошибка при обновлении игр: {e}\n▶️ Повторная попытка через 10 минут..."
             )
             await asyncio.sleep(600)
 
