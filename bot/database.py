@@ -829,6 +829,7 @@ class Database:
             )
 
     async def cleanup_all_expired_items(self):
+        logger.debug("🔄 Начинаю очистку истёкших предметов...")
         await self.ensure_connection()
         now = int(time.time())
         async with self.pool.acquire() as conn:
@@ -854,6 +855,7 @@ class Database:
 
                 if filtered != items:
                     await self.set_global_user_param(user_id, "items", filtered)
+        logger.info("✅ Истёкшие предметы удалены")
 
     async def chat_exists(self, chat_id: int) -> bool:
         """Проверяет существование чата в базе"""
