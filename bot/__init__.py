@@ -39,8 +39,8 @@ def get_git_branch(path):
 
 
 branch_name = get_git_branch(parent_dir)
-is_test = branch_name == "test"
-if is_test:
+IS_TEST = branch_name == "test"
+if IS_TEST:
     level = logging.DEBUG
 else:
     level = logging.INFO
