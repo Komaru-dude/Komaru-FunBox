@@ -582,6 +582,8 @@ async def handle_dice_throw(
         else:
             new_bal = round(user_bal - bet, 2)
 
+        await asyncio.sleep(2)  # Ждём пока проиграется анимация
+
         await db.set_global_user_param(user_id, "money", new_bal)
 
         msg = await callback.message.answer(
