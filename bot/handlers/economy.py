@@ -14,7 +14,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot import logger
+from bot import IS_TEST, logger
 from bot.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
@@ -587,6 +587,9 @@ async def handle_dice_throw(
         msg = await callback.message.answer(
             f"{msg_text}{currency_sign} Ваш текущий баланс: {new_bal}"
         )
+        if IS_TEST:
+            await callback.message.reply(f"🔢 Выпало значение: {value}")
+            logger.debug(f"🔢 Выпало значение: {value}")
 
         await state.clear()
 
