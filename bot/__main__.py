@@ -11,7 +11,7 @@ from traceback import format_exc
 from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
-from bot import DATA_DIR, PYRO_HOST, PYRO_PORT, logger
+from bot import DATA_DIR, PYRO_HOST, PYRO_PORT, logger, IS_TEST
 from bot.database import Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
@@ -101,16 +101,16 @@ def clear_cache():
         bot_dir = Path(__file__).resolve().parent
         cache_dir = bot_dir / "cache"
 
-        logger.info(f"Рассчитываем путь к кэшу: {cache_dir}")
+        logger.info(f"🕐 Рассчитываем путь к кэшу: {cache_dir}")
 
         # Если папка существует - удаляем
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
-            logger.info("Папка кэша удалена.")
+            logger.info("🧼 Папка кэша удалена.")
 
         # Создаем папку, если отсутствует
         cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("Кэш успешно очищен!")
+        logger.info("✅ Кэш успешно очищен!")
 
     except Exception as e:
         logger.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
@@ -118,13 +118,16 @@ def clear_cache():
 
 async def main():
     try:
-        logger.info("Подготовка...")
+        logger.info("🍕 Komaru FunBox")
+        if IS_TEST:
+            logger.debug("🧑‍💻 Используется тестовая ветка")
+        logger.info("▶️ Подготовка...")
         clear_cache()
         await load_models()
         await db.connect()
         await apply_all_command_sets(bot)
     except Exception:
-        logger.fatal(f"Не удалось выполнить подготовку.\n\nTraceback: {format_exc()}")
+        logger.fatal(f"📛 Не удалось выполнить подготовку.\n\nTraceback: {format_exc()}")
 
     dp.include_routers(
         admin_router,
@@ -167,7 +170,7 @@ async def main():
         await bot(DeleteWebhook(drop_pending_updates=True))
         await dp.start_polling(bot)
     except Exception:
-        logger.fatal(f"Запуск не удался.\n\nTraceback: {format_exc()}")
+        logger.fatal(f"📛 Запуск не удался.\n\nTraceback: {format_exc()}")
     finally:
         await bot.session.close()
         if pyrogram_process.poll() is None:
@@ -187,4 +190,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Основной процесс завершён.")
+        print("🤔 Основной процесс завершён.")
