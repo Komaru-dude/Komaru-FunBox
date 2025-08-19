@@ -1,4 +1,3 @@
-import json
 import traceback
 
 from aiogram import Bot, F, Router

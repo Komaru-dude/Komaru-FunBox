@@ -3,7 +3,7 @@ import time
 import traceback
 from datetime import datetime, timedelta
 
-from aiogram import Bot, F, Router
+from aiogram import Bot, Router
 from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command

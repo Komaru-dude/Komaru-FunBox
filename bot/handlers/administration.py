@@ -14,7 +14,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
 
-from bot import API_URL, CACHE_DIR, DATA_DIR, database
+from bot import API_URL, CACHE_DIR, DATA_DIR
 from bot.database import Database
 from bot.utils.aio_tools import error_report, fetch_json
 
