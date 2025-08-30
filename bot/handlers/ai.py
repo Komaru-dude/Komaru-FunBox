@@ -238,7 +238,19 @@ async def cmd_ai(
 
         model = model or user_default_model or DEFAULT_MODEL
 
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = onlysq_models["models"].get(model, None)
+
+        if user_default_model and model_info is None:
+            if not cli_mode:
+                await base_msg.edit_text(
+                    "📛 Не удалось найти информацию о пользовательской модели\n"
+                    "📌 Ваша модель будет сброшена до модели по умолчанию\n"
+                    "❇️ Повторите запрос"
+                )
+                await db.set_user_param(user_id, message.chat.id, "default_model", None)
+                await db.reset_cooldown(user_id, "ai")
+                return
+
         model_display_name = model_info.get("name", model)
         if not cli_mode and model == user_default_model and model != DEFAULT_MODEL:
             model_display_name += " (пользовательская модель по умолчанию)"
