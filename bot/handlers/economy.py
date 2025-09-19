@@ -342,7 +342,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             msg = await message.reply("❌ У цели недостаточно средств для ограбления")
             await db.reset_cooldown(user_id, "rob")
             return
-        
+
         if target_total < 3000:
             await message.reply(
                 "⚠️ При балансе цели менее 3000💰 ограбления нерентабельны!"
