@@ -458,7 +458,9 @@ async def cmd_image(message: Message, bot: Bot):
         try:
             translated = await cmd_ai(messages=messages, cli_mode=True)
         except:
-            await processing_message.edit_text("📛 Не удалось перевести промпт.\n🧩 Обратитесь к разработчику.")
+            await processing_message.edit_text(
+                "📛 Не удалось перевести промпт.\n🧩 Обратитесь к разработчику."
+            )
         prompt_en = translated.strip()
 
         if prompt_en.lower() == "false":
@@ -510,7 +512,6 @@ async def cmd_translate(
             lang = target_lang or default_lang
             text_to_translate = request
         else:
-            user_id = message.from_user.id
             base_msg = await message.reply("🔄 Обработка...")
 
             original_text = message.text
@@ -561,9 +562,15 @@ async def cmd_translate(
             {"role": "user", "content": text_to_translate},
         ]
 
-        translated_text = await cmd_ai(
-            message=message, bot=bot, messages=messages, cli_mode=True
-        )
+        try:
+            translated_text = await cmd_ai(
+                message=message, bot=bot, messages=messages, cli_mode=True
+            )
+        except:
+            await base_msg.edit_text(
+                "📛 Не удалось перевести текст.\n🧩 Обратитесь к разработчику."
+            )
+
         lang_name = SUPPORTED_LANGUAGES.get(lang, lang)
 
         result = f"🌍 Перевод на {lang_name} ({lang}):\n{translated_text}"
