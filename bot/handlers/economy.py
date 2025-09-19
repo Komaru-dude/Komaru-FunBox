@@ -332,10 +332,6 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         target_bank = await db.get_global_user_param(target_id, "bank")
         target_total = target_cash + target_bank
         rob_max_limit = user_total * 0.10
-        if target_total < 3000:
-            await message.reply(
-                "⚠️ При балансе цели менее 3000💰 ограбления нерентабельны!"
-            )
 
         if target_cash < 0 and target_bank <= 0:
             msg = await message.reply("❌ У цели нет средств (ни налички, ни в банке)")
@@ -346,6 +342,11 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             msg = await message.reply("❌ У цели недостаточно средств для ограбления")
             await db.reset_cooldown(user_id, "rob")
             return
+        
+        if target_total < 3000:
+            await message.reply(
+                "⚠️ При балансе цели менее 3000💰 ограбления нерентабельны!"
+            )
 
         # Ограничение ограбления:
         # 1. Максимум 10% от общего баланса грабителя
