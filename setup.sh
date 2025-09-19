@@ -33,7 +33,37 @@ echo "🚀 Начинаем установку Komaru FunBox..."
 
 echo "🔄 Обновляем пакеты и устанавливаем зависимости..."
 apt update
-apt install -y python3-venv git build-essential autoconf automake libtool pkg-config yt-dlp ffmpeg postgresql
+apt install -y python3-venv git build-essential autoconf automake libtool pkg-config ffmpeg postgresql
+
+# Установка yt-dlp
+
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64|amd64)
+        BIN_ARCH="x86_64"
+        ;;
+    aarch64|arm64)
+        BIN_ARCH="aarch64"
+        ;;
+    i386|i686)
+        BIN_ARCH="x86"
+        ;;
+    *)
+        echo "Неподдерживаемая архитектура: $ARCH" >&2
+        exit 1
+        ;;
+esac
+
+# Формируем URL и скачиваем
+URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+if [[ "$BIN_ARCH" != "x86_64" ]]; then
+    URL+="_$BIN_ARCH"
+fi
+
+# Скачиваем бинарник и делаем его исполняемым
+curl -L "$URL" -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
+
+echo "🔨 yt-dlp установлен."
 snap install gifski
 
 if ! id -u ${USER_NAME} >/dev/null 2>&1; then
