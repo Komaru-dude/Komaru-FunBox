@@ -143,7 +143,7 @@ echo "🔒 Настраиваем привлегии..."
 chown -R ${USER_NAME}:${GROUP_NAME} ${INSTALL_DIR}
 chmod 700 ${INSTALL_DIR}
 chmod +x ${INSTALL_DIR}/force-pull.sh
-echo "komaru ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart komaru-funbox.service" | visudo -f /etc/sudoers.d/komaru-funbox
+echo "komaru ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart ${SERVICE_NAME}.service" | visudo -f /etc/sudoers.d/komaru-funbox
 usermod -aG systemd-journal ${USER_NAME}
 chmod 600 db_credentials.txt
 
