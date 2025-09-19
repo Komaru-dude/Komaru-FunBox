@@ -454,7 +454,11 @@ async def cmd_image(message: Message, bot: Bot):
             },
             {"role": "user", "content": prompt_ru},
         ]
-        translated = await cmd_ai(messages=messages, cli_mode=True)
+
+        try:
+            translated = await cmd_ai(messages=messages, cli_mode=True)
+        except:
+            await processing_message.edit_text("📛 Не удалось перевести промпт.\n🧩 Обратитесь к разработчику.")
         prompt_en = translated.strip()
 
         if prompt_en.lower() == "false":
