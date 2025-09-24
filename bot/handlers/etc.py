@@ -251,17 +251,23 @@ async def fetch_weather(city: str, day: str):
     return text, None
 
 
-def create_days_keyboard(chat_type: str):
-    buttons = []
+def create_days_keyboard(chat_type: str) -> InlineKeyboardMarkup:
+    inline_keyboard = []
+    row = []
+
     for d in DAY_LABELS:
         if d.startswith("+") and chat_type != "private":
             continue
-        buttons.append(
-            InlineKeyboardButton(text=DAY_NAMES[d], callback_data=f"weather:{d}")
-        )
-    keyboard = InlineKeyboardMarkup(row_width=3)
-    keyboard.add(*buttons)
-    return keyboard
+        btn = InlineKeyboardButton(text=DAY_NAMES[d], callback_data=f"weather:{d}")
+        row.append(btn)
+        if len(row) == 3:
+            inline_keyboard.append(row)
+            row = []
+
+    if row:
+        inline_keyboard.append(row)
+
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
 
 
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
