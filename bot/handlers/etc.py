@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import html
 import json
 import os
@@ -8,7 +7,7 @@ import random
 import re
 import shutil
 import traceback
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from aiogram import Bot, Router
@@ -449,10 +448,10 @@ async def cmd_epic_games(message: Message, bot: Bot):
         if available:
             msg_lines.append("🎁 <b>Бесплатно сейчас:</b>\n")
             for game in available.values():
-                start = datetime.datetime.fromisoformat(game["start"]).strftime(
+                start = datetime.fromisoformat(game["start"]).strftime(
                     "%d.%m %H:%M"
                 )
-                end = datetime.datetime.fromisoformat(game["end"]).strftime(
+                end = datetime.fromisoformat(game["end"]).strftime(
                     "%d.%m %H:%M"
                 )
                 msg_lines.append(
@@ -465,10 +464,10 @@ async def cmd_epic_games(message: Message, bot: Bot):
         if unavailable:
             msg_lines.append("\n🔒 <b>Не доступно в РФ:</b>\n")
             for game in unavailable.values():
-                start = datetime.datetime.fromisoformat(game["start"]).strftime(
+                start = datetime.fromisoformat(game["start"]).strftime(
                     "%d.%m %H:%M"
                 )
-                end = datetime.datetime.fromisoformat(game["end"]).strftime(
+                end = datetime.fromisoformat(game["end"]).strftime(
                     "%d.%m %H:%M"
                 )
                 msg_lines.append(
@@ -479,7 +478,7 @@ async def cmd_epic_games(message: Message, bot: Bot):
                 )
 
         if updated_at:
-            dt = datetime.datetime.fromisoformat(updated_at)
+            dt = datetime.fromisoformat(updated_at)
             msg_lines.append(f"\n⌛️ Обновлено: {dt.strftime('%d.%m %H:%M UTC')}")
 
         await message.reply(
