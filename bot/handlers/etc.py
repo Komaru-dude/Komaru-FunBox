@@ -8,6 +8,7 @@ import random
 import re
 import shutil
 import traceback
+from datetime import timedelta
 from pathlib import Path
 
 from aiogram import Bot, Router
@@ -87,7 +88,10 @@ WEATHER_ICONS = {
     1282: "⛈️",
 }
 
-BONUM_STICKER_ID = "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA"
+BONUM_STICKER_ID = (
+    "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA"
+)
+
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800))
 async def cmd_tea(message: Message, bot: Bot):
@@ -185,20 +189,49 @@ async def cmd_cat_gif(message: Message, bot: Bot):
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def send_weather(message: Message, bot: Bot, db: Database):
     try:
-        parts = message.text.strip().split(maxsplit=1)
+        parts = message.text.strip().split(maxsplit=2)
 
         if len(parts) < 2:
             await message.reply(
-                "❌ Вы не указали город.\nПример: <code>/weather Москва</code>",
+                "❌ Вы не указали город.\nПример: <code>/weather Москва</code> или <code>/weather Москва tomorrow</code>",
                 parse_mode=ParseMode.HTML,
             )
             await db.reset_cooldown(message.from_user.id, "weather")
             return
 
         city = parts[1]
+        day_param = parts[2].lower() if len(parts) > 2 else "today"
+
+        # Определяем дату для запроса
+        today = datetime.now()
+        if day_param == "yesterday":
+            query_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+        elif day_param == "today":
+            query_date = today.strftime("%Y-%m-%d")
+        elif day_param == "tomorrow":
+            query_date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
+        elif day_param in ["+1", "+2", "+3"]:
+            if message.chat.type != "private":
+                await message.reply(
+                    "❌ Прогноз на несколько дней вперёд доступен только в ЛС."
+                )
+                await db.reset_cooldown(message.from_user.id, "weather")
+                return
+            days_ahead = int(day_param[1])
+            query_date = (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+        else:
+            await message.reply(
+                "❌ Неверный параметр дня. Допустимо: yesterday, today, tomorrow, +1, +2, +3"
+            )
+            await db.reset_cooldown(message.from_user.id, "weather")
+            return
 
         async with ClientSession() as session:
-            url = f"https://api.weatherapi.com/v1/current.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&aqi=yes"
+            if day_param in ["yesterday", "today", "tomorrow"]:
+                url = f"https://api.weatherapi.com/v1/forecast.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&days=3&aqi=yes&alerts=no"
+            else:  # +1, +2, +3
+                url = f"https://api.weatherapi.com/v1/forecast.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&days=3&aqi=yes&alerts=no"
+
             async with session.get(url) as response:
                 if response.status == 400:
                     await message.reply("❌ Такой город не существует")
@@ -217,23 +250,53 @@ async def send_weather(message: Message, bot: Bot, db: Database):
 
                 data = await response.json()
 
-        loc = data["location"]
-        cur = data["current"]
-        cond = cur["condition"]
+        # Выбираем нужный день
+        if day_param in ["yesterday", "today", "tomorrow"]:
+            day_data = next(
+                (
+                    d
+                    for d in data.get("forecast", {}).get("forecastday", [])
+                    if d["date"] == query_date
+                ),
+                None,
+            )
+            if not day_data:
+                day_data = data.get("current", {})
+                loc = data["location"]
+                cond = day_data.get("condition", {})
+            else:
+                loc = data["location"]
+                day_data = day_data["day"]
+                cond = day_data["condition"]
+        else:
+            day_data = next(
+                (
+                    d
+                    for d in data.get("forecast", {}).get("forecastday", [])
+                    if d["date"] == query_date
+                ),
+                None,
+            )
+            if not day_data:
+                await message.reply("❌ Прогноз недоступен")
+                await db.reset_cooldown(message.from_user.id, "weather")
+                return
+            loc = data["location"]
+            day_data = day_data["day"]
+            cond = day_data["condition"]
 
-        code = cond["code"]
+        code = cond.get("code", 1000)
         emoji = WEATHER_ICONS.get(code, "❔")
 
         text = (
-            f"<b>{emoji} Погода в {loc['name']}, {loc['country']}</b>\n"
-            f"<b>🌡 Температура:</b> {cur['temp_c']}°C (Ощущается как {cur['feelslike_c']}°C)\n"
-            f"<b>💧 Влажность:</b> {cur['humidity']}%\n"
-            f"<b>💨 Ветер:</b> {cur['wind_kph']} км/ч {cur['wind_dir']}\n"
-            f"<b>👀 Видимость:</b> {cur['vis_km']} км\n"
-            f"<b>🧪 Давление:</b> {cur['pressure_mb']} мбар\n"
-            f"<b>🌞 UV-индекс:</b> {cur['uv']}\n"
-            f"<b>💨 Качество воздуха (PM2.5):</b> {cur.get('air_quality', {}).get('pm2_5', 'н/д')}\n"
-            f"<b>📅 Обновлено:</b> {cur['last_updated']}"
+            f"<b>{emoji} Погода в {loc['name']}, {loc['country']} на {query_date}</b>\n"
+            f"<b>🌡 Средняя температура:</b> {day_data.get('avgtemp_c', day_data.get('temp_c', 'н/д'))}°C\n"
+            f"<b>💧 Влажность:</b> {day_data.get('avghumidity', day_data.get('humidity', 'н/д'))}%\n"
+            f"<b>💨 Ветер:</b> {day_data.get('maxwind_kph', day_data.get('wind_kph', 'н/д'))} км/ч\n"
+            f"<b>👀 Видимость:</b> {day_data.get('avgvis_km', day_data.get('vis_km', 'н/д'))} км\n"
+            f"<b>🧪 Давление:</b> {day_data.get('pressure_mb', 'н/д')} мбар\n"
+            f"<b>🌞 UV-индекс:</b> {day_data.get('uv', 'н/д')}\n"
+            f"<b>💨 Качество воздуха (PM2.5):</b> {day_data.get('air_quality', {}).get('pm2_5', 'н/д')}\n"
         )
 
         await message.reply(text, parse_mode=ParseMode.HTML)
@@ -245,9 +308,13 @@ async def send_weather(message: Message, bot: Bot, db: Database):
 async def cmd_nillerxs(message: Message):
     await message.reply("нильрекс")
 
-@etc_router.message(Command("bonum"), CooldownFilter("bonum", 30, silent = True))
+
+@etc_router.message(Command("bonum"), CooldownFilter("bonum", 30, silent=True))
 async def cmd_bonum(message: Message, bot: Bot):
-    await bot.send_sticker(message.chat.id, BONUM_STICKER_ID, reply_to_message_id=message.message_id)
+    await bot.send_sticker(
+        message.chat.id, BONUM_STICKER_ID, reply_to_message_id=message.message_id
+    )
+
 
 @etc_router.message(
     Command("tagall"),
