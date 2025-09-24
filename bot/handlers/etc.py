@@ -87,6 +87,7 @@ WEATHER_ICONS = {
     1282: "⛈️",
 }
 
+BONUM_STICKER_ID = "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA"
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800))
 async def cmd_tea(message: Message, bot: Bot):
@@ -244,6 +245,9 @@ async def send_weather(message: Message, bot: Bot, db: Database):
 async def cmd_nillerxs(message: Message):
     await message.reply("нильрекс")
 
+@etc_router.message(Command("bonum"), CooldownFilter("bonum", 30, silent = True))
+async def cmd_bonum(message: Message, bot: Bot):
+    await bot.send_sticker(message.chat.id, BONUM_STICKER_ID, reply_to_message_id=message.message_id)
 
 @etc_router.message(
     Command("tagall"),
