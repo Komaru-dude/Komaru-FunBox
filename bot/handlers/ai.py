@@ -570,6 +570,7 @@ async def cmd_translate(
             await base_msg.edit_text(
                 "📛 Не удалось перевести текст.\n🧩 Обратитесь к разработчику."
             )
+            return
 
         lang_name = SUPPORTED_LANGUAGES.get(lang, lang)
 
