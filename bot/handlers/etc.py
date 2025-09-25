@@ -93,7 +93,7 @@ WEATHER_ICONS = {
     1282: "⛈️",
 }
 
-WEATHER_CACHE = {} # Хранит прогнозы на текущий день
+WEATHER_CACHE = {}  # Хранит прогнозы на текущий день
 
 BONUM_STICKER_ID = (
     "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA"
@@ -198,7 +198,7 @@ async def fetch_weather(city: str, day_delta: int):
         return None, "out of range"
 
     cache_key = f"{city}_{datetime.now().date()}"
-    
+
     # Попытка получить данные из кэша
     if cache_key in WEATHER_CACHE:
         data = WEATHER_CACHE[cache_key]
@@ -244,18 +244,31 @@ def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
     nav_row = []
 
     if current_day_delta > 0:
-        nav_row.append(InlineKeyboardButton(text="⬅️", callback_data=f"weather:{current_day_delta - 1}"))
+        nav_row.append(
+            InlineKeyboardButton(
+                text="⬅️", callback_data=f"weather:{current_day_delta - 1}"
+            )
+        )
 
     today_date = datetime.now()
     target_date = today_date + timedelta(days=current_day_delta)
     day_name = target_date.strftime("%a, %b %d")
-    nav_row.append(InlineKeyboardButton(text=f"🗓 {day_name}", callback_data=f"weather:{current_day_delta}"))
+    nav_row.append(
+        InlineKeyboardButton(
+            text=f"🗓 {day_name}", callback_data=f"weather:{current_day_delta}"
+        )
+    )
 
     if current_day_delta < 6:
-        nav_row.append(InlineKeyboardButton(text="➡️", callback_data=f"weather:{current_day_delta + 1}"))
+        nav_row.append(
+            InlineKeyboardButton(
+                text="➡️", callback_data=f"weather:{current_day_delta + 1}"
+            )
+        )
 
     inline_keyboard.append(nav_row)
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
 
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def weather_command(message: Message, bot: Bot, db: Database):
@@ -280,6 +293,7 @@ async def weather_command(message: Message, bot: Bot, db: Database):
     except Exception:
         await error_report(message, bot, "weather", traceback.format_exc())
 
+
 @etc_router.callback_query(F.data.startswith("weather:"))
 async def weather_callback(query: CallbackQuery, bot: Bot):
     try:
@@ -289,16 +303,21 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             await query.answer("❌ Некорректный запрос", show_alert=True)
             return
 
-        current_day_delta_in_text = int(query.message.reply_markup.inline_keyboard[0][1].callback_data.split(':')[1])
+        current_day_delta_in_text = int(
+            query.message.reply_markup.inline_keyboard[0][1].callback_data.split(":")[1]
+        )
         if day_delta == current_day_delta_in_text:
             await query.answer("📛 Вы уже просматриваете этот день.", show_alert=False)
             return
 
         try:
-            city_line = query.message.text.split('\n')[0]
+            city_line = query.message.text.split("\n")[0]
             city = city_line.split("в ")[1].split(",")[0].strip()
         except (IndexError, AttributeError):
-            await query.answer("📛 Не удалось определить город из предыдущего сообщения, обратитесь к разрабочику", show_alert=True)
+            await query.answer(
+                "📛 Не удалось определить город из предыдущего сообщения, обратитесь к разрабочику",
+                show_alert=True,
+            )
             return
 
         text, err = await fetch_weather(city, day_delta)
