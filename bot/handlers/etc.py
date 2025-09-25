@@ -142,7 +142,7 @@ async def cmd_http_cat(message: Message, bot: Bot):
         try:
             await message.reply_photo(url, caption=f"Ваш HTTP кот: {code}")
         except TelegramBadRequest as e:
-            await message.reply(f"❌ Не удалось отправить кота: {e.message}")
+            await message.reply(f"📛 Не удалось отправить кота: {e.message}")
 
     except Exception as e:
         await error_report(message, bot, "http_cat", traceback.format_exc())
@@ -169,7 +169,7 @@ async def cmd_http_dog(message: Message, bot: Bot):
         try:
             await message.reply_photo(url, caption=f"Ваша HTTP собака: {code}")
         except TelegramBadRequest as e:
-            await message.reply(f"❌ Не удалось отправить собаку: {e.message}")
+            await message.reply(f"📛 Не удалось отправить собаку: {e.message}")
 
     except Exception as e:
         await error_report(message, bot, "http_dog", traceback.format_exc())
@@ -271,7 +271,7 @@ async def weather_command(message: Message, bot: Bot, db: Database):
 
         text, err = await fetch_weather(city, 0)
         if err:
-            await message.reply(f"❌ Ошибка: {err}")
+            await message.reply(f"📛 Ошибка: {err}")
             await db.reset_cooldown(message.from_user.id, "weather")
             return
 
@@ -298,12 +298,12 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             city_line = query.message.text.split('\n')[0]
             city = city_line.split("в ")[1].split(",")[0].strip()
         except (IndexError, AttributeError):
-            await query.answer("❌ Не удалось определить город из предыдущего сообщения, обратитесь к разрабочику", show_alert=True)
+            await query.answer("📛 Не удалось определить город из предыдущего сообщения, обратитесь к разрабочику", show_alert=True)
             return
 
         text, err = await fetch_weather(city, day_delta)
         if err or not text:
-            await query.answer("❌ Не удалось получить данные", show_alert=True)
+            await query.answer("📛 Не удалось получить данные", show_alert=True)
             return
 
         keyboard = create_days_keyboard(day_delta)
@@ -352,7 +352,7 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
             response_data = await fetch_json(url)
             members = response_data.get("members", [])
         except Exception as e:
-            await message.reply(f"❌ Ошибка при получении участников: {str(e)}")
+            await message.reply(f"📛 Ошибка при получении участников: {str(e)}")
             return
 
         bot_id = (await message.bot.get_me()).id
@@ -386,7 +386,7 @@ async def cmd_cowsay(message: Message, bot):
     try:
         if platform.system() != "Linux" or not shutil.which("cowsay"):
             await message.reply(
-                "❌ Платформа не поддерживается\n📀 Требуется Linux + пакет cowsay"
+                "📛 Платформа не поддерживается\n📀 Требуется Linux + пакет cowsay"
             )
             return
 
