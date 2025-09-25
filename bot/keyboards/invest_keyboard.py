@@ -73,30 +73,38 @@ def make_stocks_kb(user_id: int):
     return InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
 
 
-def make_sell_stocks_kb(user_id: int, stocks: list, market_data: dict):
+def make_sell_stocks_kb(user_id, user_stocks, market):
+    grouped_stocks = {}
+    for i, stock in enumerate(user_stocks):
+        stock_id = str(stock["id"])
+        if stock_id not in grouped_stocks:
+            grouped_stocks[stock_id] = {
+                "count": 0,
+                "first_index": i,
+            }
+        grouped_stocks[stock_id]["count"] += 1
+
     keyboard_rows = []
-    for idx, stock in enumerate(stocks):
-        stock_info = market_data.get(str(stock["id"]))
+    for stock_id, data in grouped_stocks.items():
+        stock_info = market.get(stock_id)
         if stock_info:
+            text = f"Продать {stock_info['name']} ({data['count']} шт.)"
+            callback_data = InvestMenuCallback(
+                user_id=user_id,
+                action="sell_stock_item",
+                stock_id=int(stock_id),
+                item_idx=data["first_index"],
+            ).pack()
             keyboard_rows.append(
-                [
-                    InlineKeyboardButton(
-                        text=f"{stock_info['name']} (купл: {stock['price']}$)",
-                        callback_data=InvestMenuCallback(
-                            action="sell_stock_item",
-                            user_id=user_id,
-                            stock_id=stock["id"],
-                            item_idx=idx,  # Индекс в списке акций
-                        ).pack(),
-                    )
-                ]
+                [InlineKeyboardButton(text=text, callback_data=callback_data)]
             )
+
     keyboard_rows.append(
         [
             InlineKeyboardButton(
-                text="◀️ Назад",
+                text="🔙 Назад",
                 callback_data=InvestMenuCallback(
-                    action="back_to_menu", user_id=user_id
+                    user_id=user_id, action="back_to_menu"
                 ).pack(),
             )
         ]

@@ -197,13 +197,38 @@ async def cb_my_portfolio(
 
         market = load_stocks()
         total_value = 0
-        text = "💼 Ваш портфель:\n"
+
+        # Используем словарь для временного подсчета
+        # Это не меняет структуру в базе данных, а лишь помогает при отображении
+        portfolio_summary = {}
+
         for s in stocks:
             stock_info = market.get(str(s["id"]))
             if stock_info:
-                value = stock_info["price"]
-                total_value += value
-                text += f"- {stock_info['name']}: {value}$ (куплено за {s['price']}$)\n"
+                stock_name = stock_info["name"]
+                current_price = stock_info["price"]
+
+                if stock_name not in portfolio_summary:
+                    portfolio_summary[stock_name] = {
+                        "count": 0,
+                        "current_total_value": 0,
+                        "buy_total_cost": 0,
+                    }
+
+                portfolio_summary[stock_name]["count"] += 1
+                portfolio_summary[stock_name]["current_total_value"] += current_price
+                portfolio_summary[stock_name]["buy_total_cost"] += s["price"]
+
+        text = "💼 Ваш портфель:\n"
+        for name, data in portfolio_summary.items():
+            avg_buy_price = data["buy_total_cost"] / data["count"]
+            current_value_per_item = data["current_total_value"] / data["count"]
+
+            text += (
+                f"- {name} ({data['count']} шт.): "
+                f"{current_value_per_item}$ за шт. (ср. цена покупки: {avg_buy_price:.2f}$)\n"
+            )
+            total_value += data["current_total_value"]
 
         text += f"\n💰 Общая стоимость: {total_value}$"
         await callback.message.edit_text(text, reply_markup=make_portfolio_kb(user_id))
