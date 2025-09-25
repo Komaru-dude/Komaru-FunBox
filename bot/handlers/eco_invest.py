@@ -133,38 +133,54 @@ async def cb_sell_stock_item(
     try:
         user_id = callback.from_user.id
         stock_id = callback_data.stock_id
-        item_idx = callback_data.item_idx
 
         if user_id != callback_data.user_id:
             await callback.answer("📛 Не ваш колбэк!")
             return
 
         items = await db.get_global_user_param(user_id, "items") or []
-        user_stocks = [i for i in items if i.get("type") == "stock"]
+        stock_to_sell_idx = -1
 
-        try:
-            stock_to_sell = user_stocks[item_idx]
-        except IndexError:
+        for i, item in enumerate(items):
+            if item.get("type") == "stock" and item.get("id") == stock_id:
+                stock_to_sell_idx = i
+                break
+
+        if stock_to_sell_idx == -1:
             await callback.answer("❌ Акция не найдена", show_alert=True)
             return
+
+        sold_stock_info = items[stock_to_sell_idx]
+        buy_price = sold_stock_info.get("price", 0)
 
         market = load_stocks()
         current_price = market.get(str(stock_id), {}).get("price", 0)
 
-        # Обновляем баланс
         user_bal = await db.get_global_user_param(user_id, "money")
         await db.set_global_user_param(user_id, "money", user_bal + current_price)
 
-        # Удаляем проданную акцию
-        new_items = [
-            item
-            for i, item in enumerate(items)
-            if not (item.get("type") == "stock" and i == item_idx)
-        ]
+        # Удаляем найденную акцию
+        del items[stock_to_sell_idx]
+        await db.set_global_user_param(user_id, "items", items)
 
-        await db.set_global_user_param(user_id, "items", new_items)
+        # Формируем информативное сообщение для пользователя
+        stock_name = market.get(str(stock_id), {}).get("name", "Акция")
+        profit = current_price - buy_price
 
-        await callback.answer(f"✅ Продано за {current_price}$", show_alert=True)
+        # Сообщение о прибыли/убытке
+        if profit >= 0:
+            profit_message = f"🟢 Прибыль: {profit:.2f}$"
+        else:
+            profit_message = f"🔴 Убыток: {profit:.2f}$"
+
+        answer_text = (
+            f"✅ Продана акция '{stock_name}'\n"
+            f"💰 Получено: {current_price}$ (цена покупки: {buy_price}$)\n"
+            f"{profit_message}"
+        )
+
+        await callback.answer(answer_text, show_alert=True)
+
         # Возвращаем в меню
         await callback.message.edit_text(
             f"👋 Привет, {callback.from_user.first_name}, выбери опцию:",

@@ -80,20 +80,28 @@ def make_sell_stocks_kb(user_id, user_stocks, market):
         if stock_id not in grouped_stocks:
             grouped_stocks[stock_id] = {
                 "count": 0,
-                "first_index": i,
+                "total_buy_price": 0,
             }
         grouped_stocks[stock_id]["count"] += 1
+        grouped_stocks[stock_id]["total_buy_price"] += stock.get("price", 0)
 
     keyboard_rows = []
     for stock_id, data in grouped_stocks.items():
         stock_info = market.get(stock_id)
         if stock_info:
-            text = f"Продать {stock_info['name']} ({data['count']} шт.)"
+            current_price = stock_info["price"]
+            avg_buy_price = data["total_buy_price"] / data["count"]
+            total_sell_price = current_price * data["count"]
+            text = (
+                f"{stock_info['name']} ({data['count']} шт.)\n"
+                f"📈 Продать за: {total_sell_price}$ ({current_price}$/шт.)\n"
+                f"📉 Покупка: {data['total_buy_price']}$ ({avg_buy_price:.2f}$/шт.)"
+            )
+
             callback_data = InvestMenuCallback(
                 user_id=user_id,
                 action="sell_stock_item",
                 stock_id=int(stock_id),
-                item_idx=data["first_index"],
             ).pack()
             keyboard_rows.append(
                 [InlineKeyboardButton(text=text, callback_data=callback_data)]
