@@ -23,7 +23,7 @@ from aiogram.types import (
 )
 from aiohttp import ClientSession
 
-from bot import FREE_GAMES_PATH
+from bot import FREE_GAMES_PATH, logger
 from bot.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
@@ -93,15 +93,7 @@ WEATHER_ICONS = {
     1282: "⛈️",
 }
 
-DAY_LABELS = ["yesterday", "today", "tomorrow", "+1", "+2", "+3"]
-DAY_NAMES = {
-    "yesterday": "Вчера",
-    "today": "Сегодня",
-    "tomorrow": "Завтра",
-    "+1": "+1 день",
-    "+2": "+2 дня",
-    "+3": "+3 дня",
-}
+WEATHER_CACHE = {} # Хранит прогнозы на текущий день
 
 BONUM_STICKER_ID = (
     "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA"
@@ -201,37 +193,33 @@ async def cmd_cat_gif(message: Message, bot: Bot):
         await error_report(message, bot, "cat_gif", traceback.format_exc())
 
 
-async def fetch_weather(city: str, day: str):
-    today = datetime.now()
-    if day == "yesterday":
-        query_date = (today - timedelta(days=1)).strftime("%Y-%m-%d")
-    elif day == "today":
-        query_date = today.strftime("%Y-%m-%d")
-    elif day == "tomorrow":
-        query_date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
+async def fetch_weather(city: str, day_delta: int):
+    if not (0 <= day_delta <= 7):
+        return None, "out of range"
+
+    cache_key = f"{city}_{datetime.now().date()}"
+    
+    # Попытка получить данные из кэша
+    if cache_key in WEATHER_CACHE:
+        data = WEATHER_CACHE[cache_key]
+        logger.debug("♻️ Используем данные погоды из кэша")
     else:
-        days_ahead = int(day[1])
-        query_date = (today + timedelta(days=days_ahead)).strftime("%Y-%m-%d")
+        url = f"https://api.weatherapi.com/v1/forecast.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&days=7&aqi=yes&alerts=no"
+        async with ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    return None, resp.status
+                data = await resp.json()
+        WEATHER_CACHE[cache_key] = data
+        print("Fetching new data and caching")
 
-    url = f"https://api.weatherapi.com/v1/forecast.json?key={os.getenv('WEATHER_API_KEY')}&q={city}&days=4&aqi=yes&alerts=no"
-    async with ClientSession() as session:
-        async with session.get(url) as resp:
-            if resp.status != 200:
-                return None, resp.status
-            data = await resp.json()
-
-    day_data = next(
-        (
-            d
-            for d in data.get("forecast", {}).get("forecastday", [])
-            if d["date"] == query_date
-        ),
-        None,
-    )
-    loc = data["location"]
-
-    if not day_data:
+    forecast_days = data.get("forecast", {}).get("forecastday", [])
+    if day_delta >= len(forecast_days):
         return None, None
+
+    day_data = forecast_days[day_delta]
+    query_date = day_data["date"]
+    loc = data["location"]
 
     day_data = day_data["day"]
     cond = day_data["condition"]
@@ -251,24 +239,23 @@ async def fetch_weather(city: str, day: str):
     return text, None
 
 
-def create_days_keyboard(chat_type: str) -> InlineKeyboardMarkup:
+def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
     inline_keyboard = []
-    row = []
+    nav_row = []
 
-    for d in DAY_LABELS:
-        if d.startswith("+") and chat_type != "private":
-            continue
-        btn = InlineKeyboardButton(text=DAY_NAMES[d], callback_data=f"weather:{d}")
-        row.append(btn)
-        if len(row) == 3:
-            inline_keyboard.append(row)
-            row = []
+    if current_day_delta > 0:
+        nav_row.append(InlineKeyboardButton(text="⬅️", callback_data=f"weather:{current_day_delta - 1}"))
 
-    if row:
-        inline_keyboard.append(row)
+    today_date = datetime.now()
+    target_date = today_date + timedelta(days=current_day_delta)
+    day_name = target_date.strftime("%a, %b %d")
+    nav_row.append(InlineKeyboardButton(text=f"🗓 {day_name}", callback_data=f"weather:{current_day_delta}"))
 
+    if current_day_delta < 6:
+        nav_row.append(InlineKeyboardButton(text="➡️", callback_data=f"weather:{current_day_delta + 1}"))
+
+    inline_keyboard.append(nav_row)
     return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
 
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def weather_command(message: Message, bot: Bot, db: Database):
@@ -282,33 +269,39 @@ async def weather_command(message: Message, bot: Bot, db: Database):
             return
         city = parts[1]
 
-        text, err = await fetch_weather(city, "today")
+        text, err = await fetch_weather(city, 0)
         if err:
             await message.reply(f"❌ Ошибка: {err}")
             await db.reset_cooldown(message.from_user.id, "weather")
             return
 
-        keyboard = create_days_keyboard(message.chat.type)
+        keyboard = create_days_keyboard(0)
         await message.reply(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
     except Exception:
         await error_report(message, bot, "weather", traceback.format_exc())
 
-
 @etc_router.callback_query(F.data.startswith("weather:"))
 async def weather_callback(query: CallbackQuery, bot: Bot):
     try:
-        day = query.data.split(":")[1]
-        if day.startswith("+") and query.message.chat.type != "private":
-            await query.answer("❌ Только в личных сообщениях", show_alert=True)
+        try:
+            day_delta = int(query.data.split(":")[1])
+        except (ValueError, IndexError):
+            await query.answer("❌ Некорректный запрос", show_alert=True)
             return
 
-        city = query.message.text.split("в ")[1].split(",")[0]
-        text, err = await fetch_weather(city, day)
+        try:
+            city_line = query.message.text.split('\n')[0]
+            city = city_line.split("в ")[1].split(",")[0].strip()
+        except (IndexError, AttributeError):
+            await query.answer("❌ Не удалось определить город из предыдущего сообщения, обратитесь к разрабочику", show_alert=True)
+            return
+
+        text, err = await fetch_weather(city, day_delta)
         if err or not text:
             await query.answer("❌ Не удалось получить данные", show_alert=True)
             return
 
-        keyboard = create_days_keyboard(query.message.chat.type)
+        keyboard = create_days_keyboard(day_delta)
         await query.message.edit_text(
             text, parse_mode=ParseMode.HTML, reply_markup=keyboard
         )
