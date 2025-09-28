@@ -363,7 +363,7 @@ async def quality_chosen_handler(
             )
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
-        file_ext = ".mp3" if is_audio else ".mp4"
+        file_ext = ".opus" if is_audio else ".mp4"
         temp_file = CACHE_DIR / f"{uuid.uuid4()}{file_ext}"
 
         success, log = await download_with_format(url, format_spec, temp_file)
