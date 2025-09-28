@@ -647,6 +647,10 @@ async def cmd_ocr(message: Message, bot: Bot):
         answer = "\n".join([section["text"] for section in vocr_resp["sections"]])
         if error:
             await message.reply(error)
+            return
+        elif not vocr_resp or "sections" not in vocr_resp:
+            await message.reply("📛 Пустой ответ от API, обратитесь к разработчику")
+            return
         else:
             chunks = [answer[i : i + 4096] for i in range(0, len(answer), 4096)]
             for idx, chunk in enumerate(chunks):
