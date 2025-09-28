@@ -205,23 +205,24 @@ def find_best_format(
 
 
 async def download_with_format(
-    url: str, format_spec: str, output_path: Path
+    url: str, format_spec: str, output_path: Path, is_audio: bool # is_audio можно вытащить из format_spec, мне просто лень делать "по умному", не делайте как я
 ) -> Tuple[bool, str]:
     """Скачивание видео с указанным форматом."""
     try:
         logger.debug(f"🎛 Используем формат: {format_spec}")
+        cmd = ["yt-dlp", "-N", "8", "--no-cache-dir"]
+
+        if is_audio:
+            cmd += ["-f", format_spec, "-x", "--audio-format", "m4a", "--embed-metadata", "--embed-thumbnail"]
+        else:
+            cmd += ["-f", format_spec, "--embed-metadata", "--embed-thumbnail"]
+
+        cmd += ["-o", str(output_path), url]
+
         proc = await asyncio.create_subprocess_exec(
-            "yt-dlp",
-            "--no-cache-dir",
-            "-f",
-            format_spec,
-            "--embed-metadata",
-            "--embed-thumbnail",
-            "-o",
-            str(output_path),
-            url,
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stderr=asyncio.subprocess.STDOUT
         )
 
         stdout, _ = await proc.communicate()
@@ -363,10 +364,10 @@ async def quality_chosen_handler(
             )
 
         await callback.message.edit_text(f"⬇️ Скачивание ({quality})...")
-        file_ext = ".opus" if is_audio else ".mp4"
+        file_ext = ".m4a" if is_audio else ".mp4"
         temp_file = CACHE_DIR / f"{uuid.uuid4()}{file_ext}"
 
-        success, log = await download_with_format(url, format_spec, temp_file)
+        success, log = await download_with_format(url, format_spec, temp_file, is_audio)
         if not success:
             return await callback.message.edit_text(
                 f"❌ Ошибка скачивания, попробуйте через несколько часов или обратитесь к разработчику"
