@@ -194,7 +194,7 @@ async def cmd_cat_gif(message: Message, bot: Bot):
 
 
 async def fetch_weather(city: str, day_delta: int):
-    if not (0 <= day_delta <= 7):
+    if not (0 <= day_delta <= 2):
         return None, "out of range"
 
     cache_key = f"{city}_{datetime.now().date()}"
@@ -260,7 +260,7 @@ def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
         )
     )
 
-    if current_day_delta < 6:
+    if current_day_delta < 2:
         nav_row.append(
             InlineKeyboardButton(
                 text="➡️", callback_data=f"weather:{current_day_delta + 1}"
