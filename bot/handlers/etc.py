@@ -100,7 +100,7 @@ BONUM_STICKER_ID = (
 )
 
 
-@etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800))
+@etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800, silent=True))
 async def cmd_tea(message: Message, bot: Bot):
     try:
 
