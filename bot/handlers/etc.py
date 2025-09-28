@@ -239,14 +239,14 @@ async def fetch_weather(city: str, day_delta: int):
     return text, None
 
 
-def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
+def create_days_keyboard(current_day_delta: int, user_id: int) -> InlineKeyboardMarkup:
     inline_keyboard = []
     nav_row = []
 
     if current_day_delta > 0:
         nav_row.append(
             InlineKeyboardButton(
-                text="⬅️", callback_data=f"weather:{current_day_delta - 1}"
+                text="⬅️", callback_data=f"weather:{current_day_delta - 1}:{user_id}"
             )
         )
 
@@ -263,7 +263,7 @@ def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
     if current_day_delta < 2:
         nav_row.append(
             InlineKeyboardButton(
-                text="➡️", callback_data=f"weather:{current_day_delta + 1}"
+                text="➡️", callback_data=f"weather:{current_day_delta + 1}:{user_id}"
             )
         )
 
@@ -289,7 +289,7 @@ async def weather_command(message: Message, bot: Bot, db: Database):
             await db.reset_cooldown(message.from_user.id, "weather")
             return
 
-        keyboard = create_days_keyboard(0)
+        keyboard = create_days_keyboard(0, message.from_user.id)
         await message.reply(text, parse_mode=ParseMode.HTML, reply_markup=keyboard)
     except Exception:
         await error_report(message, bot, "weather", traceback.format_exc())
@@ -302,6 +302,10 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             day_delta = int(query.data.split(":")[1])
         except (ValueError, IndexError):
             await query.answer("❌ Некорректный запрос", show_alert=True)
+            return
+
+        if query.data.split(":")[2] != query.from_user.id:
+            await query.answer("❌ Комару не разрешает отвечать на чужие колбэки", show_alert=True)
             return
 
         try:
