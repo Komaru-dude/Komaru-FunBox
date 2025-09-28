@@ -256,7 +256,7 @@ def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
     nav_row.append(
         InlineKeyboardButton(
             text=f"🗓 {day_name}",
-            callback_data=None,
+            callback_data="ignore",
         )
     )
 
@@ -507,3 +507,8 @@ async def cmd_epic_games(message: Message, bot: Bot):
         )
     except Exception:
         await error_report(message, bot, "free_epic_games", traceback.format_exc())
+
+
+@etc_router.callback_query(F.data == "ignore")
+async def ignore_callback(query: CallbackQuery):
+    await query.answer()
