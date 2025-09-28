@@ -205,7 +205,10 @@ def find_best_format(
 
 
 async def download_with_format(
-    url: str, format_spec: str, output_path: Path, is_audio: bool # is_audio можно вытащить из format_spec, мне просто лень делать "по умному", не делайте как я
+    url: str,
+    format_spec: str,
+    output_path: Path,
+    is_audio: bool,  # is_audio можно вытащить из format_spec, мне просто лень делать "по умному", не делайте как я
 ) -> Tuple[bool, str]:
     """Скачивание видео с указанным форматом."""
     try:
@@ -213,16 +216,22 @@ async def download_with_format(
         cmd = ["yt-dlp", "-N", "8", "--no-cache-dir"]
 
         if is_audio:
-            cmd += ["-f", format_spec, "-x", "--audio-format", "m4a", "--embed-metadata", "--embed-thumbnail"]
+            cmd += [
+                "-f",
+                format_spec,
+                "-x",
+                "--audio-format",
+                "m4a",
+                "--embed-metadata",
+                "--embed-thumbnail",
+            ]
         else:
             cmd += ["-f", format_spec, "--embed-metadata", "--embed-thumbnail"]
 
         cmd += ["-o", str(output_path), url]
 
         proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT
         )
 
         stdout, _ = await proc.communicate()

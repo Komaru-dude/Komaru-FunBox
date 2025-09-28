@@ -305,7 +305,9 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             return
 
         if query.data.split(":")[2] != query.from_user.id:
-            await query.answer("❌ Комару не разрешает отвечать на чужие колбэки", show_alert=True)
+            await query.answer(
+                "❌ Комару не разрешает отвечать на чужие колбэки", show_alert=True
+            )
             return
 
         try:
