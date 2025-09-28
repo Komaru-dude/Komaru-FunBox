@@ -255,7 +255,8 @@ def create_days_keyboard(current_day_delta: int) -> InlineKeyboardMarkup:
     day_name = target_date.strftime("%a, %b %d")
     nav_row.append(
         InlineKeyboardButton(
-            text=f"🗓 {day_name}", callback_data=f"weather:{current_day_delta}"
+            text=f"🗓 {day_name}",
+            callback_data=None,
         )
     )
 
@@ -303,19 +304,12 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             await query.answer("❌ Некорректный запрос", show_alert=True)
             return
 
-        current_day_delta_in_text = int(
-            query.message.reply_markup.inline_keyboard[0][1].callback_data.split(":")[1]
-        )
-        if day_delta == current_day_delta_in_text:
-            await query.answer("📛 Вы уже просматриваете этот день.", show_alert=False)
-            return
-
         try:
             city_line = query.message.text.split("\n")[0]
             city = city_line.split("в ")[1].split(",")[0].strip()
         except (IndexError, AttributeError):
             await query.answer(
-                "📛 Не удалось определить город из предыдущего сообщения, обратитесь к разрабочику",
+                "📛 Не удалось определить город из предыдущего сообщения, обратитесь к разработчику",
                 show_alert=True,
             )
             return
