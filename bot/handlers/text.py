@@ -18,7 +18,13 @@ from aiogram.types import Message
 
 from bot import logger
 from bot.database import Database
-from bot.handlers.ai import ChatState, cmd_ai
+from bot.handlers.ai import (
+    TOOLS_SCHEMA,
+    ChatState,
+    cmd_ai,
+    execute_chat_stop,
+    handle_tool_call,
+)
 from bot.handlers.video import cmd_video
 from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 from bot.utils.global_storage import active_chats, onlysq_models
@@ -62,6 +68,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             if message.chat.id not in active_chats:
                 await state.clear()
                 return
+
             base_msg = await message.reply("🔄 Обработка...")
             user_data = await state.get_data()
             messages = user_data.get("messages", [])
@@ -75,79 +82,60 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 base_url=os.getenv("OPENAI_SDK_API_URL"),
             )
 
-            can_stream = onlysq_models["models"].get(model, {}).get("can-stream", False)
             model_info = onlysq_models["models"].get(model, {})
             model_display_name = model_info.get("name", model)
 
-            if can_stream:
-                final_text = ""
-                buffer = ""
-                edited_once = False
-                last_edit_time = time.monotonic()
+            is_gemini_tool_model = model.startswith("gemini")
 
-                async for chunk in await client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    stream=True,
-                ):
-                    delta = chunk.choices[0].delta.content
-                    if delta:
-                        final_text += delta
-                        buffer += delta
-
-                        now = time.monotonic()
-                        if (
-                            len(buffer) > 30
-                            or delta.endswith((".", "!", "?", "\n"))
-                            or now - last_edit_time > 3.0
-                        ):
-                            try:
-                                await base_msg.edit_text(
-                                    f"💭 Запрос: {user_message}\n"
-                                    f"🧠 Модель: {model_display_name}\n\n"
-                                    f"📝 Ответ: {final_text}"
-                                )
-                                buffer = ""
-                                edited_once = True
-                                last_edit_time = now
-                            except TelegramRetryAfter as e:
-                                await asyncio.sleep(e.retry_after)
-                            except Exception:
-                                pass
-                        elif not edited_once:
-                            try:
-                                await base_msg.edit_text(
-                                    f"💭 Запрос: {user_message}\n"
-                                    f"🧠 Модель: {model_display_name}\n\n"
-                                    f"📝 Ответ: {final_text}"
-                                )
-                            except Exception:
-                                pass
-
-                messages.append({"role": "assistant", "content": final_text})
-                if len(messages) > 8:
-                    messages = [messages[0]] + messages[-7:]
-                await state.update_data(messages=messages)
-            else:
+            if is_gemini_tool_model:
                 response = await client.chat.completions.create(
                     model=model,
                     messages=messages,
+                    tools=TOOLS_SCHEMA,
+                    tool_choice="auto",
                 )
-                choices = response.choices
-                if not choices:
-                    raise ValueError("Нет ответа от API")
 
-                answer_content = choices[0].message.content
-                if model == "deepseek-r1":
-                    answer = re.sub(
-                        r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
-                    ).strip()
-                elif model == "gemini-2.5-flash":
-                    answer = re.sub(
-                        r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
-                    ).strip()
+                response_message = response.choices[0].message
+                final_text = ""
+
+                if response_message.tool_calls:
+
+                    temp_messages = []
+
+                    for tool_call in response_message.tool_calls:
+                        tool_output = await handle_tool_call(
+                            tool_call, message, state, db
+                        )
+                        temp_messages.append(
+                            {
+                                "role": "tool",
+                                "tool_call_id": tool_call.id,
+                                "content": tool_output["output"],
+                            }
+                        )
+
+                    messages.append(response_message)
+                    messages.extend(temp_messages)
+
+                    final_response = await client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                    )
+                    final_text = final_response.choices[0].message.content
                 else:
-                    answer = answer_content
+                    final_text = response_message.content
+
+                answer = re.sub(
+                    r"<thought>.*?</thought>", "", final_text, flags=re.DOTALL
+                ).strip()
+
+                current_state = await state.get_state()
+                if current_state == ChatState.active.state:
+                    messages.append({"role": "assistant", "content": answer})
+                    if len(messages) > 8:
+                        messages = [messages[0]] + messages[-7:]
+                    await state.update_data(messages=messages)
+
                 raw_answer = (
                     f"💭 Запрос: {user_message}\n"
                     f"🧠 Модель: {model_display_name}\n\n"
@@ -157,30 +145,112 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 chunks = [
                     raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)
                 ]
-
-                for idx, chunk in enumerate(chunks):
-                    if idx == 0:
-                        await base_msg.edit_text(chunk)
-                    else:
-                        await message.reply(chunk)
-
-                ai_response = response.choices[0].message.content
-                ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
-
-                messages.append({"role": "assistant", "content": ai_response})
-                if len(messages) > 8:
-                    messages = [messages[0]] + messages[-7:]
-
-                await state.update_data(messages=messages)
-
-                chunks = [
-                    ai_response[i : i + 4096] for i in range(0, len(ai_response), 4096)
-                ]
                 for idx, chunk in enumerate(chunks):
                     if idx == 0:
                         await base_msg.edit_text(chunk)
                     else:
                         await message.answer(chunk)
+
+            else:
+
+                can_stream = model_info.get("can-stream", False)
+
+                if can_stream:
+                    final_text = ""
+                    buffer = ""
+                    edited_once = False
+                    last_edit_time = time.monotonic()
+
+                    async for chunk in await client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        stream=True,
+                    ):
+                        delta = chunk.choices[0].delta.content
+                        if delta:
+                            final_text += delta
+                            buffer += delta
+
+                            now = time.monotonic()
+                            if (
+                                len(buffer) > 30
+                                or delta.endswith((".", "!", "?", "\n"))
+                                or now - last_edit_time > 3.0
+                            ):
+                                try:
+                                    await base_msg.edit_text(
+                                        f"💭 Запрос: {user_message}\n"
+                                        f"🧠 Модель: {model_display_name}\n\n"
+                                        f"📝 Ответ: {final_text}"
+                                    )
+                                    buffer = ""
+                                    edited_once = True
+                                    last_edit_time = now
+                                except TelegramRetryAfter as e:
+                                    await asyncio.sleep(e.retry_after)
+                                except Exception:
+                                    pass
+                            elif not edited_once:
+                                try:
+                                    await base_msg.edit_text(
+                                        f"💭 Запрос: {user_message}\n"
+                                        f"🧠 Модель: {model_display_name}\n\n"
+                                        f"📝 Ответ: {final_text}"
+                                    )
+                                except Exception:
+                                    pass
+
+                    messages.append({"role": "assistant", "content": final_text})
+                    if len(messages) > 8:
+                        messages = [messages[0]] + messages[-7:]
+                    await state.update_data(messages=messages)
+
+                else:
+                    response = await client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                    )
+                    choices = response.choices
+                    if not choices:
+                        raise ValueError("Нет ответа от API")
+
+                    answer_content = choices[0].message.content
+                    if model == "deepseek-r1":
+                        answer = re.sub(
+                            r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
+                        ).strip()
+                    elif model == "gemini-2.5-flash":
+                        answer = re.sub(
+                            r"", "", answer_content, flags=re.DOTALL
+                        ).strip()
+                    else:
+                        answer = answer_content
+                    raw_answer = (
+                        f"💭 Запрос: {user_message}\n"
+                        f"🧠 Модель: {model_display_name}\n\n"
+                        f"📝 Ответ: {answer}"
+                    )
+
+                    chunks = [
+                        raw_answer[i : i + 4096]
+                        for i in range(0, len(raw_answer), 4096)
+                    ]
+
+                    for idx, chunk in enumerate(chunks):
+                        if idx == 0:
+                            await base_msg.edit_text(chunk)
+                        else:
+                            await message.answer(chunk)
+
+                    ai_response = response.choices[0].message.content
+                    ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
+
+                    messages.append({"role": "assistant", "content": ai_response})
+                    if len(messages) > 8:
+                        messages = [messages[0]] + messages[-7:]
+
+                    await state.update_data(messages=messages)
+
             return
 
         if message.chat.type == "channel":

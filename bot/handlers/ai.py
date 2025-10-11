@@ -15,6 +15,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import BufferedInputFile, Message
+from pydantic import BaseModel, Field
 
 from bot import logger
 from bot.database import Database
@@ -73,6 +74,51 @@ ALLOWED_RATIOS = {
 
 class ChatState(StatesGroup):
     active = State()
+
+
+class ChatStopTool(BaseModel):
+    """
+    Останавливает текущую активную сессию чата, сбрасывая состояние пользователя.
+    Используется, если пользователь явно запрашивает завершение текущего разговора.
+    """
+
+    # Аргументы не нужны, но описание важно для LLM
+    pass
+
+
+TOOLS_SCHEMA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "chat_stop",
+            "description": ChatStopTool.__doc__.strip(),
+            "parameters": ChatStopTool.model_json_schema(),
+        },
+    }
+]
+
+AVAILABLE_TOOLS = {
+    "chat_stop": None,
+}
+
+
+async def execute_chat_stop(message: Message, state: FSMContext) -> str:
+    """Выполняет логику команды /chat_stop и возвращает результат для LLM."""
+    chat_id = message.chat.id
+    current_state = await state.get_state()
+
+    if current_state is not None:
+        await state.clear()
+
+    async with active_chats_lock:
+        if chat_id in active_chats:
+            active_chats.remove(chat_id)
+            return "Чат успешно остановлен, и состояние сброшено. Пользователь может начать новый разговор."
+        else:
+            return "Чат уже был остановлен. Никаких дополнительных действий не требовалось."
+
+
+AVAILABLE_TOOLS["chat_stop"] = execute_chat_stop
 
 
 async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
@@ -795,6 +841,29 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "chat_clear", traceback.format_exc())
 
 
+async def handle_tool_call(tool_call, message: Message, state: FSMContext) -> dict:
+    """
+    Обрабатывает один вызов инструмента от LLM, вызывая соответствующую Python-функцию.
+    """
+    function_name = tool_call.function.name
+
+    if function_name == "chat_stop":
+
+        function_to_call = AVAILABLE_TOOLS[function_name]
+
+        function_result = await function_to_call(message=message, state=state)
+
+        return {
+            "tool_call_id": tool_call.id,
+            "output": function_result,
+        }
+    else:
+        return {
+            "tool_call_id": tool_call.id,
+            "output": f"Ошибка: Функция {function_name} не найдена в списке доступных инструментов.",
+        }
+
+
 @ai_router.message(Command("chat_stop"), CooldownFilter("chat_stop", 15))
 async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
@@ -808,16 +877,13 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Datab
             )
             return
 
-        if not current_state is None:
-            await state.clear()
+        result_message = await execute_chat_stop(message, state)
 
-        async with active_chats_lock:
-            if not chat_id in active_chats:
-                await message.reply("📛 Чата не существует")
-                return
-            else:
-                active_chats.remove(chat_id)
-                await message.reply("✅ Успешно остановлено")
+        if "успешно остановлен" in result_message:
+            await message.reply("✅ Успешно остановлено")
+        elif "уже был остановлен" in result_message:
+            await message.reply("📛 Чата не существует")
+
     except Exception:
         await error_report(message, bot, "chat_stop", traceback.format_exc())
 
