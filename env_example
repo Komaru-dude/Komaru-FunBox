@@ -15,7 +15,6 @@ API_HASH=your_api_hash
 PYRO_PORT=8000
 
 # Ваши url для апи нейросетей
-API_URL=http://api.onlysq.ru/ai/v2
 OPENAI_SDK_API_URL=http://api.onlysq.ru/ai/openai
 IMAGEN_API_URL=https://api.onlysq.ru/ai/imagen
 
