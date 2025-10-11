@@ -277,7 +277,7 @@ async def weather_command(message: Message, bot: Bot, db: Database):
         parts = message.text.strip().split(maxsplit=1)
         if len(parts) < 2:
             await message.reply(
-                "❌ Укажите город.\nПример: /weather Москва", parse_mode=ParseMode.HTML
+                "❌ Укажите город.\nПример: <code>/weather Москва</code>", parse_mode=ParseMode.HTML
             )
             await db.reset_cooldown(message.from_user.id, "weather")
             return
