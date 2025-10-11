@@ -996,7 +996,7 @@ async def add_prompt_content(
         escaped_title = escape(title)
 
         await message.reply(
-            f"✅ Промпт <b>{escaped_title}</b> добавлен\n🆔 ID: <code>{prompt_id}</code>\n💡 Используйте через <b>{escaped_title}</b> <i>запрос</i>",
+            f"✅ Промпт <b>{escaped_title}</b> добавлен\n🆔 ID: <code>{prompt_id}</code>\n💡 Используйте через <b>!{escaped_title}</b> <i>запрос</i>",
             parse_mode=ParseMode.HTML,
         )
         await state.clear()
