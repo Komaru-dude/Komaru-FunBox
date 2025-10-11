@@ -9,6 +9,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from bot import API_URL
 from bot.database import RANK_TO_LEVEL, Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils import aio_tools
@@ -66,7 +67,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
                 async with aiohttp.ClientSession() as session:
                     try:
                         async with session.get(
-                            f"http://127.0.0.1:8001/user/{mention}"
+                            f"{API_URL}/user/{mention}"
                         ) as resp:
                             data = await resp.json()
                             user_id = data.get("user_id")
@@ -81,7 +82,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
             async with aiohttp.ClientSession() as session:
                 try:
                     async with session.get(
-                        f"http://127.0.0.1:8001/username/{chat_id}/{user_id}"
+                        f"{API_URL}/username/{chat_id}/{user_id}"
                     ) as resp:
                         if (await resp.json()).get("error"):
                             error_msg = "Пользователь не найден"
@@ -92,7 +93,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
             async with aiohttp.ClientSession() as session:
                 try:
                     async with session.get(
-                        f"http://127.0.0.1:8001/user/{username}"
+                        f"{API_URL}/user/{username}"
                     ) as resp:
                         data = await resp.json()
                         user_id = data.get("user_id")
@@ -110,7 +111,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get(
-                f"http://127.0.0.1:8001/first_name/{chat_id}/{user_id}"
+                f"{API_URL}/first_name/{chat_id}/{user_id}"
             ) as resp:
                 data = await resp.json()
                 first_name = data.get("first_name", "Пользователь")
