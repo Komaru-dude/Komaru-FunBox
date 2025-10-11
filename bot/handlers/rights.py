@@ -66,9 +66,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
                 )
                 async with aiohttp.ClientSession() as session:
                     try:
-                        async with session.get(
-                            f"{API_URL}/user/{mention}"
-                        ) as resp:
+                        async with session.get(f"{API_URL}/user/{mention}") as resp:
                             data = await resp.json()
                             user_id = data.get("user_id")
                             error_msg = data.get("error")
@@ -92,9 +90,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
             username = text.lstrip("@")
             async with aiohttp.ClientSession() as session:
                 try:
-                    async with session.get(
-                        f"{API_URL}/user/{username}"
-                    ) as resp:
+                    async with session.get(f"{API_URL}/user/{username}") as resp:
                         data = await resp.json()
                         user_id = data.get("user_id")
                         error_msg = data.get("error")
@@ -110,9 +106,7 @@ async def process_username(message: Message, state: FSMContext, db: Database):
 
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(
-                f"{API_URL}/first_name/{chat_id}/{user_id}"
-            ) as resp:
+            async with session.get(f"{API_URL}/first_name/{chat_id}/{user_id}") as resp:
                 data = await resp.json()
                 first_name = data.get("first_name", "Пользователь")
         except:
