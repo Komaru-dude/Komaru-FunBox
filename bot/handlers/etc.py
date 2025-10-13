@@ -23,7 +23,7 @@ from aiogram.types import (
 )
 from aiohttp import ClientSession
 
-from bot import FREE_GAMES_PATH, logger
+from bot import API_URL, FREE_GAMES_PATH, logger
 from bot.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
@@ -368,7 +368,7 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
             return
 
         try:
-            url = f"http://127.0.0.1:8001/chat_members/{chat_id}"
+            url = f"{API_URL}/chat_members/{chat_id}"
             response_data = await fetch_json(url)
             members = response_data.get("members", [])
         except Exception as e:
