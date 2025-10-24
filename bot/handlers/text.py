@@ -103,9 +103,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     temp_messages = []
 
                     for tool_call in response_message.tool_calls:
-                        tool_output = await handle_tool_call(
-                            tool_call, message, state
-                        )
+                        tool_output = await handle_tool_call(tool_call, message, state)
                         temp_messages.append(
                             {
                                 "role": "tool",
