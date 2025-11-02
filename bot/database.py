@@ -5,7 +5,6 @@ import random
 import time
 import uuid
 from datetime import date, timedelta
-from pathlib import Path
 
 import asyncpg
 from dotenv import load_dotenv
