@@ -374,7 +374,9 @@ class Database:
                     )
 
                 # Синхронизация глобальных пользовательских настроек
-                user_rows = await conn.fetch("SELECT user_id, settings FROM global_users")
+                user_rows = await conn.fetch(
+                    "SELECT user_id, settings FROM global_users"
+                )
                 user_setting_names = [s[0] for s in DEFAULT_USER_SETTINGS]
 
                 for row in user_rows:
@@ -397,7 +399,9 @@ class Database:
                         settings = {}
 
                     # Удаляем ключи, которые больше не присутствуют в DEFAULT_USER_SETTINGS
-                    filtered = {k: v for k, v in settings.items() if k in user_setting_names}
+                    filtered = {
+                        k: v for k, v in settings.items() if k in user_setting_names
+                    }
                     changed = filtered.keys() != settings.keys()
 
                     # Добавляем отсутствующие настройки по умолчанию
@@ -1455,10 +1459,13 @@ class Database:
         new_val = bool(enable) if enable is not None else not bool(current)
         await self.set_user_setting(user_id, name, new_val)
         return new_val
-    
+
     # Опять же, можно сделать всё в один запрос но мне впадлу
     async def restore_user_settings(self, user_id: int):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
-            await conn.execute("""UPDATE global_users SET settings = NULL WHERE user_id = $1;""", user_id)
+            await conn.execute(
+                """UPDATE global_users SET settings = NULL WHERE user_id = $1;""",
+                user_id,
+            )
         await self.init_user_settings(user_id)

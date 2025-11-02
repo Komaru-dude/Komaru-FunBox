@@ -17,6 +17,7 @@ from bot.utils.aio_tools import error_report
 
 usettings_router = Router()
 
+
 class USettingsStates(StatesGroup):
     waiting_for_input = State()
 
@@ -88,7 +89,9 @@ async def open_usetting(callback: CallbackQuery, bot: Bot, db: Database):
         raw_value = await db.get_user_setting(user_id, setting_name)
 
         # Инфо о настройке
-        setting_info = next((s for s in DEFAULT_USER_SETTINGS if s[0] == setting_name), None)
+        setting_info = next(
+            (s for s in DEFAULT_USER_SETTINGS if s[0] == setting_name), None
+        )
         if not setting_info:
             await callback.answer("Настройка не найдена!")
             return
@@ -188,7 +191,9 @@ async def utoggle_bool_setting(callback: CallbackQuery, bot: Bot, db: Database):
 
     try:
         user_id = callback.from_user.id
-        setting_info = next((s for s in DEFAULT_USER_SETTINGS if s[0] == setting_name), None)
+        setting_info = next(
+            (s for s in DEFAULT_USER_SETTINGS if s[0] == setting_name), None
+        )
         if not setting_info:
             await callback.answer("Настройка не найдена!")
             return

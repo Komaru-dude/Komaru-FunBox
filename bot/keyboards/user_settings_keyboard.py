@@ -1,7 +1,8 @@
 # Одинаков с settings_keyboard.py, в будующем лучше объединить оба файла
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.database import USER_CATEGORIES, DEFAULT_USER_SETTINGS
+from bot.database import DEFAULT_USER_SETTINGS, USER_CATEGORIES
+
 
 def main_settings_keyboard(owner_id: int):
     builder = InlineKeyboardBuilder()

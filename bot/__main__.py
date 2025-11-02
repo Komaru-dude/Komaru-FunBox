@@ -31,9 +31,9 @@ from .handlers.rights import rights_router
 from .handlers.rp import rp_router
 from .handlers.service import service_router
 from .handlers.settings import settings_router
-from .handlers.user_settings import usettings_router
 from .handlers.text import text_router
 from .handlers.time import time_router
+from .handlers.user_settings import usettings_router
 from .handlers.video import video_router
 
 token = os.getenv("BOT_API_TOKEN")
