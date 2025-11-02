@@ -1455,3 +1455,10 @@ class Database:
         new_val = bool(enable) if enable is not None else not bool(current)
         await self.set_user_setting(user_id, name, new_val)
         return new_val
+    
+    # Опять же, можно сделать всё в один запрос но мне впадлу
+    async def restore_user_settings(self, user_id: int):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute("""UPDATE global_users SET settings = NULL WHERE user_id = $1;""", user_id)
+        await self.init_user_settings(user_id)
