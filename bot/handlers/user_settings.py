@@ -12,7 +12,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.database import DEFAULT_USER_SETTINGS, Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.keyboards import settings_keyboard as kb_settings
+from bot.keyboards import user_settings_keyboard as kb_settings
 from bot.utils.aio_tools import error_report
 
 usettings_router = Router()
