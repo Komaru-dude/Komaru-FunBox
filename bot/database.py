@@ -149,7 +149,18 @@ DEFAULT_SETTINGS = [
     ("max_random_rep", "Модерация", int, 4, "Максимальное кол-во случайной репутации"),
 ]
 
+DEFAULT_USER_SETTINGS = [
+    (
+        "rob_notif",
+        "Уведомления",
+        bool,
+        True,
+        "Сообщает вам в личных сообщениях, если вас ограбили, указывая имя пользователя, который это сделал.",
+    )
+]
+
 CATEGORIES = list({cat for _, cat, *rest in DEFAULT_SETTINGS})
+USER_CATEGORIES = list({cat for _, cat, *rest in DEFAULT_USER_SETTINGS})
 
 USERS_COLUMNS = {
     "user_id": "BIGINT",
@@ -162,6 +173,7 @@ USERS_COLUMNS = {
     "message_count": "INTEGER DEFAULT 0",
     "history": "JSONB DEFAULT '[]'::JSONB",
     "default_model": "TEXT DEFAULT ''",
+    "settings": "JSONB DEFAULT '[]'::JSONB",
 }
 
 FEATURES_COLUMNS = {
@@ -188,6 +200,7 @@ GLOBAL_USERS_COLUMNS = {
     "bank": "BIGINT DEFAULT 0",
     "name": "TEXT DEFAULT 'Unknown'",
     "items": "JSONB DEFAULT '[]'::JSONB",
+    "settings": "JSONB DEFAULT '{}'::JSONB",
 }
 
 COMMAND_COOLDOWNS_COLUMNS = {
@@ -360,6 +373,46 @@ class Database:
                         chat_id,
                         setting_names,
                     )
+
+                # Синхронизация глобальных пользовательских настроек
+                user_rows = await conn.fetch("SELECT user_id, settings FROM global_users")
+                user_setting_names = [s[0] for s in DEFAULT_USER_SETTINGS]
+
+                for row in user_rows:
+                    user_id = row["user_id"]
+                    settings_raw = row.get("settings")
+
+                    if settings_raw is None:
+                        settings = {}
+                    elif isinstance(settings_raw, str):
+                        try:
+                            parsed = json.loads(settings_raw)
+                            settings = parsed if isinstance(parsed, dict) else {}
+                        except Exception:
+                            settings = {}
+                    elif isinstance(settings_raw, dict):
+                        settings = settings_raw
+                    elif isinstance(settings_raw, list):
+                        settings = {}
+                    else:
+                        settings = {}
+
+                    # Удаляем ключи, которые больше не присутствуют в DEFAULT_USER_SETTINGS
+                    filtered = {k: v for k, v in settings.items() if k in user_setting_names}
+                    changed = filtered.keys() != settings.keys()
+
+                    # Добавляем отсутствующие настройки по умолчанию
+                    for name, _, _, default, _ in DEFAULT_USER_SETTINGS:
+                        if name not in filtered:
+                            filtered[name] = default
+                            changed = True
+
+                    if changed:
+                        await conn.execute(
+                            "UPDATE global_users SET settings = $1::jsonb WHERE user_id = $2",
+                            json.dumps(filtered, ensure_ascii=False),
+                            user_id,
+                        )
 
     async def has_permission(
         self, user_id: int, chat_id: int, required_level: int
@@ -1235,3 +1288,171 @@ class Database:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
             await conn.execute("DELETE FROM custom_prompts WHERE id = $1", prompt_id)
+
+    async def init_user_settings(self, user_id: int):
+        """
+        Инициализирует глобальные настройки пользователя значениями по умолчанию.
+        """
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT settings FROM global_users WHERE user_id = $1",
+                user_id,
+            )
+            if not row:
+                await self.add_global_user(user_id)
+                row = await conn.fetchrow(
+                    "SELECT settings FROM global_users WHERE user_id = $1",
+                    user_id,
+                )
+
+            settings_raw = row.get("settings") if row else None
+
+            # Приводим к словарю
+            settings = {}
+            if settings_raw is None:
+                settings = {}
+            elif isinstance(settings_raw, str):
+                try:
+                    parsed = json.loads(settings_raw)
+                    settings = parsed if isinstance(parsed, dict) else {}
+                except Exception:
+                    settings = {}
+            elif isinstance(settings_raw, dict):
+                settings = settings_raw
+            elif isinstance(settings_raw, list):
+                settings = {}
+            else:
+                settings = {}
+
+            changed = False
+            for name, _, _, default, _ in DEFAULT_USER_SETTINGS:
+                if name not in settings:
+                    settings[name] = default
+                    changed = True
+
+            if changed:
+                await conn.execute(
+                    "UPDATE global_users SET settings = $1::jsonb WHERE user_id = $2",
+                    json.dumps(settings, ensure_ascii=False),
+                    user_id,
+                )
+
+    async def get_user_setting(self, user_id: int, name: str):
+        """
+        Получает значение глобальной пользовательской настройки.
+
+        Если запись пользователя отсутствует — создаёт её. Если ключ отсутствует — возвращает значение по умолчанию из DEFAULT_USER_SETTINGS.
+        """
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT settings FROM global_users WHERE user_id = $1",
+                user_id,
+            )
+            if not row:
+                await self.add_global_user(user_id)
+                await self.init_user_settings(user_id)
+                for setting_name, _, _, default, _ in DEFAULT_USER_SETTINGS:
+                    if setting_name == name:
+                        return default
+                return None
+
+            settings_raw = row.get("settings")
+
+            # Приведение к dict
+            if settings_raw is None:
+                settings = {}
+            elif isinstance(settings_raw, str):
+                try:
+                    parsed = json.loads(settings_raw)
+                    settings = parsed if isinstance(parsed, dict) else {}
+                except Exception:
+                    settings = {}
+            elif isinstance(settings_raw, dict):
+                settings = settings_raw
+            elif isinstance(settings_raw, list):
+                settings = {}
+            else:
+                settings = {}
+
+            if name in settings:
+                return settings[name]
+
+            for setting_name, _, _, default, _ in DEFAULT_USER_SETTINGS:
+                if setting_name == name:
+                    return default
+
+            return None
+
+    async def set_user_setting(self, user_id: int, name: str, value):
+        """Устанавливает значение глобальной пользовательской настройки в поле global_users.settings"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT settings FROM global_users WHERE user_id = $1",
+                user_id,
+            )
+            if not row:
+                await self.add_global_user(user_id)
+                settings = {}
+            else:
+                settings_raw = row.get("settings")
+                if settings_raw is None:
+                    settings = {}
+                elif isinstance(settings_raw, str):
+                    try:
+                        parsed = json.loads(settings_raw)
+                        settings = parsed if isinstance(parsed, dict) else {}
+                    except Exception:
+                        settings = {}
+                elif isinstance(settings_raw, dict):
+                    settings = settings_raw
+                elif isinstance(settings_raw, list):
+                    settings = {}
+                else:
+                    settings = {}
+
+            settings[name] = value
+
+            await conn.execute(
+                "UPDATE global_users SET settings = $1::jsonb WHERE user_id = $2",
+                json.dumps(settings, ensure_ascii=False),
+                user_id,
+            )
+
+    async def is_user_setting_exists(self, user_id: int, name: str) -> bool:
+        """Проверяет существование ключа настройки в глобальных настройках юзера"""
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT settings FROM global_users WHERE user_id = $1",
+                user_id,
+            )
+            if not row:
+                return False
+            settings_raw = row.get("settings")
+            if settings_raw is None:
+                return False
+            if isinstance(settings_raw, str):
+                try:
+                    parsed = json.loads(settings_raw)
+                    return isinstance(parsed, dict) and (name in parsed)
+                except Exception:
+                    return False
+            if isinstance(settings_raw, dict):
+                return name in settings_raw
+            return False
+
+    async def is_user_setting_enabled(self, user_id: int, name: str) -> bool:
+        value = await self.get_user_setting(user_id, name)
+        return bool(value)
+
+    async def toggle_user_setting(
+        self, user_id: int, name: str, enable: bool = None
+    ) -> bool:
+        """Переключает значение глобальной настройки пользователя"""
+        current = await self.get_user_setting(user_id, name)
+        new_val = bool(enable) if enable is not None else not bool(current)
+        await self.set_user_setting(user_id, name, new_val)
+        return new_val
