@@ -41,7 +41,7 @@
     { "command": "unban", "description": "Разбан пользователя" },
     { "command": "settings", "description": "Настройки бота" },
     { "command": "restore_default_settings", "description": "Сброс настроек" },
-    { "command": "usettings", "description": "Настройки пользователя" },
+    { "command": "user_settings", "description": "Настройки пользователя" },
     { "command": "restore_default_usettings", "description": "Сброс настроек пользователя" },
     { "command": "tagall", "description": "Упомянуть всех в чате" },
     { "command": "ban_media", "description": "Блок функций пользователю" },
