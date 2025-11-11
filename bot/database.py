@@ -1499,7 +1499,7 @@ class Database:
                 """SELECT EXISTS (SELECT 1 FROM active_users WHERE user_id = $1)""",
                 user_id,
             )
-        
+
     async def get_active_users_count(self):
         await self.ensure_connection()
         async with self.pool.acquire() as conn:

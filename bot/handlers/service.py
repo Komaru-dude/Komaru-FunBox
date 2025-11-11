@@ -4,7 +4,9 @@ from aiogram import Bot, F, Router
 from aiogram.filters.chat_member_updated import (
     IS_MEMBER,
     IS_NOT_MEMBER,
-    ChatMemberUpdatedFilter, MEMBER, KICKED
+    KICKED,
+    MEMBER,
+    ChatMemberUpdatedFilter,
 )
 from aiogram.types import ChatMemberUpdated, Message
 
@@ -65,15 +67,12 @@ async def service_new_member(event: ChatMemberUpdated, db: Database):
 
     await event.bot.send_message(chat.id, text)
 
-@service_router.my_chat_member(
-    ChatMemberUpdatedFilter(member_status_changed=KICKED)
-)
+
+@service_router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=KICKED))
 async def user_blocked_bot(event: ChatMemberUpdated, db: Database):
     await db.delete_active_user(event.from_user.id)
 
 
-@service_router.my_chat_member(
-    ChatMemberUpdatedFilter(member_status_changed=MEMBER)
-)
+@service_router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=MEMBER))
 async def user_unblocked_bot(event: ChatMemberUpdated, db: Database):
     await db.add_active_user(event.from_user.id)
