@@ -251,7 +251,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
             return
 
-        if message.chat.type == "channel":
+        if message.chat.type in ["channel", "private"]:
             return
         await db.update_message_count(user1.id, chat_id)
         if not text_msg:
