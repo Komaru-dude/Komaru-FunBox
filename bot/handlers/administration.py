@@ -16,6 +16,7 @@ from aiogram.types import FSInputFile, Message
 
 from bot import API_URL, CACHE_DIR, DATA_DIR
 from bot.database import Database
+from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
 
 admin_router = Router()
@@ -381,3 +382,17 @@ async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
         await message.reply(f"✅ Пользователь {first_name} был удалён")
     except Exception as e:
         await error_report(message, bot, "ban_media", traceback.format_exc())
+
+@admin_router.message(Command("get_active_users_count"), CooldownFilter("get_au_count", 120, True))
+async def cmd_get_active_users_count(message: Message, db: Database):
+
+    if message.chat.type != "private":
+        await message.reply("❌ Эта команда доступна только в ЛС")
+        return
+
+    if not await db.has_permission(message.from_user.id, message.chat.id, 4):
+        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
+        return
+    
+    ausers_count = await db.get_active_users_count()
+    await message.reply(f"👤 Количество активных пользователей: {ausers_count}")

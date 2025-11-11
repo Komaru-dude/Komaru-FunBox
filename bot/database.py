@@ -222,6 +222,8 @@ CUSTOM_PROMPTS_COLUMNS = {
     "created_at": "TIMESTAMP DEFAULT NOW()",
 }
 
+ACTIVE_USERS_COLUMNS = {"user_id": "BIGINT PRIMARY KEY"}
+
 
 class Database:
     def __init__(self):
@@ -296,6 +298,7 @@ class Database:
                     ),
                     "uses": (USES_COLUMNS, None),
                     "custom_prompts": (CUSTOM_PROMPTS_COLUMNS, None),
+                    "active_users": (ACTIVE_USERS_COLUMNS, None),
                 }
 
                 # Создание таблиц
@@ -1469,3 +1472,35 @@ class Database:
                 user_id,
             )
         await self.init_user_settings(user_id)
+
+    async def add_active_user(self, user_id: int):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO active_users (user_id)
+                VALUES ($1)
+                ON CONFLICT (user_id) DO NOTHING
+                """,
+                user_id,
+            )
+
+    async def delete_active_user(self, user_id: int):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                """DELETE FROM active_users WHERE user_id = $1""", user_id
+            )
+
+    async def is_active_user(self, user_id: int):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval(
+                """SELECT EXISTS (SELECT 1 FROM active_users WHERE user_id = $1)""",
+                user_id,
+            )
+        
+    async def get_active_users_count(self):
+        await self.ensure_connection()
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval("""SELECT COUNT(*) FROM active_users""")

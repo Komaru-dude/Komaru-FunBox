@@ -4,7 +4,7 @@ from aiogram import Bot, F, Router
 from aiogram.filters.chat_member_updated import (
     IS_MEMBER,
     IS_NOT_MEMBER,
-    ChatMemberUpdatedFilter,
+    ChatMemberUpdatedFilter, MEMBER, KICKED
 )
 from aiogram.types import ChatMemberUpdated, Message
 
@@ -13,6 +13,7 @@ from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report
 
 service_router = Router()
+service_router.my_chat_member.filter(F.chat.type == "private")
 
 
 @service_router.message(
@@ -63,3 +64,16 @@ async def service_new_member(event: ChatMemberUpdated, db: Database):
         pass  # Неизвестные ключи остаются как есть, без падения
 
     await event.bot.send_message(chat.id, text)
+
+@service_router.my_chat_member(
+    ChatMemberUpdatedFilter(member_status_changed=KICKED)
+)
+async def user_blocked_bot(event: ChatMemberUpdated, db: Database):
+    await db.delete_active_user(event.from_user.id)
+
+
+@service_router.my_chat_member(
+    ChatMemberUpdatedFilter(member_status_changed=MEMBER)
+)
+async def user_unblocked_bot(event: ChatMemberUpdated, db: Database):
+    await db.add_active_user(event.from_user.id)
