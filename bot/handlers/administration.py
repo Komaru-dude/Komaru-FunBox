@@ -254,7 +254,7 @@ async def cmd_ban_user(message: Message, bot: Bot, db: Database):
     try:
         await db.mediaban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был заблокирован")
-    except Exception as e:
+    except Exception:
         await error_report(message, bot, "ban_media", traceback.format_exc())
 
 
@@ -319,7 +319,7 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
     try:
         await db.mediaunban_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
-    except Exception as e:
+    except Exception:
         await error_report(message, bot, "unban_media", traceback.format_exc())
 
 
@@ -380,7 +380,7 @@ async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
     try:
         await db.delete_global_user(target_id)
         await message.reply(f"✅ Пользователь {first_name} был удалён")
-    except Exception as e:
+    except Exception:
         await error_report(message, bot, "ban_media", traceback.format_exc())
 
 
@@ -402,5 +402,5 @@ async def cmd_get_active_users_count(message: Message, bot: Bot, db: Database):
 
         ausers_count = await db.get_active_users_count()
         await message.reply(f"👤 Количество активных пользователей: {ausers_count}")
-    except Exception as e:
+    except Exception:
         await error_report(message, bot, "get_au_count", traceback.format_exc())
