@@ -65,6 +65,7 @@
     { "command": "free_epic_games", "description": "Бесплатные игры в EG" },
     { "command": "add_prompt", "description": "Добавить кастомный промпт" },
     { "command": "list_prompts", "description": "Список промптов" },
-    { "command": "remove_prompt", "description": "Удалить кастомный промпт" }
+    { "command": "remove_prompt", "description": "Удалить кастомный промпт" },
+    { "command": "get_active_users_count", "description": "Посмотреть число активных юзеров"}
   ]
 }

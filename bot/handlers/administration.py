@@ -387,15 +387,20 @@ async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
 @admin_router.message(
     Command("get_active_users_count"), CooldownFilter("get_au_count", 120, True)
 )
-async def cmd_get_active_users_count(message: Message, db: Database):
+async def cmd_get_active_users_count(message: Message, bot: Bot, db: Database):
 
-    if message.chat.type != "private":
-        await message.reply("❌ Эта команда доступна только в ЛС")
-        return
+    try:
+        if message.chat.type != "private":
+            await message.reply("❌ Эта команда доступна только в ЛС")
+            return
 
-    if not await db.has_permission(message.from_user.id, message.chat.id, 4):
-        await message.reply("❌ У вас недостаточно прав для выполнения этой команды.")
-        return
+        if not await db.has_permission(message.from_user.id, message.chat.id, 4):
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнения этой команды."
+            )
+            return
 
-    ausers_count = await db.get_active_users_count()
-    await message.reply(f"👤 Количество активных пользователей: {ausers_count}")
+        ausers_count = await db.get_active_users_count()
+        await message.reply(f"👤 Количество активных пользователей: {ausers_count}")
+    except Exception as e:
+        await error_report(message, bot, "get_au_count", traceback.format_exc())
