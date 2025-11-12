@@ -384,7 +384,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             return
 
         if text_msg.lower() == "/бонум":
-            await cmd_bonum()
+            await cmd_bonum(message, bot)
 
     except openai.InternalServerError:
         await message.reply("⚠️ Внутренняя ошибка API")
