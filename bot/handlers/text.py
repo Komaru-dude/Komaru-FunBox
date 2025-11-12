@@ -25,6 +25,7 @@ from bot.handlers.ai import (
     execute_chat_stop,
     handle_tool_call,
 )
+from bot.handlers.etc import cmd_bonum
 from bot.handlers.video import cmd_video
 from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 from bot.utils.global_storage import active_chats, onlysq_models
@@ -381,6 +382,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
         ) and await db.is_setting_enabled(chat_id, "alo"):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
+
+        if text_msg.lower() == "/бонум":
+            await cmd_bonum()
 
     except openai.InternalServerError:
         await message.reply("⚠️ Внутренняя ошибка API")
