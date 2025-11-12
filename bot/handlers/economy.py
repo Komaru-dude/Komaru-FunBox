@@ -421,11 +421,13 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
                 await bot.send_message(
                     target_id,
                     f'😵 Вас успешно ограбил <a href="tg://user?id={user_id}">{user_id}</a>!',
+                    parse_mode=ParseMode.HTML,
                 )
             elif is_successful == False:
                 await bot.send_message(
                     target_id,
                     f'🥸 Вас попытался ограбить <a href="tg://user?id={user_id}">{user_id}</a>!',
+                    parse_mode=ParseMode.HTML,
                 )
             else:
                 logger.warning("Переменная is_successful осталась в None")
