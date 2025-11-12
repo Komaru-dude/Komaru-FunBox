@@ -305,11 +305,13 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 prompt_name = match.group(1)
                 user_query = match.group(2)
 
-                if not user_query and message.reply_to_message:
+                if message.reply_to_message:
                     if message.reply_to_message.text:
-                        user_query = message.reply_to_message.text
+                        reply_query = message.reply_to_message.text
                     elif message.reply_to_message.caption:
-                        user_query = message.reply_to_message.caption
+                        reply_query = message.reply_to_message.caption
+
+                    user_query = reply_query + user_query
 
                 prompt = await db.get_prompt_by_title(prompt_name, user1.id)
                 if not prompt:
