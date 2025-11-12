@@ -392,11 +392,11 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
         for idx, chunk in enumerate(chunks):
             tags_str = " ".join(chunk)
             if idx == 0:
-                await message.answer(
+                base_msg = await message.reply(
                     f"❗️ Упоминаю всех! {tags_str}", parse_mode=ParseMode.HTML
                 )
             else:
-                await message.answer(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
+                await base_msg.reply(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
     except Exception:
         await error_report(message, bot, "tagall", traceback.format_exc())
 
