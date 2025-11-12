@@ -234,34 +234,6 @@ async def cmd_ai(
             user_id = message.from_user.id
             base_msg = await message.reply("🔄 Обработка...")
             command_text = message.text if message.text else message.caption
-
-            photo_to_process = None
-            if message.photo:
-                photo_to_process = message.photo[-1]
-            elif message.reply_to_message and message.reply_to_message.photo:
-                photo_to_process = message.reply_to_message.photo[-1]
-
-            if photo_to_process:
-                try:
-                    await base_msg.edit_text("🔄 Обнаружено фото, обрабатываю...")
-                    file = await bot.get_file(photo_to_process.file_id)
-                    file_path = file.file_path
-                    file_bytes = await bot.download_file(file_path)
-
-                    if file_path.endswith(".png"):
-                        mime_type = "image/png"
-                    elif file_path.endswith(".webp"):
-                        mime_type = "image/webp"
-
-                    base64_image = base64.b64encode(file_bytes.read()).decode("utf-8")
-                    await base_msg.edit_text("🔄 Обработка...")
-                except Exception as e:
-                    await base_msg.edit_text(
-                        f"⚠️ Не удалось обработать изображение: {e}"
-                    )
-                    await db.reset_cooldown(user_id, "ai")
-                    return
-
             split_text = command_text.split(maxsplit=1) if command_text else [""]
 
             args_text = split_text[1] if len(split_text) > 1 else ""
@@ -320,8 +292,33 @@ async def cmd_ai(
         )
 
         model = model or user_default_model or DEFAULT_MODEL
-
+        is_gemini_model = model and model.startswith("gemini")
         model_info = onlysq_models["models"].get(model, None)
+
+        photo_to_process = None
+        if message.photo:
+            photo_to_process = message.photo[-1]
+        elif message.reply_to_message and message.reply_to_message.photo:
+            photo_to_process = message.reply_to_message.photo[-1]
+
+        if photo_to_process and is_gemini_model:
+            try:
+                await base_msg.edit_text("🔄 Обнаружено фото, обрабатываю...")
+                file = await bot.get_file(photo_to_process.file_id)
+                file_path = file.file_path
+                file_bytes = await bot.download_file(file_path)
+
+                if file_path.endswith(".png"):
+                    mime_type = "image/png"
+                elif file_path.endswith(".webp"):
+                    mime_type = "image/webp"
+
+                base64_image = base64.b64encode(file_bytes.read()).decode("utf-8")
+                await base_msg.edit_text("🔄 Обработка...")
+            except Exception as e:
+                await base_msg.edit_text(f"⚠️ Не удалось обработать изображение: {e}")
+                await db.reset_cooldown(user_id, "ai")
+                return
 
         if user_default_model and model_info is None:
             if not cli_mode:
@@ -340,7 +337,7 @@ async def cmd_ai(
 
         if messages:
             pass
-        elif base64_image:
+        elif base64_image and is_gemini_model:
             messages = [
                 {
                     "role": "system",
