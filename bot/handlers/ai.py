@@ -229,6 +229,7 @@ async def cmd_ai(
         user_default_model = None
         base64_image = None
         mime_type = "image/jpeg"
+        photo_to_process = None
 
         if not cli_mode:
             user_id = message.from_user.id
@@ -295,7 +296,6 @@ async def cmd_ai(
         is_gemini_model = model and model.startswith("gemini")
         model_info = onlysq_models["models"].get(model, None)
 
-        photo_to_process = None
         if message.photo:
             photo_to_process = message.photo[-1]
         elif message.reply_to_message and message.reply_to_message.photo:
