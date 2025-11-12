@@ -296,6 +296,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         split_text = message.text.split()
         target_id, get_id_error = await get_user_id(message)
         protection_note = ""
+        is_successful = None
 
         if user_id == target_id:
             msg = await message.reply("❌ Нельзя ограбить самого себя")
@@ -378,6 +379,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
                 eco_config["min_rob_penalty"], eco_config["max_rob_penalty"]
             )
             new_cash = user_cash - penalty
+            is_successful = False
             msg = await message.reply(
                 protection_note
                 + f"🚔 Вас поймали!\n📉 Штраф: {penalty}{eco_config['currency_sign']}\n💰 Новый баланс: {round(new_cash, 2)}"
@@ -391,6 +393,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             target_new_cash = round(target_cash - taken_cash, 2)
             target_new_bank = round(target_bank - taken_bank, 2)
             new_cash = user_cash + taken_cash + taken_bank
+            is_successful = True
 
             msg = await message.reply(
                 protection_note
@@ -403,6 +406,29 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             await db.set_global_user_param(user_id, "money", new_cash)
             await db.set_global_user_param(target_id, "money", target_new_cash)
             await db.set_global_user_param(target_id, "bank", target_new_bank)
+
+        if await db.is_user_setting_enabled(
+            user_id, "rob_notif"
+        ) and not await db.is_active_user(user_id):
+            non_working_rob_msg = await message.reply(
+                "⚠️ У вас включена функция rob_notif, но бот не может вам написать.\n💬 Напишите боту или выключите функцию (/user_settings > уведомления > rob_notif)"
+            )
+
+        if await db.is_user_setting_enabled(
+            target_id, "rob_notif"
+        ) and await db.is_active_user(target_id):
+            if is_successful == True:
+                await bot.send_message(
+                    target_id,
+                    f'😵 Вас успешно ограбил <a href="tg://user?id={user_id}">{user_id}</a>!',
+                )
+            elif is_successful == False:
+                await bot.send_message(
+                    target_id,
+                    f'🥸 Вас попытался ограбить <a href="tg://user?id={user_id}">{user_id}</a>!',
+                )
+            else:
+                logger.warning("Переменная is_successful осталась в None")
 
     except ZeroDivisionError:
         profile_link = f"tg://user?id={os.getenv('OWNER_ID')}"
@@ -420,6 +446,8 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
                 await message.delete()
                 if "msg" in locals():
                     await msg.delete()
+                if "non_working_rob_msg" in locals():
+                    await non_working_rob_msg.delete()
             except Exception as e:
                 logger.debug(f"Не удалось удалить сообщение: {e}")
 
