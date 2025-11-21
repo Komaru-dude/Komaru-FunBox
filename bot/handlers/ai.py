@@ -566,6 +566,7 @@ async def cmd_image(message: Message, bot: Bot):
             await processing_message.edit_text(
                 "📛 Не удалось перевести промпт.\n🧩 Обратитесь к разработчику."
             )
+            return
         prompt_en = translated.strip()
 
         if prompt_en.lower() == "false":
