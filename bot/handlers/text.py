@@ -303,6 +303,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             )
             if match:
                 prompt_name = match.group(1)
+                reply_query = ""
                 user_query = match.group(2)
 
                 if message.reply_to_message:
