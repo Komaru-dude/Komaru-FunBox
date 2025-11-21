@@ -309,29 +309,32 @@ async def cmd_ai(
         is_gemini_model = model and model.startswith("gemini")
         model_info = onlysq_models["models"].get(model, None)
 
-        if message.photo:
-            photo_to_process = message.photo[-1]
-        elif message.reply_to_message and message.reply_to_message.photo:
-            photo_to_process = message.reply_to_message.photo[-1]
+        if message:
+            if message.photo:
+                photo_to_process = message.photo[-1]
+            elif message.reply_to_message and message.reply_to_message.photo:
+                photo_to_process = message.reply_to_message.photo[-1]
 
-        if photo_to_process and is_gemini_model:
-            try:
-                await base_msg.edit_text("🔄 Обнаружено фото, обрабатываю...")
-                file = await bot.get_file(photo_to_process.file_id)
-                file_path = file.file_path
-                file_bytes = await bot.download_file(file_path)
+            if photo_to_process and is_gemini_model:
+                try:
+                    await base_msg.edit_text("🔄 Обнаружено фото, обрабатываю...")
+                    file = await bot.get_file(photo_to_process.file_id)
+                    file_path = file.file_path
+                    file_bytes = await bot.download_file(file_path)
 
-                if file_path.endswith(".png"):
-                    mime_type = "image/png"
-                elif file_path.endswith(".webp"):
-                    mime_type = "image/webp"
+                    if file_path.endswith(".png"):
+                        mime_type = "image/png"
+                    elif file_path.endswith(".webp"):
+                        mime_type = "image/webp"
 
-                base64_image = base64.b64encode(file_bytes.read()).decode("utf-8")
-                await base_msg.edit_text("🔄 Обработка...")
-            except Exception as e:
-                await base_msg.edit_text(f"⚠️ Не удалось обработать изображение: {e}")
-                await db.reset_cooldown(user_id, "ai")
-                return
+                    base64_image = base64.b64encode(file_bytes.read()).decode("utf-8")
+                    await base_msg.edit_text("🔄 Обработка...")
+                except Exception as e:
+                    await base_msg.edit_text(
+                        f"⚠️ Не удалось обработать изображение: {e}"
+                    )
+                    await db.reset_cooldown(user_id, "ai")
+                    return
 
         if user_default_model and model_info is None:
             if not cli_mode:
