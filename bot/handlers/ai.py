@@ -179,7 +179,9 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
         }
 
         for modality, models in categories.items():
-            category_header = f"<b>{category_names.get(modality, '⚙️ Другие модели')}</b>\n"
+            category_header = (
+                f"<b>{category_names.get(modality, '⚙️ Другие модели')}</b>\n"
+            )
             category_body = []
 
             for model in models:
@@ -192,7 +194,9 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
                     type_icon = ""
                 display_name = model["id"]
 
-                model_line = f"{type_icon} " f"<code>{display_name}</code>{stream_icon}\n"
+                model_line = (
+                    f"{type_icon} " f"<code>{display_name}</code>{stream_icon}\n"
+                )
                 category_body.append(model_line)
 
             message_text += category_header + "".join(category_body) + "\n"
