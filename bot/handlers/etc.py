@@ -12,7 +12,7 @@ from pathlib import Path
 
 from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.filters import Command
 from aiogram.types import (
     CallbackQuery,
@@ -117,6 +117,10 @@ async def cmd_tea(message: Message, bot: Bot):
                 caption="418 I'm a <a href='https://ru.wikipedia.org/wiki/HTCPCP'>teapot</a> ☕",
                 parse_mode=ParseMode.HTML,
             )
+    except TelegramNetworkError:
+        await message.reply(
+            "📛 Проблемы с интернетом!\n🤔 Не пишите разработчикам об этом, они и так в курсе"
+        )
     except Exception:
         await error_report(message, bot, "coffee", traceback.format_exc())
 
@@ -144,6 +148,10 @@ async def cmd_http_cat(message: Message, bot: Bot):
         except TelegramBadRequest as e:
             await message.reply(f"📛 Не удалось отправить кота: {e.message}")
 
+    except TelegramNetworkError:
+        await message.reply(
+            "📛 Проблемы с интернетом!\n🤔 Не пишите разработчикам об этом, они и так в курсе"
+        )
     except Exception as e:
         await error_report(message, bot, "http_cat", traceback.format_exc())
 
@@ -171,6 +179,10 @@ async def cmd_http_dog(message: Message, bot: Bot):
         except TelegramBadRequest as e:
             await message.reply(f"📛 Не удалось отправить собаку: {e.message}")
 
+    except TelegramNetworkError:
+        await message.reply(
+            "📛 Проблемы с интернетом!\n🤔 Не пишите разработчикам об этом, они и так в курсе"
+        )
     except Exception as e:
         await error_report(message, bot, "http_dog", traceback.format_exc())
 
@@ -181,6 +193,10 @@ async def cmd_cat(message: Message, bot: Bot):
         await message.reply_photo(
             URLInputFile("https://cataas.com/cat"), caption="🐈‍⬛ Ваш кот:"
         )
+    except TelegramNetworkError:
+        await message.reply(
+            "📛 Проблемы с интернетом!\n🤔 Не пишите разработчикам об этом, они и так в курсе"
+        )
     except Exception:
         await error_report(message, bot, "cat", traceback.format_exc())
 
@@ -189,6 +205,10 @@ async def cmd_cat(message: Message, bot: Bot):
 async def cmd_cat_gif(message: Message, bot: Bot):
     try:
         await message.reply_video(URLInputFile("https://cataas.com/cat/gif"))
+    except TelegramNetworkError:
+        await message.reply(
+            "📛 Проблемы с интернетом!\n🤔 Не пишите разработчикам об этом, они и так в курсе"
+        )
     except Exception:
         await error_report(message, bot, "cat_gif", traceback.format_exc())
 
