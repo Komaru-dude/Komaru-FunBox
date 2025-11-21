@@ -586,6 +586,9 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
             await processing_message.edit_text(
                 "📛 Не удалось перевести промпт.\n🧩 Обратитесь к разработчику."
             )
+            logger.debug(
+                f"📛 Возникла ошибка при попытке перевода текста: {traceback.format_exc()}"
+            )
             return
         prompt_en = translated.strip()
 
