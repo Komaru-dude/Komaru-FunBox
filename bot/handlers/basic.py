@@ -140,16 +140,19 @@ async def cmd_set_name(message: Message, bot: Bot, db: Database):
 
         if not new_name:
             await message.reply("📛 Укажите новое имя после команды /set_name")
+            await db.reset_cooldown(message.from_user.id, "set_name")
             return
 
         if not (5 <= len(new_name) <= 32):
             await message.reply("📛 Имя должно быть от 5 до 32 символов.")
+            await db.reset_cooldown(message.from_user.id, "set_name")
             return
 
         if not re.fullmatch(r"[A-Za-zА-Яа-яЁё\s\-]+", new_name):
             await message.reply(
                 "📛 Имя может содержать только русские и английские буквы, пробелы и дефисы."
             )
+            await db.reset_cooldown(message.from_user.id, "set_name")
             return
 
         await db.set_global_user_param(user.id, "name", new_name)

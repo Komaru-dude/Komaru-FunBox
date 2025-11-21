@@ -157,7 +157,7 @@ async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
         }
 
 
-@ai_router.message(Command("available_models"))
+@ai_router.message(Command("available_models"), CooldownFilter("available_models", 15))
 async def show_working_models(message: Message):
     working_models = [
         {"id": model_id, **model_data}
@@ -244,6 +244,7 @@ async def cmd_ai(
                 model_match = re.search(r"-m\s+(\S+)", args_text)
                 if not model_match:
                     await base_msg.edit_text("❌ Укажите название модели после -m")
+                    await db.reset_cooldown(user_id, "ai")
                     return
                 model_name = model_match.group(1).lower()
                 args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
@@ -252,14 +253,17 @@ async def cmd_ai(
                 model_info = onlysq_models["models"].get(model_name)
                 if not model_info:
                     await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
+                    await db.reset_cooldown(user_id, "ai")
                     return
                 if model_info["status"] != "work":
                     await base_msg.edit_text(
                         f"❌ Модель {model_name} на данный момент не работает."
                     )
+                    await db.reset_cooldown(user_id, "ai")
                     return
                 if model_info["modality"] != "text":
                     await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
+                    await db.reset_cooldown(user_id, "ai")
                     return
                 model = model_name
 
@@ -273,6 +277,7 @@ async def cmd_ai(
             if not request.strip():
                 if not base64_image:
                     await base_msg.edit_text("❌ Пустой запрос")
+                    await db.reset_cooldown(user_id, "ai")
                     return
                 # Если есть фото, но нет текста, даем дефолтный промпт
                 elif not request.strip() and base64_image:
@@ -472,11 +477,13 @@ async def cmd_ai(
     except openai.InternalServerError:
         if not cli_mode:
             await base_msg.edit_text("⚠️ Внутренняя ошибка API")
+            await db.reset_cooldown(user_id, "ai")
         else:
             raise e
     except openai.APIError:
         if not cli_mode:
             await base_msg.edit_text("⚠️ Внутренняя ошибка API")
+            await db.reset_cooldown(user_id, "ai")
         else:
             raise e
     except openai.RateLimitError:
@@ -484,11 +491,13 @@ async def cmd_ai(
             await base_msg.edit_text(
                 "❌ Превышен лимит запросов к API. Попробуйте позже"
             )
+            await db.reset_cooldown(user_id, "ai")
         else:
             raise e
     except Exception as e:
         if not cli_mode:
             await error_report(message, bot, "ai", traceback.format_exc())
+            await db.reset_cooldown(user_id, "ai")
         else:
             raise e
 
@@ -500,6 +509,7 @@ async def cmd_aggemini(message: Message, bot: Bot, db: Database):
 
         if len(split_text) < 2 and not message.reply_to_message:
             await message.reply("❌ Пожалуйста, укажите сообщение для нейросети.")
+            await db.reset_cooldown(message.from_user.id, "ai")
             return
 
         if len(split_text) >= 2 and message.reply_to_message:
@@ -520,16 +530,18 @@ async def cmd_aggemini(message: Message, bot: Bot, db: Database):
         await cmd_ai(message, bot, messages=messages, db=db)
     except Exception:
         await error_report(message, bot, "agai", traceback.format_exc())
+        await db.reset_cooldown(message.from_user.id, "ai")
 
 
 @ai_router.message(Command("image"), CooldownFilter("image", 25))
-async def cmd_image(message: Message, bot: Bot):
+async def cmd_image(message: Message, bot: Bot, db: Database):
     try:
         args = message.text.split(maxsplit=1)
         if len(args) < 2:
             await message.answer(
                 "✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде"
             )
+            await db.reset_cooldown(message.from_user.id, "image")
             return
 
         prompt_ru = args[1]
@@ -573,6 +585,7 @@ async def cmd_image(message: Message, bot: Bot):
             await message.reply(
                 "⚠️ Ваш запрос отклонён, так как содержит чувствительный или запрещённый контент."
             )
+            await db.reset_cooldown(message.from_user.id, "image")
             await processing_message.delete()
             return
 
@@ -596,11 +609,13 @@ async def cmd_image(message: Message, bot: Bot):
 
     except Exception:
         await error_report(message, bot, "image", traceback.format_exc())
+        await db.reset_cooldown(message.from_user.id, "image")
 
 
 @ai_router.message(Command("translate"), CooldownFilter("ai", 15))
 async def cmd_translate(
     message: Message = None,
+    db: Database = None,
     bot: Bot = None,
     cli_mode: bool = False,
     request: str = None,
@@ -636,6 +651,7 @@ async def cmd_translate(
                         f"❌ Язык '{lang_candidate}' не поддерживается.\n"
                         f"Доступные языки: {', '.join(SUPPORTED_LANGUAGES.keys())}"
                     )
+                    await db.reset_cooldown(message.from_user.id, "ai")
                     return
 
                 lang = lang_candidate
@@ -648,6 +664,7 @@ async def cmd_translate(
                     "❌ Укажите текст и язык перевода!\n"
                     "Пример: `/translate en Привет мир`"
                 )
+                await db.reset_cooldown(message.from_user.id, "ai")
                 return
 
         messages = [
@@ -692,7 +709,7 @@ async def cmd_translate(
             else:
                 await message.reply(chunk)
 
-    except Exception as e:
+    except Exception:
         if not cli_mode:
             await error_report(message, bot, "translate", traceback.format_exc())
         else:
@@ -700,7 +717,7 @@ async def cmd_translate(
 
 
 @ai_router.message(Command("ocr"), CooldownFilter("ocr", 300))
-async def cmd_ocr(message: Message, bot: Bot):
+async def cmd_ocr(message: Message, bot: Bot, db: Database):
     try:
         base_msg = await message.reply("🔄 Обработка...")
         photo = None
@@ -711,9 +728,10 @@ async def cmd_ocr(message: Message, bot: Bot):
             photo = message.reply_to_message.photo[-1]
 
         if not photo:
-            return await base_msg.edit_text(
+            await base_msg.edit_text(
                 "❌ Отправьте фото или ответьте на фото для его распознавания."
             )
+            await db.reset_cooldown(message.from_user.id, "ocr")
         file_id = photo.file_id
 
         file = await bot.get_file(file_id)
@@ -756,6 +774,7 @@ async def cmd_ocr(message: Message, bot: Bot):
             return
         elif not vocr_resp or "sections" not in vocr_resp:
             await message.reply("📛 Пустой ответ от API, обратитесь к разработчику")
+            await db.reset_cooldown(message.from_user.id, "ocr")
             return
 
         answer = "\n".join([section["text"] for section in vocr_resp["sections"]])
@@ -797,12 +816,14 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
                     "📛 Чат уже запущен, введите <code>/chat_stop</code> или попросите ввести модераторов.",
                     parse_mode=ParseMode.HTML,
                 )
+                await db.reset_cooldown(user_id, "ai")
                 return
 
         if "-m" in args_text:
             model_match = re.search(r"-m\s+(\S+)", args_text)
             if not model_match:
                 await message.reply("❌ Укажите название модели после -m")
+                await db.reset_cooldown(user_id, "ai")
                 return
             model_name = model_match.group(1).lower()
             args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
@@ -811,14 +832,17 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             model_info = onlysq_models["models"].get(model_name)
             if not model_info:
                 await message.reply(f"❌ Модель {model_name} не найдена")
+                await db.reset_cooldown(user_id, "ai")
                 return
             if model_info["status"] != "work":
                 await message.reply(
                     f"❌ Модель {model_name} на данный момент не работает."
                 )
+                await db.reset_cooldown(user_id, "ai")
                 return
             if model_info["modality"] != "text":
                 await message.reply(f"❌ Модель {model_name} не текстовая.")
+                await db.reset_cooldown(user_id, "ai")
                 return
             model = model_name
 
@@ -961,6 +985,7 @@ async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
                 f"🤷‍♂️ Не была указана модель, выбрана по умолчанию",
                 parse_mode=ParseMode.HTML,
             )
+            await db.reset_cooldown(user_id, "set_def_model")
             return
 
         model_name = parts[1].strip()
@@ -971,18 +996,21 @@ async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
                 f"❌ Модель <code>{model_name}</code> не найдена",
                 parse_mode=ParseMode.HTML,
             )
+            await db.reset_cooldown(user_id, "set_def_model")
             return
         if model_info["status"] != "work":
             await message.reply(
                 f"❌ Модель <code>{model_name}</code> на данный момент не работает.",
                 parse_mode=ParseMode.HTML,
             )
+            await db.reset_cooldown(user_id, "set_def_model")
             return
         if model_info["modality"] != "text":
             await message.reply(
                 f"❌ Модель <code>{model_name}</code> не текстовая.",
                 parse_mode=ParseMode.HTML,
             )
+            await db.reset_cooldown(user_id, "set_def_model")
             return
 
         await db.set_user_param(user_id, chat_id, "default_model", model_name)
@@ -1003,12 +1031,13 @@ class AddPromptStates(StatesGroup):
 @ai_router.message(
     Command("add_prompt"), CooldownFilter("add_prompt", 30), FuncEnabled("user_prompts")
 )
-async def cmd_add_prompt(message: Message, bot: Bot, state: FSMContext):
+async def cmd_add_prompt(message: Message, bot: Bot, db: Database, state: FSMContext):
     try:
         if await state.get_data() is None:
             await message.reply(
                 "❌ Выполняется другое действие, отмените перед продолжением",
             )
+            await db.reset_cooldown(message.from_user.id, "user_prompts")
             return
 
         await message.reply(
@@ -1096,20 +1125,22 @@ async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
 )
 async def cmd_remove_prompt(message: Message, bot: Bot, db: Database):
     try:
+        user_id = message.from_user.id
         parts = message.text.strip().split(maxsplit=1)
         if len(parts) < 2:
             await message.reply(
                 "❌ Укажите название промпта: <code>/remove_prompt &lt;название&gt;</code>",
                 parse_mode=ParseMode.HTML,
             )
+            await db.reset_cooldown(user_id, "user_prompts")
             return
 
         title = parts[1].strip()
-        user_id = message.from_user.id
 
         prompt = await db.get_prompt_by_title(title, user_id)
         if not prompt:
             await message.reply("❌ Промпт не найден.", parse_mode=ParseMode.HTML)
+            await db.reset_cooldown(user_id, "user_prompts")
             return
 
         await db.remove_prompt_by_id(prompt["id"])

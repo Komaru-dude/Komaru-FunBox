@@ -390,11 +390,14 @@ async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
 async def cmd_get_active_users_count(message: Message, bot: Bot, db: Database):
 
     try:
+        user_id = message.from_user.id
+
         if message.chat.type != "private":
             await message.reply("❌ Эта команда доступна только в ЛС")
+            await db.reset_cooldown(user_id, "get_au_count")
             return
 
-        if not await db.has_permission(message.from_user.id, message.chat.id, 4):
+        if not await db.has_permission(user_id, message.chat.id, 4):
             await message.reply(
                 "❌ У вас недостаточно прав для выполнения этой команды."
             )
