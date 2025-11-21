@@ -158,56 +158,60 @@ async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
 
 
 @ai_router.message(Command("available_models"), CooldownFilter("available_models", 15))
-async def show_working_models(message: Message):
-    working_models = [
-        {"id": model_id, **model_data}
-        for model_id, model_data in onlysq_models["models"].items()
-        if model_data["status"] == "work"
-    ]
+async def show_working_models(message: Message, bot: Bot, db: Database):
+    try:
+        working_models = [
+            {"id": model_id, **model_data}
+            for model_id, model_data in onlysq_models["models"].items()
+            if model_data["status"] == "work"
+        ]
 
-    categories = {}
-    for model in working_models:
-        modality = model["modality"]
-        categories.setdefault(modality, []).append(model)
+        categories = {}
+        for model in working_models:
+            modality = model["modality"]
+            categories.setdefault(modality, []).append(model)
 
-    message_text = ""
-    category_names = {
-        "text": "📚 Текстовые модели",
-        "image": "🎨 Генерация изображений",
-        "sound": "🔊 Обработка звука",
-    }
+        message_text = ""
+        category_names = {
+            "text": "📚 Текстовые модели",
+            "image": "🎨 Генерация изображений",
+            "sound": "🔊 Обработка звука",
+        }
 
-    for modality, models in categories.items():
-        category_header = f"<b>{category_names.get(modality, '⚙️ Другие модели')}</b>\n"
-        category_body = []
+        for modality, models in categories.items():
+            category_header = f"<b>{category_names.get(modality, '⚙️ Другие модели')}</b>\n"
+            category_body = []
 
-        for model in models:
-            stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
-            if model["type"] == "provider":
-                type_icon = "🟡"
-            elif model["type"] == "keys":
-                type_icon = "🟢"
-            else:
-                type_icon = ""
-            display_name = model["id"]
+            for model in models:
+                stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
+                if model["type"] == "provider":
+                    type_icon = "🟡"
+                elif model["type"] == "keys":
+                    type_icon = "🟢"
+                else:
+                    type_icon = ""
+                display_name = model["id"]
 
-            model_line = f"{type_icon} " f"<code>{display_name}</code>{stream_icon}\n"
-            category_body.append(model_line)
+                model_line = f"{type_icon} " f"<code>{display_name}</code>{stream_icon}\n"
+                category_body.append(model_line)
 
-        message_text += category_header + "".join(category_body) + "\n"
+            message_text += category_header + "".join(category_body) + "\n"
 
-    legend_text = (
-        "\n❓ Что значат все эти эмодзи?\n\n"
-        "🟡 — Могут не работать, не рекомендуются к длительному использованию\n"
-        "🟢 — Вероятнее всего, будут работать всегда\n"
-        "⚡️Стриминг — Могут отправлять ответ 'кусками', не завершая обработку"
-    )
+        legend_text = (
+            "\n❓ Что значат все эти эмодзи?\n\n"
+            "🟡 — Могут не работать, не рекомендуются к длительному использованию\n"
+            "🟢 — Вероятнее всего, будут работать всегда\n"
+            "⚡️Стриминг — Могут отправлять ответ 'кусками', не завершая обработку"
+        )
 
-    await message.reply(
-        f"🚀 <b>Доступные модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}",
-        parse_mode=ParseMode.HTML,
-        disable_web_page_preview=True,
-    )
+        await message.reply(
+            f"🚀 <b>Доступные модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}",
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+        )
+    except Exception:
+        await error_report(message, bot, "available_models", traceback.format_exc())
+        await db.reset_cooldown(message.from_user.id, "available_models")
 
 
 @ai_router.message(Command("ai"), CooldownFilter("ai", 15))
