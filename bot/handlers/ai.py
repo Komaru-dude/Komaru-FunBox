@@ -186,16 +186,10 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
 
             for model in models:
                 stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
-                if model["type"] == "provider":
-                    type_icon = "🟡"
-                elif model["type"] == "keys":
-                    type_icon = "🟢"
-                else:
-                    type_icon = ""
                 display_name = model["id"]
 
                 model_line = (
-                    f"{type_icon} " f"<code>{display_name}</code>{stream_icon}\n"
+                    f"<code>{display_name}</code>{stream_icon}\n"
                 )
                 category_body.append(model_line)
 
@@ -203,8 +197,6 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
 
         legend_text = (
             "\n❓ Что значат все эти эмодзи?\n\n"
-            "🟡 — Могут не работать, не рекомендуются к длительному использованию\n"
-            "🟢 — Вероятнее всего, будут работать всегда\n"
             "⚡️Стриминг — Могут отправлять ответ 'кусками', не завершая обработку"
         )
 
