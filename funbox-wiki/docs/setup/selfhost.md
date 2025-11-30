@@ -19,7 +19,7 @@
 Вы можете воспользоваться автоматическим установочным скриптом, который скачает зависимости, настроит окружение и запустит бота:
 
 ```bash
-sudo bash -c "$(curl -sSL https://github.com/Komaru-dude/Komaru-FunBox/raw/test/setup.sh)"
+sudo bash -c "$(curl -sSL https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh)"
 ```
 
 Скрипт выполнит все необходимые действия и сразу запустит бота.

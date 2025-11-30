@@ -80,7 +80,7 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
             .decode()
             .strip()
         )
-        repo_url = "https://github.com/Komaru-dude/Komaru-FunBox"
+        repo_url = "https://github.com/Not-a-dude/Komaru-FunBox"
     except Exception:
         branch = commit = "unknown"
         repo_url = ""

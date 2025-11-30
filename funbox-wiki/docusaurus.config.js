@@ -6,9 +6,9 @@ const config = {
   tagline: 'Panchan is cool',
   favicon: 'img/logo.jpg',
 
-  url: 'https://komaru-dude.github.io',
+  url: 'https://Not-a-dude.github.io',
   baseUrl: '/Komaru-FunBox/', 
-  organizationName: 'Komaru-dude',
+  organizationName: 'Not-a-dude',
   projectName: 'Komaru-FunBox',
 
   onBrokenLinks: 'throw',

@@ -17,8 +17,8 @@ from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import update_cache
 
 base_router = Router()
-BASE_COMMANDS_URL = "https://komaru-dude.github.io/Komaru-FunBox/docs/commands"
-BASE_MODULES_URL = "https://komaru-dude.github.io/Komaru-FunBox/docs/modules"
+BASE_COMMANDS_URL = "https://Not-a-dude.github.io/Komaru-FunBox/docs/commands"
+BASE_MODULES_URL = "https://Not-a-dude.github.io/Komaru-FunBox/docs/modules"
 # Списки хранения данных для /status
 cpu_loads = []
 memory_loads = []
@@ -32,9 +32,9 @@ async def cmd_start(message: Message):
         "🤖 Это развлекательный и модерационный бот.\n"
         "❔ Если хочешь узнать более подробную информацию о командах, напиши <code>/help.</code>\n\n"
         "👤 Владелец бота: @komaru_dude\n"
-        "📚 Гайд по настройке бота: https://komaru-dude.github.io/Komaru-FunBox/docs/setup/faststart\n"
+        "📚 Гайд по настройке бота: https://Not-a-dude.github.io/Komaru-FunBox/docs/setup/faststart\n"
         "📰 Новостной канал бота: @komaru_funbox\n"
-        "🧑‍💻 Исходный код бота: https://github.com/Komaru-dude/Komaru-FunBox\n\n"
+        "🧑‍💻 Исходный код бота: https://github.com/Not-a-dude/Komaru-FunBox\n\n"
         "🎩 <b>Приятного</b> использования!",
         parse_mode=ParseMode.HTML,
         disable_web_page_preview=True,
