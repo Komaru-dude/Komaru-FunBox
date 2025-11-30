@@ -14,7 +14,7 @@ fi
 USER_NAME="komaru"
 GROUP_NAME="komaru-group"
 INSTALL_DIR="/home/${USER_NAME}/komaru-funbox"
-REPO_URL="https://github.com/Komaru-dude/Komaru-FunBox.git"
+REPO_URL="https://github.com/Not-a-dude/Komaru-FunBox.git"
 echo -n "✍️ Введите имя гитхаб ветки: "
 read branch_name
 

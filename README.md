@@ -1,7 +1,7 @@
 # Komaru-FunBox
 
-![Last commit](https://img.shields.io/github/last-commit/Komaru-dude/Komaru-FunBox)
-![License](https://img.shields.io/github/license/Komaru-dude/Komaru-FunBox)
+![Last commit](https://img.shields.io/github/last-commit/Not-a-dude/Komaru-FunBox)
+![License](https://img.shields.io/github/license/Not-a-dude/Komaru-FunBox)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **Komaru-FunBox** — развлекательный и модерационный Telegram-бот с системой ролевых команд (RP) и различными командами для общения.
@@ -14,11 +14,11 @@
 
 ## Настройка
 
-`sudo bash -c "$(curl -sSL https://github.com/Komaru-dude/Komaru-FunBox/raw/test/setup.sh)"`
+`sudo bash -c "$(curl -sSL https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh)"`
 
 ## Вики
 
-Бот так-же имеет [вики](https://komaru-dude.github.io/Komaru-FunBox) рассказывающую о командах и настройке бота базированную на [docusaurus](https://docusaurus.io/)
+Бот так-же имеет [вики](https://Not-a-dude.github.io/Komaru-FunBox) рассказывающую о командах и настройке бота базированную на [docusaurus](https://docusaurus.io/)
 
 ## Благодарности
 
