@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import re
 import shutil
@@ -11,12 +12,14 @@ from aiogram import Bot, Router
 from aiogram.filters import Command
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import (
+    BufferedInputFile,
     CallbackQuery,
     FSInputFile,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
 )
+from mutagen.mp4 import MP4
 
 from bot import CACHE_DIR, logger
 from bot.filters.cooldown_filter import CooldownFilter
@@ -390,8 +393,28 @@ async def quality_chosen_handler(
 
         await callback.message.edit_text("📤 Отправка...")
         if is_audio:
+            audio = MP4(temp_file)
+            tags = audio.tags
+
+            title = tags.get("\xa9nam", [""])[0] if tags and "\xa9nam" in tags else None
+            performer = (
+                tags.get("\xa9ART", [""])[0] if tags and "\xa9ART" in tags else None
+            )
+            duration = int(audio.info.length) if hasattr(audio.info, "length") else None
+
+            thumbnail = None
+            if tags and "covr" in tags and tags["covr"]:
+                cover_data = tags["covr"][0]
+                thumbnail = BufferedInputFile(
+                    file=io.BytesIO(cover_data).getvalue(), filename="cover.jpg"
+                )
             await callback.message.reply_audio(
-                FSInputFile(temp_file), caption=f"✅ Только аудио"
+                FSInputFile(temp_file),
+                caption=f"✅ Только аудио",
+                title=title,
+                performer=performer,
+                duration=duration,
+                thumbnail=thumbnail,
             )
         else:
             await callback.message.reply_video(
