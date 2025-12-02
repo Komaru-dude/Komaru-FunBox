@@ -339,8 +339,10 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
         ) and await db.is_setting_enabled(chat_id, "autovideo"):
             parsed_url = urlparse(message.text)
             domain = parsed_url.netloc.lower().replace("www.", "")
-            if any(domain.endswith(supported) for supported in SUPPORTED_DOMAINS):
-                await cmd_video(message, bot, url=message.text)
+            if any(
+                domain.endswith(supported) for supported in SUPPORTED_DOMAINS
+            ) and await db.is_command_available(user1.id, "video", 300):
+                await cmd_video(message, bot, db, url=message.text)
                 return
         elif matched_command:
             remaining_text = clean_text[len(matched_command) :].strip()
@@ -392,7 +394,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
 
-        if text_msg.lower() == "/бонум" and await db.is_command_available(user1.id, "bonum", 30):
+        if text_msg.lower() == "/бонум" and await db.is_command_available(
+            user1.id, "bonum", 30
+        ):
             await cmd_bonum(message, bot)
 
     except openai.InternalServerError:

@@ -22,6 +22,7 @@ from aiogram.types import (
 from mutagen.mp4 import MP4
 
 from bot import CACHE_DIR, logger
+from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 
@@ -251,19 +252,23 @@ async def download_with_format(
 
 
 @video_router.message(Command("youtube"), CooldownFilter("video", 300))
-async def cmd_video(message: Message, bot: Bot, url=None):
+async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
     user_id = message.from_user.id
     if not url:
         parts = message.text.split(maxsplit=1)
         url = parts[1] if len(parts) > 1 else None
 
     if not url:
-        return await message.reply("❌ Укажите URL видео: /youtube <ссылка>")
+        await db.reset_cooldown(user_id, "video")
+        await message.reply("❌ Укажите URL видео: /youtube <ссылка>")
+        return
 
     # Извлекаем ID видео
     video_id = extract_youtube_id(url)
     if not video_id:
-        return await message.reply("❌ Некорректная ссылка на YouTube-видео.")
+        await db.reset_cooldown(user_id, "video")
+        await message.reply("❌ Некорректная ссылка на YouTube-видео.")
+        return
 
     # Создаём "чистый" URL для yt-dlp, чтобы избежать проблем
     clean_url = f"https://www.youtube.com/watch?v={video_id}"
@@ -274,13 +279,17 @@ async def cmd_video(message: Message, bot: Bot, url=None):
 
         if not info:
             await error_report(message, bot, "video_info", "Ошибка получения данных")
-            return await message.reply("❌ Не удалось получить информацию о видео")
+            await message.reply("❌ Не удалось получить информацию о видео")
 
         if info.get("is_live"):
-            return await message.reply("❌ Нельзя загружать прямые трансляции.")
+            await db.reset_cooldown(user_id, "video")
+            await message.reply("❌ Нельзя загружать прямые трансляции.")
+            return
 
         if "/shorts/" in url:
-            return await message.reply("❌ Нельзя загружать YouTube Shorts.")
+            await db.reset_cooldown(user_id, "video")
+            await message.reply("❌ Нельзя загружать YouTube Shorts.")
+            return
 
         duration = int(info.get("duration", 0))
         duration_min = duration // 60
@@ -429,7 +438,7 @@ async def quality_chosen_handler(
 
 
 @video_router.message(Command("gif"), CooldownFilter("gif", 300))
-async def cmd_gif(message: Message, bot: Bot):
+async def cmd_gif(message: Message, bot: Bot, db: Database):
     """Конвертация видео в GIF."""
     # Поиск видео в сообщении
     video = message.video or (
@@ -437,7 +446,9 @@ async def cmd_gif(message: Message, bot: Bot):
     )
 
     if not video:
-        return await message.reply("❌ Отправьте или ответьте на видео")
+        await db.reset_cooldown(message.from_user.id, "gif")
+        await message.reply("❌ Отправьте или ответьте на видео")
+        return
 
     temp_files = []
     try:
