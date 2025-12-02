@@ -1343,9 +1343,7 @@ async def edit_prompt_new_title(
 
 
 @ai_router.message(EditPromptStates.enter_new_content)
-async def edit_prompt_new_content(
-    message: Message, bot: Bot, db: Database, state: FSMContext
-):
+async def edit_prompt_new_content(message: Message, bot: Bot, state: FSMContext):
     try:
         new_content = message.text.strip()
 
@@ -1373,9 +1371,7 @@ async def edit_prompt_new_content(
 
 
 @ai_router.message(EditPromptStates.enter_new_public)
-async def edit_prompt_new_public(
-    message: Message, bot: Bot, db: Database, state: FSMContext
-):
+async def edit_prompt_new_public(message: Message, bot: Bot, state: FSMContext):
     try:
         user_input = message.text.strip().lower()
 
