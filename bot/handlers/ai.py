@@ -1126,6 +1126,372 @@ async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "list_prompts", traceback.format_exc())
 
 
+class EditPromptStates(StatesGroup):
+    choose_prompt = State()
+    choose_field = State()
+    enter_new_title = State()
+    enter_new_content = State()
+    enter_new_public = State()
+
+
+@ai_router.message(
+    Command("edit_prompt"),
+    CooldownFilter("edit_prompt", 30),
+    FuncEnabled("user_prompts"),
+)
+async def cmd_edit_prompt(message: Message, bot: Bot, db: Database, state: FSMContext):
+    try:
+        current_state = await state.get_state()
+        if current_state is not None:
+            await message.reply(
+                "❌ Выполняется другое действие, отмените перед продолжением",
+            )
+            await db.reset_cooldown(message.from_user.id, "user_prompts")
+            return
+
+        user_id = message.from_user.id
+        prompts = await db.get_all_prompts(user_id)
+
+        if not prompts:
+            await message.reply(
+                "📭 У вас пока нет сохранённых промптов для редактирования."
+            )
+            await db.reset_cooldown(message.from_user.id, "user_prompts")
+            return
+
+        keyboard_text = "📋 <b>Выберите промпт для редактирования:</b>\n\n"
+        for idx, prompt in enumerate(prompts, 1):
+            public_icon = "🌐" if prompt["is_public"] else "🔒"
+            keyboard_text += f"{idx}. {public_icon} <b>{escape(prompt['title'])}</b>\n   🆔 <code>{prompt['id'][:8]}...</code>\n\n"
+
+        keyboard_text += "\n📝 <i>Отправьте номер промпта или его ID</i>\n❌ <code>/cancel</code> для отмены"
+
+        await message.reply(keyboard_text, parse_mode=ParseMode.HTML)
+        await state.set_state(EditPromptStates.choose_prompt)
+
+    except Exception:
+        await error_report(message, bot, "edit_prompt", traceback.format_exc())
+
+
+@ai_router.message(EditPromptStates.choose_prompt)
+async def edit_prompt_choose_prompt(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        user_id = message.from_user.id
+        user_input = message.text.strip()
+
+        if user_input.lower() == "/cancel":
+            await state.clear()
+            await message.reply("✅ Редактирование отменено.")
+            return
+
+        prompts = await db.get_all_prompts(user_id)
+
+        if user_input.isdigit():
+            idx = int(user_input) - 1
+            if 0 <= idx < len(prompts):
+                selected_prompt = prompts[idx]
+            else:
+                await message.reply("❌ Неверный номер. Попробуйте снова:")
+                return
+        else:
+            selected_prompt = None
+            for prompt in prompts:
+                if (
+                    prompt["id"] == user_input
+                    or prompt["title"].lower() == user_input.lower()
+                ):
+                    selected_prompt = prompt
+                    break
+
+            if not selected_prompt:
+                for prompt in prompts:
+                    if prompt["id"].startswith(user_input):
+                        selected_prompt = prompt
+                        break
+
+            if not selected_prompt:
+                await message.reply("❌ Промпт не найден. Попробуйте снова:")
+                return
+
+        await state.update_data(
+            prompt_id=selected_prompt["id"],
+            current_title=selected_prompt["title"],
+            current_content=selected_prompt["content"],
+            current_public=selected_prompt["is_public"],
+        )
+
+        keyboard_text = (
+            f"✏️ <b>Редактирование промпта:</b> <code>{selected_prompt['title']}</code>\n\n"
+            f"📝 <b>Текущее содержимое:</b>\n"
+            f"<blockquote expandable>{escape(selected_prompt['content'][:200])}"
+            f"{'...' if len(selected_prompt['content']) > 200 else ''}</blockquote>\n"
+            f"🌐 <b>Публичный:</b> {'Да' if selected_prompt['is_public'] else 'Нет'}\n\n"
+            f"<b>Что вы хотите изменить?</b>\n"
+            f"1. 📝 Название\n"
+            f"2. 📄 Содержимое\n"
+            f"3. 🌐 Публичность\n"
+            f"4. ✅ Завершить редактирование\n\n"
+            f"<i>Отправьте номер выбора или /cancel для отмены</i>"
+        )
+
+        await message.reply(keyboard_text, parse_mode=ParseMode.HTML)
+        await state.set_state(EditPromptStates.choose_field)
+
+    except Exception:
+        await error_report(
+            message, bot, "edit_prompt_choose_prompt", traceback.format_exc()
+        )
+
+
+@ai_router.message(EditPromptStates.choose_field)
+async def edit_prompt_choose_field(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        user_input = message.text.strip().lower()
+
+        if user_input == "/cancel":
+            await state.clear()
+            await message.reply("✅ Редактирование отменено.")
+            return
+
+        if user_input == "1":
+            await message.reply(
+                "✏️ <b>Введите новое название промпта:</b>\n\n"
+                "<i>Текущее название будет заменено полностью</i>\n"
+                "❌ <code>/cancel</code> для отмены",
+                parse_mode=ParseMode.HTML,
+            )
+            await state.set_state(EditPromptStates.enter_new_title)
+        elif user_input == "2":
+            await message.reply(
+                "📄 <b>Введите новое содержимое промпта:</b>\n\n"
+                "<i>Текущее содержимое будет заменено полностью</i>\n"
+                "❌ <code>/cancel</code> для отмены",
+                parse_mode=ParseMode.HTML,
+            )
+            await state.set_state(EditPromptStates.enter_new_content)
+        elif user_input == "3":
+            data = await state.get_data()
+            current_status = "публичный" if data["current_public"] else "приватный"
+
+            keyboard_text = (
+                f"🌐 <b>Изменить публичность промпта:</b>\n\n"
+                f"Текущий статус: <b>{current_status}</b>\n\n"
+                f"Выберите новый статус:\n"
+                f"1. 🌐 Сделать публичным\n"
+                f"2. 🔒 Сделать приватным\n"
+                f"3. ↩️ Оставить как есть\n\n"
+                f"<i>Отправьте номер выбора или /cancel для отмены</i>"
+            )
+
+            await message.reply(keyboard_text, parse_mode=ParseMode.HTML)
+            await state.set_state(EditPromptStates.enter_new_public)
+        elif user_input == "4":
+            await finish_editing(message, bot, db, state)
+        else:
+            await message.reply(
+                "❌ Неверный выбор. Пожалуйста, введите номер от 1 до 4:"
+            )
+
+    except Exception:
+        await error_report(
+            message, bot, "edit_prompt_choose_field", traceback.format_exc()
+        )
+
+
+@ai_router.message(EditPromptStates.enter_new_title)
+async def edit_prompt_new_title(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        user_id = message.from_user.id
+        new_title = message.text.strip()
+
+        if new_title.lower() == "/cancel":
+            await return_to_field_selection(message, state)
+            return
+
+        if len(new_title.split()) != 1:
+            await message.reply(
+                "❌ Название должно состоять из одного слова. Попробуйте снова:"
+            )
+            return
+
+        existing_prompt = await db.get_prompt_by_title(new_title, user_id)
+        if existing_prompt:
+            data = await state.get_data()
+            if existing_prompt["id"] != data["prompt_id"]:
+                await message.reply(
+                    "❌ Промпт с таким названием уже существует. Выберите другое название:"
+                )
+                return
+
+        await state.update_data(new_title=new_title)
+        await message.reply(
+            f"✅ Название обновлено на: <b>{escape(new_title)}</b>",
+            parse_mode=ParseMode.HTML,
+        )
+        await return_to_field_selection(message, state)
+
+    except Exception:
+        await error_report(
+            message, bot, "edit_prompt_new_title", traceback.format_exc()
+        )
+
+
+@ai_router.message(EditPromptStates.enter_new_content)
+async def edit_prompt_new_content(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        new_content = message.text.strip()
+
+        if new_content.lower() == "/cancel":
+            await return_to_field_selection(message, state)
+            return
+
+        if not new_content:
+            await message.reply("❌ Содержимое не может быть пустым. Попробуйте снова:")
+            return
+
+        await state.update_data(new_content=new_content)
+        await message.reply(
+            f"✅ Содержимое обновлено.\n"
+            f"<blockquote expandable>{escape(new_content[:200])}"
+            f"{'...' if len(new_content) > 200 else ''}</blockquote>",
+            parse_mode=ParseMode.HTML,
+        )
+        await return_to_field_selection(message, state)
+
+    except Exception:
+        await error_report(
+            message, bot, "edit_prompt_new_content", traceback.format_exc()
+        )
+
+
+@ai_router.message(EditPromptStates.enter_new_public)
+async def edit_prompt_new_public(
+    message: Message, bot: Bot, db: Database, state: FSMContext
+):
+    try:
+        user_input = message.text.strip().lower()
+
+        if user_input == "/cancel":
+            await return_to_field_selection(message, state)
+            return
+
+        new_public = None
+        if user_input == "1":
+            new_public = True
+            status_text = "публичный"
+        elif user_input == "2":
+            new_public = False
+            status_text = "приватный"
+        elif user_input == "3":
+            await message.reply("↩️ Статус публичности оставлен без изменений.")
+            await return_to_field_selection(message, state)
+            return
+        else:
+            await message.reply(
+                "❌ Неверный выбор. Пожалуйста, введите номер от 1 до 3:"
+            )
+            return
+
+        await state.update_data(new_public=new_public)
+        await message.reply(
+            f"✅ Статус публичности изменен на: <b>{status_text}</b>",
+            parse_mode=ParseMode.HTML,
+        )
+        await return_to_field_selection(message, state)
+
+    except Exception:
+        await error_report(
+            message, bot, "edit_prompt_new_public", traceback.format_exc()
+        )
+
+
+async def return_to_field_selection(message: Message, state: FSMContext):
+    """Возвращает пользователя к выбору поля для редактирования"""
+    data = await state.get_data()
+
+    keyboard_text = (
+        f"✏️ <b>Редактирование промпта:</b> <code>{data.get('new_title', data['current_title'])}</code>\n\n"
+        f"<b>Что вы хотите изменить дальше?</b>\n"
+        f"1. 📝 Название\n"
+        f"2. 📄 Содержимое\n"
+        f"3. 🌐 Публичность\n"
+        f"4. ✅ Завершить редактирование\n\n"
+        f"<i>Отправьте номер выбора или /cancel для отмены</i>"
+    )
+
+    await message.reply(keyboard_text, parse_mode=ParseMode.HTML)
+    await state.set_state(EditPromptStates.choose_field)
+
+
+async def finish_editing(message: Message, bot: Bot, db: Database, state: FSMContext):
+    """Завершает редактирование и сохраняет изменения"""
+    try:
+        data = await state.get_data()
+        user_id = message.from_user.id
+        prompt_id = data["prompt_id"]
+
+        update_params = {}
+
+        if "new_title" in data:
+            update_params["title"] = data["new_title"]
+
+        if "new_content" in data:
+            update_params["content"] = data["new_content"]
+
+        if "new_public" in data:
+            update_params["is_public"] = data["new_public"]
+
+        if update_params:
+            success = await db.update_prompt(
+                prompt_id=prompt_id, user_id=user_id, **update_params
+            )
+
+            if success:
+                summary = "📋 <b>Изменения сохранены:</b>\n\n"
+                if "new_title" in data:
+                    summary += f"📝 <b>Название:</b> {escape(data['current_title'])} → {escape(data['new_title'])}\n"
+                if "new_content" in data:
+                    old_preview = (
+                        data["current_content"][:50] + "..."
+                        if len(data["current_content"]) > 50
+                        else data["current_content"]
+                    )
+                    new_preview = (
+                        data["new_content"][:50] + "..."
+                        if len(data["new_content"]) > 50
+                        else data["new_content"]
+                    )
+                    summary += f"📄 <b>Содержимое:</b> {escape(old_preview)} → {escape(new_preview)}\n"
+                if "new_public" in data:
+                    old_status = "публичный" if data["current_public"] else "приватный"
+                    new_status = "публичный" if data["new_public"] else "приватный"
+                    summary += f"🌐 <b>Публичность:</b> {old_status} → {new_status}\n"
+
+                summary += f"\n🆔 <code>{prompt_id}</code>"
+
+                await message.reply(summary, parse_mode=ParseMode.HTML)
+            else:
+                await message.reply(
+                    "❌ Не удалось сохранить изменения. Попробуйте позже."
+                )
+        else:
+            await message.reply("ℹ️ Не было внесено изменений.")
+
+        await state.clear()
+
+    except Exception:
+        await error_report(message, bot, "finish_editing", traceback.format_exc())
+        await state.clear()
+
+
 @ai_router.message(
     Command("remove_prompt"),
     CooldownFilter("remove_prompt", 15),

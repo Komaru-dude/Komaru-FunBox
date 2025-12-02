@@ -1290,6 +1290,59 @@ class Database:
             )
             return row if row else None
 
+    async def update_prompt(
+        self,
+        prompt_id: str,
+        user_id: int,
+        title: str = None,
+        content: str = None,
+        is_public: bool = None,
+    ) -> bool:
+        await self.ensure_connection()
+
+        current_prompt = await self.get_prompt(prompt_id)
+        if not current_prompt:
+            return False
+
+        if current_prompt["user_id"] != user_id:
+            return False
+
+        update_fields = []
+        params = []
+        param_counter = 1
+
+        if title is not None:
+            update_fields.append(f"title = ${param_counter}")
+            params.append(title)
+            param_counter += 1
+
+        if content is not None:
+            update_fields.append(f"content = ${param_counter}")
+            params.append(content)
+            param_counter += 1
+
+        if is_public is not None:
+            update_fields.append(f"is_public = ${param_counter}")
+            params.append(is_public)
+            param_counter += 1
+
+        if not update_fields:
+            return True
+
+        params.append(prompt_id)
+        params.append(user_id)
+
+        query = f"""
+            UPDATE custom_prompts 
+            SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${param_counter} AND user_id = ${param_counter + 1}
+            RETURNING id
+        """
+
+        async with self.pool.acquire() as conn:
+            result = await conn.fetchrow(query, *params)
+            return bool(result)
+
     async def remove_prompt_by_id(self, prompt_id: str) -> None:
         await self.ensure_connection()
         async with self.pool.acquire() as conn:
