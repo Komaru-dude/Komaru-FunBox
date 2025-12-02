@@ -188,9 +188,7 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
                 stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
                 display_name = model["id"]
 
-                model_line = (
-                    f"<code>{display_name}</code>{stream_icon}\n"
-                )
+                model_line = f"<code>{display_name}</code>{stream_icon}\n"
                 category_body.append(model_line)
 
             message_text += category_header + "".join(category_body) + "\n"
