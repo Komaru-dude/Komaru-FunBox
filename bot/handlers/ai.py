@@ -1061,6 +1061,10 @@ async def add_prompt_title(message: Message, bot: Bot, db: Database, state: FSMC
         user_id = message.from_user.id
         prompt_name = message.text.strip()
 
+        if len(prompt_name.split()) != 1:
+            await message.reply("❌ Промпт должен состоять из одного слова")
+            return
+
         if await db.get_prompt_by_title(prompt_name, user_id):
             await message.reply("❌ Промпт с таким именем уже существует")
             return
