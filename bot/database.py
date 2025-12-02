@@ -1334,7 +1334,7 @@ class Database:
 
         query = f"""
             UPDATE custom_prompts 
-            SET {', '.join(update_fields)}, updated_at = CURRENT_TIMESTAMP
+            SET {', '.join(update_fields)}
             WHERE id = ${param_counter} AND user_id = ${param_counter + 1}
             RETURNING id
         """
