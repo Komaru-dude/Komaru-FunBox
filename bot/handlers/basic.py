@@ -180,24 +180,8 @@ async def find_wiki_page(name: str) -> str | None:
 
 
 @base_router.message(Command("help"), CooldownFilter("help", 10))
-async def cmd_help(message: Message, bot: Bot):
-    parts = message.text.strip().split(maxsplit=1)
-
-    if len(parts) == 1:
-        await message.reply(
-            f"Полный список команд и их описания доступны в вики:\n{BASE_COMMANDS_URL}/",
-            disable_web_page_preview=True,
-        )
-    else:
-        argument = parts[1].lower()
-        found_url = await find_wiki_page(argument)
-        if found_url:
-            await message.reply(
-                f"Подробная информация о '{argument}':\n{found_url}",
-                disable_web_page_preview=True,
-            )
-        else:
-            await message.reply(
-                f"'{argument}' не найдено в вики.\nПолный список команд: {BASE_COMMANDS_URL}/\nСписок модулей: {BASE_MODULES_URL}/",
-                disable_web_page_preview=True,
-            )
+async def cmd_help(message: Message):
+    await message.reply(
+        f"Описание команд по категориям доступны в вики::\n{BASE_COMMANDS_URL}/",
+        disable_web_page_preview=True,
+    )
