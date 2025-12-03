@@ -829,17 +829,36 @@ async def cmd_transfer(message: Message, bot: Bot, db: Database):
 @eco_router.message(Command("top"), FuncEnabled("economy"))
 async def cmd_top(message: Message, bot: Bot, db: Database):
     try:
-        top_users = await db.get_eco_top(limit=10)
-        if not top_users:
+        all_top_users = await db.get_eco_top(limit=100)
+        if not all_top_users:
             msg = await message.reply("📉 Топ пользователей пуст.")
             return
 
+        top_users = all_top_users[:10]
         currency_sign = eco_config["currency_sign"]
         top_message = "🏆 Топ 10 пользователей по балансу:\n"
+
+        current_user_id = message.from_user.id
+        user_position = None
+
+        for idx, user in enumerate(all_top_users, start=1):
+            if user["user_id"] == current_user_id:
+                user_position = idx
+                break
+
+        current_user_total = 0
+        try:
+            user_info = await db.get_global_user(current_user_id)
+            user_cash = user_info.get("money", 0.00)
+            user_bank = user_info.get("bank", 0.00)
+            current_user_total = round(float(user_cash) + float(user_bank), 2)
+        except Exception:
+            pass
 
         for idx, user in enumerate(top_users, start=1):
             user_id = user["user_id"]
             total = user["total"]
+
             try:
                 user_info = await db.get_global_user(user_id)
                 raw_name = f"{user_info.get('name')}".strip()
@@ -851,6 +870,12 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
             safe_name = escape(raw_name)
             user_link = f'<a href="tg://user?id={user_id}">{safe_name}</a>'
             top_message += f"{idx}. {user_link} — {total} {currency_sign}\n"
+
+        top_message += (
+            f"\n📍 Ваша позиция: {user_position if user_position is not None else '>100'}"
+        )
+        top_message += f"\n💰 Ваш баланс: {current_user_total} {currency_sign}"
+
         msg = await message.reply(top_message, parse_mode="HTML")
 
     except Exception:
