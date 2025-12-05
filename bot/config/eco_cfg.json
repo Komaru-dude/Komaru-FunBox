@@ -16,6 +16,8 @@
   "max_rob_penalty": 750,
   "rob_protection_penalty": 300,
   "min_rob_amount": 100,
+  "rob_penalty_max_rich": 100000,
+  "rob_penalty_mult_rich": 10,
   "rob_fail_percent": 30,
   "rob_timeout": 25200,
   "dice_timeout": 300,

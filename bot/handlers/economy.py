@@ -297,6 +297,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
         target_id, get_id_error = await get_user_id(message)
         protection_note = ""
         is_successful = None
+        rich_fail_note = ""
 
         if user_id == target_id:
             msg = await message.reply("❌ Нельзя ограбить самого себя")
@@ -378,10 +379,16 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             penalty = random.randint(
                 eco_config["min_rob_penalty"], eco_config["max_rob_penalty"]
             )
+
+            if user_cash > eco_config["rob_penalty_max_rich"]:
+                penalty * eco_config["rob_penalty"]
+                rich_fail_note = f"🆙 Ваш баланс превышает {eco_config["rob_penalty_max_rich"]} {eco_config["currency_sign"]}.\n💸 Штраф увеличен в {eco_config["rob_penalty_mult_rich"]}\n"
+
             new_cash = user_cash - penalty
             is_successful = False
             msg = await message.reply(
                 protection_note
+                + rich_fail_note
                 + f"🚔 Вас поймали!\n📉 Штраф: {penalty}{eco_config['currency_sign']}\n💰 Новый баланс: {round(new_cash, 2)}"
             )
             await db.set_global_user_param(user_id, "money", new_cash)
@@ -871,9 +878,7 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
             user_link = f'<a href="tg://user?id={user_id}">{safe_name}</a>'
             top_message += f"{idx}. {user_link} — {total} {currency_sign}\n"
 
-        top_message += (
-            f"\n📍 Ваша позиция: {user_position if user_position is not None else '>100'}"
-        )
+        top_message += f"\n📍 Ваша позиция: {user_position if user_position is not None else '>100'}"
         top_message += f"\n💰 Ваш баланс: {current_user_total} {currency_sign}"
 
         msg = await message.reply(top_message, parse_mode="HTML")
