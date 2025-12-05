@@ -18,6 +18,7 @@ from bot import API_URL, CACHE_DIR, DATA_DIR
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
+from bot.utils.global_storage import eco_config
 
 admin_router = Router()
 models_path = DATA_DIR / "models.json"
@@ -407,3 +408,192 @@ async def cmd_get_active_users_count(message: Message, bot: Bot, db: Database):
         await message.reply(f"👤 Количество активных пользователей: {ausers_count}")
     except Exception:
         await error_report(message, bot, "get_au_count", traceback.format_exc())
+
+
+@admin_router.message(Command("add_money"), CooldownFilter("money_tools", 15, True))
+async def cmd_add_money(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+
+        if not await db.has_permission(user_id, message.chat.id, 4):
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнения этой команды."
+            )
+            return
+
+        target_id = None
+        money_to_add = 0
+
+        split_text = message.text.split(maxsplit=2)
+
+        if message.reply_to_message:
+            target_id = message.reply_to_message.from_user.id
+            if len(split_text) < 2:
+                await message.reply("📛 Укажите сумму аргументом.")
+                return
+            amount_str = split_text[1]
+
+        else:
+            if len(split_text) < 3:
+                await message.reply(
+                    "📛 Неправильный формат команды. Используйте: /add_money <сумма> [цель]."
+                )
+                return
+
+            if len(split_text) == 3:
+                target_arg = split_text[1]
+                amount_str = split_text[2]
+            else:
+                target_id = user_id
+                amount_str = split_text[1]
+
+            if target_id is None:
+                target_arg = split_text[1]
+
+                if target_arg.startswith("@"):
+                    username = target_arg[1:]
+                    try:
+                        data = await fetch_json(f"{API_URL}/user/{username}")
+                        if "user_id" in data:
+                            target_id = int(data["user_id"])
+                        else:
+                            await message.reply(
+                                f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
+                            )
+                            return
+                    except Exception:
+                        await error_report(
+                            message, bot, "add_money_api", traceback.format_exc()
+                        )
+                        await message.reply("❌ Произошла ошибка при обращении к API.")
+                        return
+
+                elif target_arg.isdigit():
+                    target_id = int(target_arg)
+
+                else:
+                    await message.reply(
+                        "📛 Неправильно указана цель (должен быть @юзернейм или ID)."
+                    )
+                    return
+
+        try:
+            money_to_add = int(amount_str)
+            if money_to_add <= 0:
+                await message.reply("❌ Сумма должна быть положительным числом.")
+                return
+        except ValueError:
+            await message.reply("❌ Сумма должна быть целым числом.")
+            return
+
+        if target_id is None:
+            await message.reply("❌ Не удалось определить целевого пользователя.")
+            return
+
+        target_bal = await db.get_global_user_param(target_id, "money")
+        new_balance = target_bal + money_to_add
+        await db.set_global_user_param(target_id, "money", new_balance)
+
+        await message.reply(
+            f"✅ Успешно добавлено {money_to_add} {eco_config['currency_sign']} для пользователя {target_id}.\n"
+            f"Новый баланс: {new_balance} {eco_config['currency_sign']}"
+        )
+
+    except Exception:
+        await error_report(message, bot, "add_money", traceback.format_exc())
+
+
+@admin_router.message(Command("remove_money"), CooldownFilter("money_tools", 15, True))
+async def cmd_remove_money(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+
+        if not await db.has_permission(user_id, message.chat.id, 4):
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнения этой команды."
+            )
+            return
+
+        target_id = None
+        money_to_remove = 0
+
+        split_text = message.text.split(maxsplit=2)
+
+        if message.reply_to_message:
+            target_id = message.reply_to_message.from_user.id
+            if len(split_text) < 2:
+                await message.reply("📛 Укажите сумму аргументом.")
+                return
+            amount_str = split_text[1]
+
+        else:
+
+            if len(split_text) < 2:
+                await message.reply(
+                    "📛 Неправильный формат команды. Используйте: /remove_money <сумма> [цель]."
+                )
+                return
+
+            if len(split_text) == 3:
+                target_arg = split_text[1]
+                amount_str = split_text[2]
+            else:
+                target_id = user_id
+                amount_str = split_text[1]
+
+            if target_id is None:
+                target_arg = split_text[1]
+
+                if target_arg.startswith("@"):
+                    username = target_arg[1:]
+                    try:
+                        data = await fetch_json(f"{API_URL}/user/{username}")
+                        if "user_id" in data:
+                            target_id = int(data["user_id"])
+                        else:
+                            await message.reply(
+                                f"Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
+                            )
+                            return
+                    except Exception:
+                        await error_report(
+                            message, bot, "remove_money_api", traceback.format_exc()
+                        )
+                        await message.reply("❌ Произошла ошибка при обращении к API.")
+                        return
+
+                elif target_arg.isdigit():
+                    target_id = int(target_arg)
+
+                else:
+                    await message.reply(
+                        "📛 Неправильно указана цель (должен быть @юзернейм или ID)."
+                    )
+                    return
+
+        try:
+            money_to_remove = float(amount_str)
+            if money_to_remove <= 0:
+                await message.reply("❌ Сумма должна быть положительным числом.")
+                return
+        except ValueError:
+            await message.reply("❌ Сумма должна быть числом.")
+            return
+
+        if target_id is None:
+            await message.reply("❌ Не удалось определить целевого пользователя.")
+            return
+
+        target_bal = await db.get_global_user_param(target_id, "money")
+
+        new_balance = target_bal - money_to_remove
+
+        await db.set_global_user_param(target_id, "money", new_balance)
+
+        await message.reply(
+            f"✅ Успешно вычтено {money_to_remove} {eco_config['currency_sign']} у пользователя {target_id}.\n"
+            f"Новый баланс: {new_balance} {eco_config['currency_sign']}"
+        )
+
+    except Exception:
+        await error_report(message, bot, "remove_money", traceback.format_exc())
