@@ -423,33 +423,34 @@ async def cmd_add_money(message: Message, bot: Bot, db: Database):
 
         target_id = None
         money_to_add = 0
+        amount_str = None
 
         split_text = message.text.split(maxsplit=2)
+        command_len = len(split_text)
 
         if message.reply_to_message:
             target_id = message.reply_to_message.from_user.id
-            if len(split_text) < 2:
+            if command_len < 2:
                 await message.reply("📛 Укажите сумму аргументом.")
                 return
             amount_str = split_text[1]
 
         else:
-            if len(split_text) < 3:
+            if command_len == 2:
+                target_id = user_id
+                amount_str = split_text[1]
+
+            elif command_len == 3:
+                target_arg = split_text[1]
+                amount_str = split_text[2]
+
+            else:
                 await message.reply(
                     "📛 Неправильный формат команды. Используйте: /add_money <сумма> [цель]."
                 )
                 return
 
-            if len(split_text) == 3:
-                target_arg = split_text[1]
-                amount_str = split_text[2]
-            else:
-                target_id = user_id
-                amount_str = split_text[1]
-
             if target_id is None:
-                target_arg = split_text[1]
-
                 if target_arg.startswith("@"):
                     username = target_arg[1:]
                     try:
@@ -478,12 +479,12 @@ async def cmd_add_money(message: Message, bot: Bot, db: Database):
                     return
 
         try:
-            money_to_add = int(amount_str)
+            money_to_add = float(amount_str)
             if money_to_add <= 0:
                 await message.reply("❌ Сумма должна быть положительным числом.")
                 return
         except ValueError:
-            await message.reply("❌ Сумма должна быть целым числом.")
+            await message.reply("❌ Сумма должна быть числом.")
             return
 
         if target_id is None:
@@ -516,34 +517,34 @@ async def cmd_remove_money(message: Message, bot: Bot, db: Database):
 
         target_id = None
         money_to_remove = 0
+        amount_str = None
 
         split_text = message.text.split(maxsplit=2)
+        command_len = len(split_text)
 
         if message.reply_to_message:
             target_id = message.reply_to_message.from_user.id
-            if len(split_text) < 2:
+            if command_len < 2:
                 await message.reply("📛 Укажите сумму аргументом.")
                 return
             amount_str = split_text[1]
 
         else:
+            if command_len == 2:
+                target_id = user_id
+                amount_str = split_text[1]
 
-            if len(split_text) < 2:
+            elif command_len == 3:
+                target_arg = split_text[1]
+                amount_str = split_text[2]
+
+            else:
                 await message.reply(
                     "📛 Неправильный формат команды. Используйте: /remove_money <сумма> [цель]."
                 )
                 return
 
-            if len(split_text) == 3:
-                target_arg = split_text[1]
-                amount_str = split_text[2]
-            else:
-                target_id = user_id
-                amount_str = split_text[1]
-
             if target_id is None:
-                target_arg = split_text[1]
-
                 if target_arg.startswith("@"):
                     username = target_arg[1:]
                     try:
