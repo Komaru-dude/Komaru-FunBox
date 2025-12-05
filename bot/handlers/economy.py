@@ -381,7 +381,7 @@ async def cmd_rob(message: Message, bot: Bot, db: Database):
             )
 
             if user_cash > eco_config["rob_penalty_max_rich"]:
-                penalty * eco_config["rob_penalty"]
+                penalty * eco_config["rob_penalty_mult_rich"]
                 rich_fail_note = f"🆙 Ваш баланс превышает {eco_config["rob_penalty_max_rich"]} {eco_config["currency_sign"]}.\n💸 Штраф увеличен в {eco_config["rob_penalty_mult_rich"]}\n"
 
             new_cash = user_cash - penalty
