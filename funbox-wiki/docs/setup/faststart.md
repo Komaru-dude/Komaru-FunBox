@@ -39,5 +39,5 @@
 
 ---
 
-Автор: [@komaru_dude](https://t.me/komaru_dude)  
-Помощь с документацией: [@nillerxs](https://t.me/nillerxs)
+Автор: [@not_a_dude](https://t.me/not_a_dude)  
+Помощь с документацией: [@niIIerx](https://t.me/niIIerx)
