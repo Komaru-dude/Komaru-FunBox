@@ -168,7 +168,7 @@ async def process_difficulty(
         )
 
 
-@eco_router.message(MathStates.waiting_for_answer)
+@eco_router.message(F.text, MathStates.waiting_for_answer)
 async def process_math_answer(
     message: Message, bot: Bot, db: Database, state: FSMContext
 ):
