@@ -181,7 +181,7 @@ async def process_math_answer(
 
         try:
             user_answer = int(message.text.strip())
-        except ValueError:
+        except (ValueError or AttributeError):
             msg = await message.reply("❌ Введите целое число или /cancel для отмены")
             return
 
