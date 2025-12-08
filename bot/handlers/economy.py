@@ -168,7 +168,7 @@ async def process_difficulty(
         )
 
 
-@eco_router.message(MathStates.waiting_for_answer)
+@eco_router.message(F.text, MathStates.waiting_for_answer)
 async def process_math_answer(
     message: Message, bot: Bot, db: Database, state: FSMContext
 ):
@@ -178,12 +178,7 @@ async def process_math_answer(
         difficulty = data.get("difficulty", "easy")
         correct = data.get("answer")
         money = await db.get_global_user_param(user_id, "money")
-
-        try:
-            user_answer = int(message.text.strip())
-        except (ValueError or AttributeError):
-            msg = await message.reply("❌ Введите целое число или /cancel для отмены")
-            return
+        user_answer = int(message.text.strip())
 
         if user_answer == correct:
             reward_range = eco_config["math_rewards"].get(difficulty, [10, 30])
