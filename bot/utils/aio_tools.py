@@ -9,6 +9,7 @@ from aiogram import Bot
 from aiogram.types import Message
 
 from bot import PYRO_HOST, PYRO_PORT, logger
+from bot.utils.bot_tools import fetch_json
 from bot.utils.global_storage import error_report_lock, error_report_timestamps
 
 API_HOST = f"http://{PYRO_HOST}:{PYRO_PORT}"
@@ -120,29 +121,6 @@ async def fetch_user_data(user_id=None, username=None, first_name=None, chat_id=
 
     except Exception as e:
         return {"error": f"Ошибка API: {str(e)}"}
-
-
-async def fetch_json(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.status != 200:
-                raise Exception(f"API Error: Status {response.status}")
-            return await response.json()
-
-
-async def make_post_request(url, payload, headers=None):
-    async with aiohttp.ClientSession() as session:
-        request_kwargs = {"json": payload}
-        if headers is not None:
-            request_kwargs["headers"] = headers
-
-        async with session.post(url, **request_kwargs) as response:
-            if response.status != 200 or not response.content:
-                return None, f"❌ Ошибка API: статус {response.status}"
-            try:
-                return await response.json(), None
-            except Exception as e:
-                return None, f"❌ Ошибка обработки ответа: {str(e)}"
 
 
 async def error_report(message: Message, bot: Bot, command, traceback):

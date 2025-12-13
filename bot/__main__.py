@@ -15,7 +15,7 @@ from bot import DATA_DIR, IS_TEST, PYRO_HOST, PYRO_PORT, logger
 from bot.database import Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
-from bot.utils.aio_tools import fetch_json
+from bot.utils.bot_tools import download_osq_models
 from bot.utils.cmd_manager import apply_all_command_sets
 from bot.utils.global_storage import onlysq_models
 from bot.utils.timers import background_checker
@@ -52,26 +52,7 @@ async def load_models():
     try:
         if not models_path.exists():
             logger.info("Модели отсутствуют, загружаю с API...")
-            try:
-                models = await fetch_json("https://api.onlysq.ru/ai/models")
-
-                if not isinstance(models, dict) or not isinstance(
-                    models.get("models"), dict
-                ):
-                    raise ValueError("API вернул некорректный формат моделей")
-
-                with open(models_path, "w") as f:
-                    json.dump(models, f, indent=2)
-
-                onlysq_models.clear()
-                onlysq_models.update(models)
-                logger.info(f"Успешно загружено {len(models['models'])} моделей")
-                return
-
-            except Exception as e:
-                logger.error(f"Ошибка загрузки с API: {e}")
-                onlysq_models.update(default_models)
-                return
+            await download_osq_models()
 
         with open(models_path, "r") as f:
             cached_models = json.load(f)
