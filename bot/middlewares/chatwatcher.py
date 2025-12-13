@@ -4,7 +4,13 @@ from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware, Bot
 from aiogram.enums import ChatMemberStatus, ParseMode
-from aiogram.types import CallbackQuery, ChatMemberUpdated, Message, TelegramObject
+from aiogram.types import (
+    CallbackQuery,
+    ChatMemberUpdated,
+    Message,
+    TelegramObject,
+    Update,
+)
 
 from bot import logger
 from bot.database import Database
@@ -20,42 +26,54 @@ class ChatWatcher(BaseMiddleware):
         try:
             bot: Bot = data["bot"]
             db: Database = data["db"]
-            bot_obj = await bot.me()
-            bot_username = bot_obj.username.lower()
             owner_id = os.getenv("OWNER_ID")
 
-            if isinstance(event, ChatMemberUpdated):
-                new_status = event.new_chat_member.status
+            actual_event = event
+            if isinstance(event, Update):
+                if event.message:
+                    actual_event = event.message
+                elif event.callback_query:
+                    actual_event = event.callback_query
+                elif event.my_chat_member:
+                    actual_event = event.my_chat_member
+            if isinstance(actual_event, ChatMemberUpdated):
+                new_status = actual_event.new_chat_member.status
 
                 if new_status in [ChatMemberStatus.KICKED, ChatMemberStatus.LEFT]:
-                    user = event.from_user
-                    chat = event.chat
+                    user = actual_event.from_user
+                    chat = actual_event.chat
 
                     if chat.type == "private":
                         msg = f"🗑 Пользователь заблокировал бота: <a href='tg://user?id={user.id}'>{user.full_name}</a> ({user.id})"
-                        logger.info(f"Пользователь {user.id} заблокировал бота")
-
+                        logger.info(f"User {user.id} blocked the bot.")
                     else:
-                        msg = f"🗑 Бота удалили из чата: {chat.full_name} ({chat.id}).\nКто удалил: {user.full_name} ({user.id})"
-                        logger.info(f"Бот удален из чата {chat.id}")
+                        msg = f"🗑 Бота кикнули из чата: <b>{chat.full_name}</b> ({chat.id}).\nКто: {user.full_name} ({user.id})"
+                        logger.info(f"Bot kicked from chat {chat.id} by {user.id}")
 
                     if owner_id:
-                        await bot.send_message(owner_id, msg, parse_mode=ParseMode.HTML)
+                        try:
+                            await bot.send_message(
+                                owner_id, msg, parse_mode=ParseMode.HTML
+                            )
+                        except:
+                            pass
 
                 return await handler(event, data)
-
-            if isinstance(event, CallbackQuery):
+            if isinstance(actual_event, CallbackQuery):
                 return await handler(event, data)
 
-            if isinstance(event, Message):
-                user = event.from_user
-                chat = event.chat
-                text = event.text or ""
+            if isinstance(actual_event, Message):
+                user = actual_event.from_user
+                chat = actual_event.chat
+                text = actual_event.text or ""
                 chat_type = chat.type
                 is_bot_command = False
 
-                if text and event.entities:
-                    for entity in event.entities:
+                bot_obj = await bot.me()
+                bot_username = bot_obj.username.lower()
+
+                if text and actual_event.entities:
+                    for entity in actual_event.entities:
                         if entity.type == "bot_command":
                             command = text[
                                 entity.offset : entity.offset + entity.length
@@ -75,9 +93,6 @@ class ChatWatcher(BaseMiddleware):
                 chat_name = chat.full_name
                 user_name = user.full_name
                 language_code = user.language_code
-
-                if await db.is_user_mediabanned(user_id):
-                    return None
 
                 if not await db.chat_exists(chat_id):
                     await db.add_chat(chat_id, chat_data={"type": chat_type})
@@ -99,7 +114,7 @@ class ChatWatcher(BaseMiddleware):
                         await db.add_global_user(
                             user_id, {"language_code": language_code, "name": user_name}
                         )
-                        msg = f'🔔 Новый пользователь бота: <a href="tg://user?id={user_id}">{user_id}</a>, имя: {user_name}'
+                        msg = f'🔔 Новый пользователь: <a href="tg://user?id={user_id}">{user_id}</a>, {user_name}'
                         logger.info(msg)
                         if owner_id:
                             await bot.send_message(
@@ -107,10 +122,15 @@ class ChatWatcher(BaseMiddleware):
                             )
 
             return await handler(event, data)
+
         except Exception:
             logger.error("❌ Ошибка в ChatWatcher:", exc_info=True)
             if owner_id := os.getenv("OWNER_ID"):
-                await bot.send_message(
-                    owner_id, f"❌ Ошибка в ChatWatcher:\n\n{traceback.format_exc()}"
-                )
+                try:
+                    await bot.send_message(
+                        owner_id,
+                        f"❌ Ошибка в ChatWatcher:\n\n{traceback.format_exc()}",
+                    )
+                except:
+                    pass
             return await handler(event, data)
