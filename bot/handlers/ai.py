@@ -1090,11 +1090,12 @@ async def add_prompt_content(
         content = message.text.strip()
 
         prompt_id = await db.add_prompt(user_id, title, content)
-
         escaped_title = escape(title)
 
+        user_trigger = await db.get_user_setting(user_id, "custom_prompts_trigger")
+
         await message.reply(
-            f"✅ Промпт <b>{escaped_title}</b> добавлен\n🆔 ID: <code>{prompt_id}</code>\n💡 Используйте через <b>!{escaped_title}</b> <i>запрос</i>",
+            f"✅ Промпт <b>{escaped_title}</b> добавлен\n🆔 ID: <code>{prompt_id}</code>\n💡 Используйте через <b>{user_trigger}{escaped_title}</b> <i>запрос</i>\n💡 В /user_settings можно задать кастомный триггер",
             parse_mode=ParseMode.HTML,
         )
         await state.clear()
@@ -1118,9 +1119,13 @@ async def cmd_list_prompts(message: Message, bot: Bot, db: Database):
             await message.reply("📭 У вас пока нет сохранённых промптов.")
             return
 
-        text = "📋 <b>Ваши промпты:</b>\n\n" + "\n".join(
-            f"🔰 <b>{escape(p['title'])}</b> (🆔 <code>{p['id']}</code>)"
-            for p in prompts
+        text = (
+            "📋 <b>Ваши промпты:</b>\n\n"
+            + "\n".join(
+                f"🔰 <b>{escape(p['title'])}</b> (🆔 <code>{p['id']}</code>)"
+                for p in prompts
+            )
+            + "\n\n💡 В /user_settings можно задать кастомный триггер"
         )
         await message.reply(text, parse_mode=ParseMode.HTML)
     except Exception:
