@@ -155,7 +155,14 @@ DEFAULT_USER_SETTINGS = [
         bool,
         False,
         "Сообщает вам в личных сообщениях, если вас ограбили, указывая имя пользователя, который это сделал.",
-    )
+    ),
+    (
+        "top_clickable_link",
+        "Уведомления",
+        bool,
+        True,
+        "Оставляет кликабельную ссылку на ваш профиль в /top",
+    ),
 ]
 
 CATEGORIES = list({cat for _, cat, *rest in DEFAULT_SETTINGS})

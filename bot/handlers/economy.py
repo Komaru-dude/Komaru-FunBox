@@ -875,8 +875,16 @@ async def cmd_top(message: Message, bot: Bot, db: Database):
                 raw_name = f"ID {user_id}"
 
             safe_name = escape(raw_name)
-            user_link = f'<a href="tg://user?id={user_id}">{safe_name}</a>'
-            top_message += f"{idx}. {user_link} — {total} {currency_sign}\n"
+            is_link_enabled = await db.is_user_setting_enabled(
+                user_id, "top_clickable_link"
+            )
+
+            if is_link_enabled:
+                user_display = f'<a href="tg://user?id={user_id}">{safe_name}</a>'
+            else:
+                user_display = safe_name
+
+            top_message += f"{idx}. {user_display} — {total} {currency_sign}\n"
 
         top_message += f"\n📍 Ваша позиция: {user_position if user_position is not None else '>100'}"
         top_message += f"\n💰 Ваш баланс: {current_user_total} {currency_sign}"
