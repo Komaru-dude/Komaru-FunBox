@@ -38,17 +38,17 @@ async def download_osq_models():
         models = await fetch_json("https://api.onlysq.ru/ai/models")
 
         if not isinstance(models, dict) or not isinstance(models.get("models"), dict):
-            raise ValueError("API вернул некорректный формат моделей")
+            raise ValueError("❌ API вернул некорректный формат моделей")
 
         with open(models_path, "w") as f:
             json.dump(models, f, indent=2)
 
         onlysq_models.clear()
         onlysq_models.update(models)
-        logger.info(f"Успешно загружено {len(models['models'])} моделей")
+        logger.info(f"✅ Успешно загружено {len(models['models'])} моделей")
         return
 
     except Exception as e:
-        logger.error(f"Ошибка загрузки с API: {e}")
+        logger.error(f"❌ Ошибка загрузки с API: {e}")
         onlysq_models.update(default_models)
         return
