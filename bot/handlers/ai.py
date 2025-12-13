@@ -21,7 +21,8 @@ from bot import logger
 from bot.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
-from bot.utils.aio_tools import error_report, make_post_request
+from bot.utils.aio_tools import error_report
+from bot.utils.bot_tools import make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
 
 ai_router = Router()
