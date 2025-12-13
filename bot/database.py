@@ -163,6 +163,13 @@ DEFAULT_USER_SETTINGS = [
         True,
         "Оставляет кликабельную ссылку на ваш профиль в /top",
     ),
+    (
+        "custom_prompts_trigger",
+        "ИИ",
+        str,
+        "!",
+        "Позволяет задать кастомный триггер для кастомных промптов.",
+    ),
 ]
 
 CATEGORIES = list({cat for _, cat, *rest in DEFAULT_SETTINGS})

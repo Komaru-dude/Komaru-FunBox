@@ -32,7 +32,6 @@ from bot.utils.global_storage import active_chats, onlysq_models
 
 text_router = Router()
 BASE_COMMANDS_PATH = Path("bot/config/basic_rp.json")
-PROMPT_TRIGGER_PREFIX = "!"
 CUSTOM_DIR = Path("data/rp_commands")
 CUSTOM_DIR.mkdir(parents=True, exist_ok=True)
 SUPPORTED_DOMAINS = [
@@ -270,6 +269,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
         sorted_commands = sorted(commands.keys(), key=len, reverse=True)
         matched_command = None
+        user_prompt_trigger = await db.get_user_setting(
+            user1.id, "custom_prompts_trigger"
+        )
 
         for cmd in sorted_commands:
             if clean_text.startswith(cmd):
@@ -295,11 +297,11 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             answer = await cmd_ai(messages=messages, cli_mode=True)
             await message.reply(f"📝 Ответ: {answer}")
             return
-        elif text_msg.startswith(PROMPT_TRIGGER_PREFIX) and await db.is_setting_enabled(
+        elif text_msg.startswith(user_prompt_trigger) and await db.is_setting_enabled(
             chat_id, "user_prompts"
         ):
             match = re.match(
-                rf"^{re.escape(PROMPT_TRIGGER_PREFIX)}(\S+)\s*(.*)", text_msg
+                rf"^{re.escape(user_prompt_trigger)}(\S+)\s*(.*)", text_msg
             )
             if match:
                 prompt_name = match.group(1)
