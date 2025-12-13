@@ -1258,11 +1258,6 @@ async def edit_prompt_choose_field(
     try:
         user_input = message.text.strip().lower()
 
-        if user_input == "/cancel":
-            await state.clear()
-            await message.reply("✅ Редактирование отменено.")
-            return
-
         if user_input == "1":
             await message.reply(
                 "✏️ <b>Введите новое название промпта:</b>\n\n"
