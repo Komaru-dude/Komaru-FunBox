@@ -43,10 +43,12 @@ class Database:
                 return
 
             try:
-                logger.info("Подключаемся к базе данных...")
+                logger.info("🔌 Подключаемся к базе данных...")
                 if self.pool and not self.pool.is_closing():
                     await self.pool.close()
-                    logger.info("Существующий пул был закрыт перед переподключением.")
+                    logger.info(
+                        "📝 Существующий пул был закрыт перед переподключением."
+                    )
 
                 self.pool = await asyncpg.create_pool(
                     host=os.getenv("DB_HOST"),
@@ -58,16 +60,16 @@ class Database:
                     max_size=20,
                 )
                 self.is_connected = True
-                logger.info("Пул соединений с БД успешно создан.")
+                logger.info("✅ Пул соединений с БД успешно создан.")
 
                 if self.pool:
                     await bootstrap_create_tables(self.pool)
                     await bootstrap_sync_all(self.pool)
-                    logger.info("Успешное подключение и синхронизация с БД.")
+                    logger.info("✅ Успешное подключение и синхронизация с БД.")
 
             except Exception as e:
                 logger.critical(
-                    f"Не удалось подключиться к БД или выполнить начальную настройку: {e}"
+                    f"😔 Не удалось подключиться к БД или выполнить начальную настройку: {e}"
                 )
                 self.is_connected = False
                 if self.pool:
