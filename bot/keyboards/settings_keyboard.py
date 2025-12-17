@@ -1,6 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.database import CATEGORIES, DEFAULT_SETTINGS
+from bot.database.constants import CATEGORIES, DEFAULT_SETTINGS
 
 
 def main_settings_keyboard(owner_id: int):

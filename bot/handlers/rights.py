@@ -10,7 +10,8 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot import API_URL
-from bot.database import RANK_TO_LEVEL, Database
+from bot.database.database import Database
+from bot.database.constants import RANK_TO_LEVEL
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils import aio_tools
 
