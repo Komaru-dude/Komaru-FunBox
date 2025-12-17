@@ -156,6 +156,8 @@ async def error_report(message: Message, bot: Bot, command, traceback):
             f"📛 Traceback:\n{traceback}"
         )
 
+        logger.debug(error_report_text)
+
         chunks = [
             error_report_text[i : i + 4096]
             for i in range(0, len(error_report_text), 4096)
