@@ -9,8 +9,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from bot.database.database import Database
 from bot.database.constants import DEFAULT_USER_SETTINGS
+from bot.database.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.keyboards import user_settings_keyboard as kb_settings
