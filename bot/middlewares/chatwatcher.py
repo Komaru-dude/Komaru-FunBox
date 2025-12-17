@@ -13,7 +13,7 @@ from aiogram.types import (
 )
 
 from bot import logger
-from bot.database import Database
+from bot.database.database import Database
 
 
 class ChatWatcher(BaseMiddleware):

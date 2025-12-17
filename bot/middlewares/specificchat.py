@@ -6,7 +6,7 @@ from aiogram import BaseMiddleware, Bot
 from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from bot import logger
-from bot.database import Database
+from bot.database.database import Database
 
 
 class SpecificChat(BaseMiddleware):
