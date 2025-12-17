@@ -10,7 +10,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 

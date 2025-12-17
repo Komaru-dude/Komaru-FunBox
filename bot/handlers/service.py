@@ -10,7 +10,7 @@ from aiogram.filters.chat_member_updated import (
 )
 from aiogram.types import ChatMemberUpdated, Message
 
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report
 

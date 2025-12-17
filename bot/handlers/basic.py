@@ -11,7 +11,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import update_cache

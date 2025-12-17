@@ -22,7 +22,7 @@ from aiogram.types import (
 from mutagen.mp4 import MP4
 
 from bot import CACHE_DIR, logger
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 

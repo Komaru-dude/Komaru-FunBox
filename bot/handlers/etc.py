@@ -24,7 +24,7 @@ from aiogram.types import (
 from aiohttp import ClientSession
 
 from bot import API_URL, FREE_GAMES_PATH, logger
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json

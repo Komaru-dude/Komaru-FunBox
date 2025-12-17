@@ -17,7 +17,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from bot import logger
-from bot.database import Database
+from bot.database.database import Database
 from bot.handlers.ai import (
     TOOLS_SCHEMA,
     ChatState,

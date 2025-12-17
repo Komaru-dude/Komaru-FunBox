@@ -15,7 +15,7 @@ from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
 
 from bot import API_URL, CACHE_DIR, DATA_DIR
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
 from bot.utils.global_storage import eco_config

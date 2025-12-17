@@ -18,7 +18,7 @@ from aiogram.types import BufferedInputFile, Message
 from pydantic import BaseModel, Field
 
 from bot import logger
-from bot.database import Database
+from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report
