@@ -1,0 +1,62 @@
+USERS_COLUMNS = {
+    "user_id": "BIGINT",
+    "chat_id": "BIGINT",
+    "warns": "INTEGER DEFAULT 0",
+    "bans": "INTEGER DEFAULT 0",
+    "mutes": "INTEGER DEFAULT 0",
+    "reputation": "INTEGER DEFAULT 0",
+    "rank": "TEXT DEFAULT 'Участник'",
+    "message_count": "INTEGER DEFAULT 0",
+    "history": "JSONB DEFAULT '[]'::JSONB",
+    "default_model": "TEXT DEFAULT ''",
+    "settings": "JSONB DEFAULT '[]'::JSONB",
+}
+
+FEATURES_COLUMNS = {
+    "chat_id": "BIGINT",
+    "feature_name": "TEXT",
+    "value": "JSONB NULL",
+}
+
+BANNED_USERS_COLUMNS = {
+    "user_id": "BIGINT PRIMARY KEY",
+}
+
+CHATS_COLUMNS = {
+    "chat_id": "BIGINT PRIMARY KEY",
+    "type": "TEXT",
+    "registered_at": "TIMESTAMP DEFAULT NOW()",
+}
+
+GLOBAL_USERS_COLUMNS = {
+    "user_id": "BIGINT PRIMARY KEY",
+    "language_code": "TEXT DEFAULT 'ru'",
+    "registered_at": "TIMESTAMP DEFAULT NOW()",
+    "money": "BIGINT DEFAULT 0",
+    "bank": "BIGINT DEFAULT 0",
+    "name": "TEXT DEFAULT 'Unknown'",
+    "items": "JSONB DEFAULT '[]'::JSONB",
+    "settings": "JSONB DEFAULT '{}'::JSONB",
+}
+
+COMMAND_COOLDOWNS_COLUMNS = {
+    "user_id": "BIGINT NOT NULL",
+    "command": "TEXT NOT NULL",
+    "available_at": "BIGINT NOT NULL",
+}
+
+USES_COLUMNS = {
+    "day": "DATE PRIMARY KEY",
+    "count": "INTEGER NOT NULL DEFAULT 0",
+}
+
+CUSTOM_PROMPTS_COLUMNS = {
+    "id": "TEXT NOT NULL PRIMARY KEY",
+    "user_id": "BIGINT NOT NULL",
+    "title": "TEXT NOT NULL",
+    "content": "TEXT NOT NULL",
+    "is_public": "BOOLEAN DEFAULT FALSE",
+    "created_at": "TIMESTAMP DEFAULT NOW()",
+}
+
+ACTIVE_USERS_COLUMNS = {"user_id": "BIGINT PRIMARY KEY"}

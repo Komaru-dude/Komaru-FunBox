@@ -12,7 +12,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.methods import DeleteWebhook
 
 from bot import DATA_DIR, IS_TEST, PYRO_HOST, PYRO_PORT, logger
-from bot.database import Database
+from bot.database.database import Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
 from bot.utils.bot_tools import download_osq_models
@@ -36,7 +36,7 @@ from .handlers.time import time_router
 from .handlers.user_settings import usettings_router
 from .handlers.video import video_router
 
-token = os.getenv("BOT_API_TOKEN")
+token = os.getenv("BOT_API_TOKEN") or sys.exit(1)
 bot = Bot(token)
 dp = Dispatcher()
 dp.update.outer_middleware(ChatWatcher())
