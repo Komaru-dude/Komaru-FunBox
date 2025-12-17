@@ -1,13 +1,15 @@
-import os
 import asyncio
+import os
+from typing import Any, Optional
+
 import asyncpg
-from typing import Optional, Any
 from asyncpg import Pool
 
 from bot import logger
+from bot.database.bootstrap import create_tables as bootstrap_create_tables
+from bot.database.bootstrap import sync_all as bootstrap_sync_all
+from bot.database.logic import admin, economy, prompts, settings, users, utils
 
-from bot.database.bootstrap import create_tables as bootstrap_create_tables, sync_all as bootstrap_sync_all
-from bot.database.logic import users, settings, economy, admin, prompts, utils
 
 class Database:
     def __init__(self):
@@ -18,15 +20,15 @@ class Database:
 
     async def ensure_connection(self) -> Pool:
         """
-        Проверяет соединение и ВОЗВРАЩАЕТ пул. 
+        Проверяет соединение и ВОЗВРАЩАЕТ пул.
         Это критически важно для типизации.
         """
         if not self.is_connected or self.pool is None or self.pool.is_closing():
             await self.connect()
-        
+
         if self.pool is None:
             raise ConnectionError("Database pool could not be established.")
-            
+
         return self.pool
 
     async def connect(self):
@@ -98,17 +100,23 @@ class Database:
 
     async def has_permission(self, user_id: int, chat_id: int, required_level: int):
         pool = await self.ensure_connection()
-        return await users.check_permission(pool, self.owner_id, user_id, chat_id, required_level)
+        return await users.check_permission(
+            pool, self.owner_id, user_id, chat_id, required_level
+        )
 
     async def update_message_count(self, user_id: int, chat_id: int):
         pool = await self.ensure_connection()
         await users.inc_message_count(pool, user_id, chat_id)
 
-    async def update_reputation(self, user_id: int, chat_id: int, mode: str, value: int = 0):
+    async def update_reputation(
+        self, user_id: int, chat_id: int, mode: str, value: int = 0
+    ):
         pool = await self.ensure_connection()
         await users.modify_reputation(pool, user_id, chat_id, mode, value)
 
-    async def update_user_history(self, user_id: int, chat_id: int, punishment_type: str, reason: str):
+    async def update_user_history(
+        self, user_id: int, chat_id: int, punishment_type: str, reason: str
+    ):
         pool = await self.ensure_connection()
         await users.add_history_record(pool, user_id, chat_id, punishment_type, reason)
 
@@ -124,7 +132,9 @@ class Database:
         pool = await self.ensure_connection()
         await settings.set_chat_val(pool, chat_id, name, value)
 
-    async def toggle_setting(self, chat_id: int, name: str, enable: Optional[bool] = None):
+    async def toggle_setting(
+        self, chat_id: int, name: str, enable: Optional[bool] = None
+    ):
         pool = await self.ensure_connection()
         return await settings.toggle_chat_val(pool, chat_id, name, enable)
 
@@ -172,7 +182,9 @@ class Database:
         pool = await self.ensure_connection()
         await utils.register_command_usage(pool)
 
-    async def add_prompt(self, user_id: int, title: str, content: str, is_public: bool = False):
+    async def add_prompt(
+        self, user_id: int, title: str, content: str, is_public: bool = False
+    ):
         pool = await self.ensure_connection()
         return await prompts.create(pool, user_id, title, content, is_public)
 
