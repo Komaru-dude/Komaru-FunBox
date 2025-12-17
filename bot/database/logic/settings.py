@@ -4,7 +4,7 @@ from typing import Optional
 from asyncpg import Pool
 
 from bot.database.bootstrap import sync_all as bootstrap_sync_all
-from bot.database.constants import DEFAULT_USER_SETTINGS
+from bot.database.constants import DEFAULT_SETTINGS, DEFAULT_USER_SETTINGS
 
 
 async def sync_database_schema(pool: Pool):
@@ -117,3 +117,90 @@ async def set_user_val(pool: Pool, user_id: int, name: str, value):
             json.dumps(settings, ensure_ascii=False),
             user_id,
         )
+
+
+async def init_chat_settings(pool: Pool, chat_id: int):
+    async with pool.acquire() as conn:
+        for name, _, _, default, _ in DEFAULT_SETTINGS:
+            await conn.execute(
+                """
+                INSERT INTO features (chat_id, feature_name, value)
+                VALUES ($1, $2, $3::jsonb)
+                ON CONFLICT (chat_id, feature_name) DO NOTHING
+                """,
+                chat_id,
+                name,
+                json.dumps(default),
+            )
+
+
+async def restore_chat_settings(pool: Pool, chat_id: int):
+    async with pool.acquire() as conn:
+        for name, _, _, default, _ in DEFAULT_SETTINGS:
+            await conn.execute(
+                """
+                INSERT INTO features (chat_id, feature_name, value)
+                VALUES ($1, $2, $3::jsonb)
+                ON CONFLICT (chat_id, feature_name) DO UPDATE SET value = EXCLUDED.value
+                """,
+                chat_id,
+                name,
+                json.dumps(default),
+            )
+
+
+async def is_setting_exists(pool: Pool, chat_id: int, name: str) -> bool:
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM features WHERE chat_id=$1 AND feature_name=$2)",
+            chat_id,
+            name,
+        )
+
+
+async def get_chats_with_setting(pool: Pool, setting_name: str) -> list[int]:
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT chat_id FROM features
+            WHERE feature_name = $1 AND value::bool = TRUE
+            """,
+            setting_name,
+        )
+        return [row["chat_id"] for row in rows]
+
+
+async def init_user_settings(pool: Pool, user_id: int):
+    async with pool.acquire() as conn:
+        settings = {}
+        for name, _, _, default, _ in DEFAULT_USER_SETTINGS:
+            settings[name] = default
+
+        await conn.execute(
+            "UPDATE global_users SET settings = $1::jsonb WHERE user_id = $2",
+            json.dumps(settings, ensure_ascii=False),
+            user_id,
+        )
+
+
+async def restore_user_settings(pool: Pool, user_id: int):
+    await init_user_settings(pool, user_id)
+
+
+async def is_user_setting_exists(pool: Pool, user_id: int, name: str) -> bool:
+    settings = await get_user_val(pool, user_id, name)
+    return settings is not None
+
+
+async def toggle_user_setting(
+    pool: Pool, user_id: int, name: str, enable: Optional[bool] = None
+) -> bool:
+    current = await get_user_val(pool, user_id, name)
+    new_val = bool(enable) if enable is not None else not bool(current)
+    await set_user_val(pool, user_id, name, new_val)
+    return new_val
+
+
+async def is_user_setting_enabled(pool: Pool, user_id: int, name: str) -> bool:
+    val = await get_user_val(pool, user_id, name)
+    return bool(val)

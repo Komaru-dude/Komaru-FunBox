@@ -54,3 +54,25 @@ async def register_command_usage(pool: Pool):
 
         cutoff = today - timedelta(days=7)
         await conn.execute("DELETE FROM uses WHERE day < $1", cutoff)
+
+
+async def get_cooldown_remaining(pool: Pool, user_id: int, command: str) -> int:
+    now = int(time.time())
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT available_at FROM command_cooldowns WHERE user_id = $1 AND command = $2",
+            user_id,
+            command,
+        )
+        if row and row["available_at"] > now:
+            return row["available_at"] - now
+        return 0
+
+
+async def reset_cooldown(pool: Pool, user_id: int, command: str):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM command_cooldowns WHERE user_id = $1 AND command = $2",
+            user_id,
+            command,
+        )

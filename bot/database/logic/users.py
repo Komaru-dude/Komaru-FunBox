@@ -172,3 +172,22 @@ async def get_history(pool: Pool, user_id: int, chat_id: int) -> list:
             chat_id,
         )
         return json.loads(history_json) if history_json else []
+
+
+async def get_user_param(pool: Pool, user_id: int, chat_id: int, param: str):
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            f"SELECT {param} FROM users WHERE user_id = $1 AND chat_id = $2",
+            user_id,
+            chat_id,
+        )
+
+
+async def set_user_param(pool: Pool, user_id: int, chat_id: int, param: str, value):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            f"UPDATE users SET {param} = $1 WHERE user_id = $2 AND chat_id = $3",
+            value,
+            user_id,
+            chat_id,
+        )

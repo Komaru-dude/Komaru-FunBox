@@ -14,3 +14,11 @@ async def check_media_ban(pool: Pool, user_id: int) -> bool:
         return await conn.fetchval(
             "SELECT EXISTS(SELECT 1 FROM banned_users WHERE user_id = $1)", user_id
         )
+
+
+async def unban_media(pool: Pool, user_id: int):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM banned_users WHERE user_id = $1",
+            user_id,
+        )
