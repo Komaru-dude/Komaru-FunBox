@@ -93,6 +93,10 @@ class Database:
         pool = await self.ensure_connection()
         await users.create(pool, user_id, chat_id)
 
+    async def add_global_user(self, user_id: int, user_data: dict):
+        pool = await self.ensure_connection()
+        return await users.add_global_user(pool, user_id, user_data)
+
     async def get_user_data(self, user_id: int, chat_id: int):
         pool = await self.ensure_connection()
         return await users.get_full_data(pool, user_id, chat_id)

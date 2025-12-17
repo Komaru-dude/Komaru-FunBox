@@ -29,6 +29,19 @@ async def create(pool: Pool, user_id: int, chat_id: int):
         )
 
 
+async def add_global_user(pool: Pool, user_id: int, user_data: Optional[dict] = None):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """INSERT INTO global_users 
+            (user_id, language_code)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET
+                language_code = EXCLUDED.language_code""",
+            user_id,
+            user_data.get("language_code", "en") if user_data is not None else "en",
+        )
+
+
 async def get_full_data(pool: Pool, user_id: int, chat_id: int) -> dict:
     async with pool.acquire() as conn:
         record = await conn.fetchrow(
