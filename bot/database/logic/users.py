@@ -46,6 +46,14 @@ async def get_full_data(pool: Pool, user_id: int, chat_id: int) -> dict:
         return dict(record)
 
 
+async def get_global_data(pool: Pool, user_id: int) -> Optional[dict]:
+    async with pool.acquire() as conn:
+        record = await conn.fetchrow(
+            "SELECT * FROM global_users WHERE user_id = $1", user_id
+        )
+        return dict(record) if record else None
+
+
 async def get_rank(pool: Pool, user_id: int, chat_id: int) -> str:
     async with pool.acquire() as conn:
         return await conn.fetchval(

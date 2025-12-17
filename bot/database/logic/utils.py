@@ -1,5 +1,5 @@
 import time
-from datetime import date
+from datetime import date, timedelta
 
 from asyncpg import Pool
 
@@ -54,6 +54,24 @@ async def register_command_usage(pool: Pool):
 
         cutoff = today - timedelta(days=7)
         await conn.execute("DELETE FROM uses WHERE day < $1", cutoff)
+
+
+async def get_usage_stats(pool: Pool) -> tuple[int, int]:
+    today = date.today()
+    async with pool.acquire() as conn:
+        day_count = (
+            await conn.fetchval("SELECT count FROM uses WHERE day = $1", today) or 0
+        )
+
+        week_count = (
+            await conn.fetchval(
+                "SELECT SUM(count) FROM uses WHERE day >= $1",
+                today - timedelta(days=6),
+            )
+            or 0
+        )
+
+        return day_count, week_count
 
 
 async def get_cooldown_remaining(pool: Pool, user_id: int, command: str) -> int:

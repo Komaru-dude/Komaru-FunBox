@@ -97,6 +97,10 @@ class Database:
         pool = await self.ensure_connection()
         return await users.get_full_data(pool, user_id, chat_id)
 
+    async def get_global_user(self, user_id: int):
+        pool = await self.ensure_connection()
+        return await users.get_global_data(pool, user_id)
+
     async def get_user_rank(self, user_id: int, chat_id: int):
         pool = await self.ensure_connection()
         return await users.get_rank(pool, user_id, chat_id)
@@ -333,3 +337,7 @@ class Database:
     async def log_command(self):
         pool = await self.ensure_connection()
         await utils.register_command_usage(pool)
+
+    async def get_use_stats(self):
+        pool = await self.ensure_connection()
+        return await utils.get_usage_stats(pool)
