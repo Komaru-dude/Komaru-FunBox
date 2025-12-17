@@ -3,6 +3,8 @@ import time
 
 from asyncpg import Pool
 
+from bot import logger
+
 
 async def get_top_list(pool: Pool, limit: int = 10) -> list[dict]:
     async with pool.acquire() as conn:
@@ -154,3 +156,43 @@ async def consume_item(pool: Pool, user_id: int, item_id: str) -> bool:
             )
             return True
         return False
+
+
+async def cleanup_all_expired_items(pool: Pool):
+    logger.debug("🔄 Начинаю очистку истёкших предметов...")
+    now = int(time.time())
+
+    async with pool.acquire() as conn:
+        # Получаем всех пользователей, у которых есть предметы
+        rows = await conn.fetch(
+            "SELECT user_id, items FROM global_users WHERE items IS NOT NULL AND items != '[]'::jsonb"
+        )
+
+        for row in rows:
+            user_id = row["user_id"]
+            items = row["items"]
+
+            if isinstance(items, str):
+                try:
+                    items = json.loads(items)
+                except json.JSONDecodeError:
+                    items = []
+            elif items is None:
+                items = []
+
+            # Оставляем только те предметы, время которых еще не истекло
+            filtered = [
+                item
+                for item in items
+                if isinstance(item, dict) and item.get("expires", now + 1) > now
+            ]
+
+            # Если список изменился — обновляем БД
+            if len(filtered) != len(items):
+                await conn.execute(
+                    "UPDATE global_users SET items = $1 WHERE user_id = $2",
+                    json.dumps(filtered, ensure_ascii=False),
+                    user_id,
+                )
+
+    logger.info("✅ Истёкшие предметы удалены")

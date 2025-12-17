@@ -166,6 +166,10 @@ class Database:
         pool = await self.ensure_connection()
         return await economy.check_item(pool, user_id, item_id)
 
+    async def cleanup_all_expired_items(self):
+        pool = await self.ensure_connection()
+        await economy.cleanup_all_expired_items(pool)
+
     async def mediaban_user(self, user_id: int):
         pool = await self.ensure_connection()
         await admin.ban_media(pool, user_id)
