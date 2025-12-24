@@ -537,18 +537,39 @@ async def cmd_aggemini(message: Message, bot: Bot, db: Database):
 
 @ai_router.message(Command("image"), CooldownFilter("image", 25))
 async def cmd_image(message: Message, bot: Bot, db: Database):
+    user_id = message.from_user.id
     try:
-        args = message.text.split(maxsplit=1)
+        command_text = message.text or message.caption or ""
+        args = command_text.split(maxsplit=1)
+
         if len(args) < 2:
             await message.answer(
-                "✍️ Напиши, что нарисовать. Пример: /image Кошечка дуде"
+                "✍️ Напиши, что нарисовать. Пример: /image -m flux Кошечка дуде"
             )
-            await db.reset_cooldown(message.from_user.id, "image")
+            await db.reset_cooldown(user_id, "image")
             return
 
-        prompt_ru = args[1]
+        args_text = args[1]
+        model_name = "flux"  # Модель по умолчанию
+
+        if "-m" in args_text:
+            model_match = re.search(r"-m\s+(\S+)", args_text)
+            if not model_match:
+                await message.answer("❌ Укажите название модели после -m")
+                await db.reset_cooldown(user_id, "image")
+                return
+            model_name = model_match.group(1).lower()
+            prompt_ru = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
+        else:
+            prompt_ru = args_text
+
+        if not prompt_ru:
+            await message.answer("✍️ Промпт не может быть пустым.")
+            await db.reset_cooldown(user_id, "image")
+            return
 
         processing_message = await message.answer("⏳ Перевожу промпт на английский...")
+
         messages = [
             {
                 "role": "system",
@@ -576,28 +597,21 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
 
         try:
             translated = await cmd_ai(messages=messages, cli_mode=True)
+            prompt_en = translated.strip()
         except:
-            await processing_message.edit_text(
-                "📛 Не удалось перевести промпт.\n🧩 Обратитесь к разработчику."
-            )
-            logger.debug(
-                f"📛 Возникла ошибка при попытке перевода текста: {traceback.format_exc()}"
-            )
+            await processing_message.edit_text("📛 Не удалось перевести промпт.")
             return
-        prompt_en = translated.strip()
 
         if prompt_en.lower() == "false":
-            await message.reply(
-                "⚠️ Ваш запрос отклонён, так как содержит чувствительный или запрещённый контент."
-            )
-            await db.reset_cooldown(message.from_user.id, "image")
+            await message.reply("⚠️ Ваш запрос отклонён (запрещённый контент).")
+            await db.reset_cooldown(user_id, "image")
             await processing_message.delete()
             return
 
-        await processing_message.edit_text("🎨 Генерация началась...")
+        await processing_message.edit_text(f"🎨 Генерация ({model_name})...")
 
-        response = await generate_image(model="flux", prompt=prompt_en)
-        if response["error"]:
+        response = await generate_image(model=model_name, prompt=prompt_en)
+        if response.get("error"):
             raise RuntimeError(response["msg"])
 
         image_bytes = response["file"]
@@ -606,15 +620,16 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
         try:
             await processing_message.delete()
         except TelegramBadRequest:
-            await message.answer("📛 У меня не удалось удалить своё сообщение")
+            pass
+
         await message.reply_photo(
             photo=image,
-            caption=f"🧠 Модель: Flux\n🔍 Запрос: {prompt_ru}\n🖼️ Сгенерировано за {round(response['elapsed_time'], 2)} сек.",
+            caption=f"🧠 Модель: {model_name.capitalize()}\n🔍 Запрос: {prompt_ru}\n🖼️ Сгенерировано за {round(response['elapsed_time'], 2)} сек.",
         )
 
     except Exception:
         await error_report(message, bot, "image", traceback.format_exc())
-        await db.reset_cooldown(message.from_user.id, "image")
+        await db.reset_cooldown(user_id, "image")
 
 
 @ai_router.message(Command("translate"), CooldownFilter("ai", 15))
