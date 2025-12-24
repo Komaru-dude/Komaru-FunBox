@@ -5,6 +5,7 @@ from typing import Optional
 
 from asyncpg import Pool
 
+from bot import logger
 from bot.database.constants import RANK_TO_LEVEL
 
 
@@ -211,4 +212,54 @@ async def set_user_param(pool: Pool, user_id: int, chat_id: int, param: str, val
             value,
             user_id,
             chat_id,
+        )
+
+
+async def get_global_user_param(pool: Pool, user_id: int, param: str):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM global_users WHERE user_id = $1",
+            user_id,
+        )
+        if not row:
+            await add_global_user(pool, user_id)
+            row = await conn.fetchrow(
+                "SELECT * FROM global_users WHERE user_id = $1",
+                user_id,
+            )
+            if not row:
+                logger.error(f"Не удалось создать пользователя {user_id}")
+                return None
+
+        value = row.get(param)
+
+        if param == "items":
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except json.JSONDecodeError:
+                    return []
+            elif value is None:
+                return []
+
+        return value
+
+
+async def set_global_user_param(pool: Pool, user_id: int, param: str, value):
+    if param == "items" and isinstance(value, list):
+        value = json.dumps(value, ensure_ascii=False)
+
+    async with pool.acquire() as conn:
+        await conn.execute(
+            f"UPDATE global_users SET {param} = $1 WHERE user_id = $2",
+            value,
+            user_id,
+        )
+
+
+async def delete_global_user(pool: Pool, user_id: int):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "DELETE FROM global_users WHERE user_id = $1",
+            user_id,
         )

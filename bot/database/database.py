@@ -149,6 +149,21 @@ class Database:
         pool = await self.ensure_connection()
         return await users.get_history(pool, user_id, chat_id)
 
+    async def get_global_user_param(self, user_id: int, param: str):
+        """Получает глобальный параметр пользователя (например, items или balance)"""
+        pool = await self.ensure_connection()
+        return await users.get_global_user_param(pool, user_id, param)
+
+    async def set_global_user_param(self, user_id: int, param: str, value: Any):
+        """Устанавливает глобальный параметр пользователю"""
+        pool = await self.ensure_connection()
+        await users.set_global_user_param(pool, user_id, param, value)
+
+    async def delete_global_user(self, user_id: int):
+        """Удаляет пользователя из глобальной таблицы"""
+        pool = await self.ensure_connection()
+        await users.delete_global_user(pool, user_id)
+
     # Активные юзеры
 
     async def add_active_user(self, user_id: int):
