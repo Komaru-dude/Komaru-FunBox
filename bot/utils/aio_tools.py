@@ -123,7 +123,7 @@ async def fetch_user_data(user_id=None, username=None, first_name=None, chat_id=
         return {"error": f"Ошибка API: {str(e)}"}
 
 
-async def error_report(message: Message, bot: Bot, command, traceback):
+async def error_report(message: Message, bot: Bot, command: str, traceback: str, silent: bool = False):
     report_id = uuid.uuid4()
     current_time = datetime.now()
     send_to_user = True
@@ -134,7 +134,7 @@ async def error_report(message: Message, bot: Bot, command, traceback):
         error_report_timestamps[:] = [t for t in error_report_timestamps if t > cutoff]
 
         current_count = len(error_report_timestamps)
-        if current_count >= 2:
+        if current_count >= 2 or silent:
             send_to_user = False
             send_owner_alert = current_count == 2
 
