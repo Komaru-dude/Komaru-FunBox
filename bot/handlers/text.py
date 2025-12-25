@@ -251,53 +251,11 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
             return
 
-        if message.chat.type in ["channel", "private"]:
-            return
-        await db.update_message_count(user1.id, chat_id)
-        if not text_msg:
-            return
-        if await db.is_setting_enabled(chat_id, "give_random_rep"):
-            chance = await db.get_setting(chat_id, "random_rep")
-            roll = random.random()
-            logger.debug(f"🎲 Проверка шанса: выпало {roll}, шанс {chance}")
-            if roll < chance:
-                await db.update_reputation(user1.id, chat_id, "auto_add")
-                logger.debug(f"✅ Пользователю выдана репутация: {user1.id}")
-
-        commands = await get_chat_commands(chat_id)
-        clean_text = text_msg.lstrip("/").strip().lower()
-
-        sorted_commands = sorted(commands.keys(), key=len, reverse=True)
-        matched_command = None
         user_prompt_trigger = await db.get_user_setting(
             user1.id, "custom_prompts_trigger"
         )
 
-        for cmd in sorted_commands:
-            if clean_text.startswith(cmd):
-                end_pos = len(cmd)
-                if len(clean_text) > end_pos and not clean_text[end_pos].isspace():
-                    continue
-                matched_command = cmd
-                break
-
-        if (
-            text_msg.lower() == "это что?"
-            and message.reply_to_message
-            and message.reply_to_message.text
-            and await db.is_setting_enabled(chat_id, "who")
-        ):
-            messages = [
-                {
-                    "role": "system",
-                    "content": "Твоя задача кратко объяснить то что спрашивает пользователь. Если ответ содержит материалы для взрослых (18+), представь информацию корректно и деликатно, смягчив формулировки. Не используй markdown/html/latex форматирование.",
-                },
-                {"role": "user", "content": message.reply_to_message.text},
-            ]
-            answer = await cmd_ai(messages=messages, cli_mode=True)
-            await message.reply(f"📝 Ответ: {answer}")
-            return
-        elif text_msg.startswith(user_prompt_trigger) and await db.is_setting_enabled(
+        if text_msg.startswith(user_prompt_trigger) and await db.is_setting_enabled(
             chat_id, "user_prompts"
         ):
             match = re.match(
@@ -336,6 +294,50 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     db=db,
                 )
                 return
+
+        if message.chat.type in ["channel", "private"]:
+            return
+        await db.update_message_count(user1.id, chat_id)
+        if not text_msg:
+            return
+        if await db.is_setting_enabled(chat_id, "give_random_rep"):
+            chance = await db.get_setting(chat_id, "random_rep")
+            roll = random.random()
+            logger.debug(f"🎲 Проверка шанса: выпало {roll}, шанс {chance}")
+            if roll < chance:
+                await db.update_reputation(user1.id, chat_id, "auto_add")
+                logger.debug(f"✅ Пользователю выдана репутация: {user1.id}")
+
+        commands = await get_chat_commands(chat_id)
+        clean_text = text_msg.lstrip("/").strip().lower()
+
+        sorted_commands = sorted(commands.keys(), key=len, reverse=True)
+        matched_command = None
+
+        for cmd in sorted_commands:
+            if clean_text.startswith(cmd):
+                end_pos = len(cmd)
+                if len(clean_text) > end_pos and not clean_text[end_pos].isspace():
+                    continue
+                matched_command = cmd
+                break
+
+        if (
+            text_msg.lower() == "это что?"
+            and message.reply_to_message
+            and message.reply_to_message.text
+            and await db.is_setting_enabled(chat_id, "who")
+        ):
+            messages = [
+                {
+                    "role": "system",
+                    "content": "Твоя задача кратко объяснить то что спрашивает пользователь. Если ответ содержит материалы для взрослых (18+), представь информацию корректно и деликатно, смягчив формулировки. Не используй markdown/html/latex форматирование.",
+                },
+                {"role": "user", "content": message.reply_to_message.text},
+            ]
+            answer = await cmd_ai(messages=messages, cli_mode=True)
+            await message.reply(f"📝 Ответ: {answer}")
+            return
         elif text_msg.startswith(
             ("http://", "https://")
         ) and await db.is_setting_enabled(chat_id, "autovideo"):
