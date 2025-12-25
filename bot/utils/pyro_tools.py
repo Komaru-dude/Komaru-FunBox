@@ -12,9 +12,9 @@ from bot import logger
 load_dotenv()
 
 
-api_id = os.getenv("API_ID")
-api_hash = os.getenv("API_HASH")
-token = os.getenv("BOT_API_TOKEN")
+api_id = str(os.getenv("API_ID"))
+api_hash = str(os.getenv("API_HASH"))
+token = str(os.getenv("BOT_API_TOKEN"))
 
 server = FastAPI()
 
@@ -30,6 +30,10 @@ async def get_user_id(username: str):
     """Получить user_id по username"""
     try:
         user = await app.get_users(username)
+
+        if isinstance(user, list):
+            user = user[0]
+
         return {"user_id": user.id}
     except Exception as e:
         logger.error(f"Ошибка при получении user_id для {username}: {e}")
@@ -73,7 +77,7 @@ async def get_username_by_id(chat_id: str, user_id: int):
 async def get_first_name_by_id(chat_id: str, user_id: int):
     """Получить first_name по user_id и chat_id"""
     try:
-        async for member in app.get_chat_members(chat_id):
+        async for member in app.get_chat_members(chat_id):  # type: ignore
             if member.user.id == user_id:
                 return {"first_name": member.user.first_name}
         raise HTTPException(status_code=404, detail="User not found")
@@ -89,7 +93,7 @@ async def get_chat_members(chat_id: str):
     """Получить список участников чата"""
     try:
         members = []
-        async for member in app.get_chat_members(chat_id):
+        async for member in app.get_chat_members(chat_id):  # type: ignore
             members.append(
                 {
                     "user_id": member.user.id,
