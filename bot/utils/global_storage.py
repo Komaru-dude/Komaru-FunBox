@@ -1,5 +1,7 @@
 import asyncio
 import json
+from pathlib import Path
+from typing import Union
 
 from bot import ECONOMY_CONFIG_PATH, SHOP_CONFIG_PATH
 
@@ -17,7 +19,7 @@ duel_sessions = {}
 duel_sessions_lock = asyncio.Lock()
 
 
-def load_config(path: str) -> dict:
+def load_config(path: Union[str, Path]) -> dict:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 

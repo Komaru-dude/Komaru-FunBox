@@ -12,12 +12,12 @@ load_dotenv()
 dir_path = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(dir_path)
 PYRO_HOST = "127.0.0.1"
-PYRO_PORT = os.getenv("PYRO_PORT")
+PYRO_PORT = os.getenv("PYRO_PORT", 8000)
 API_URL = f"http://{PYRO_HOST}:{PYRO_PORT}"
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR.parent / "data"
 CACHE_DIR = BASE_DIR / "cache"
-ECONOMY_CONFIG_PATH = Path(__file__).resolve().parent / "config" / "eco_cfg.json"
+ECONOMY_CONFIG_PATH = BASE_DIR / "config" / "eco_cfg.json"
 SHOP_CONFIG_PATH = BASE_DIR / "config" / "items.json"
 FREE_GAMES_PATH = DATA_DIR / "epic_free_games.json"
 COMMANDS_DIR = BASE_DIR / "config" / "commands"
