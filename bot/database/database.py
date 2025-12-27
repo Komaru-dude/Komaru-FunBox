@@ -355,10 +355,10 @@ class Database:
         pool = await self.ensure_connection()
         await utils.reset_cooldown(pool, user_id, command)
 
-    async def log_command(self):
+    async def log_command(self, user_id: int = 0, command_name: str = ""):
         pool = await self.ensure_connection()
-        await utils.register_command_usage(pool)
+        await utils.register_command_usage(pool, user_id, command_name)
 
-    async def get_use_stats(self):
+    async def get_use_counts(self):
         pool = await self.ensure_connection()
-        return await utils.get_usage_stats(pool)
+        return await utils.get_usage_counts(pool)

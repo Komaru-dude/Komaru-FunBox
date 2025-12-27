@@ -45,9 +45,11 @@ COMMAND_COOLDOWNS_COLUMNS = {
     "available_at": "BIGINT NOT NULL",
 }
 
-USES_COLUMNS = {
-    "day": "DATE PRIMARY KEY",
-    "count": "INTEGER NOT NULL DEFAULT 0",
+STATS_COLUMNS = {
+    "id": "SERIAL PRIMARY KEY",
+    "user_id": "BIGINT NOT NULL",
+    "command": "TEXT NOT NULL",
+    "created_at": "TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
 }
 
 CUSTOM_PROMPTS_COLUMNS = {

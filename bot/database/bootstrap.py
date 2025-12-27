@@ -20,7 +20,7 @@ async def create_tables(pool: asyncpg.Pool):
                     COMMAND_COOLDOWNS_COLUMNS,
                     "PRIMARY KEY (user_id, command)",
                 ),
-                "uses": (USES_COLUMNS, None),
+                "stats": (STATS_COLUMNS, None),
                 "custom_prompts": (CUSTOM_PROMPTS_COLUMNS, None),
                 "active_users": (ACTIVE_USERS_COLUMNS, None),
             }

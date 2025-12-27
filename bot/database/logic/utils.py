@@ -40,33 +40,27 @@ async def check_cooldown(pool: Pool, user_id: int, command: str, cooldown: int) 
         return True
 
 
-async def register_command_usage(pool: Pool):
-    today = date.today()
+async def register_command_usage(pool: Pool, user_id: int, command_name: str):
     async with pool.acquire() as conn:
         await conn.execute(
-            """
-            INSERT INTO uses (day, count) VALUES ($1, 1)
-            ON CONFLICT (day) DO UPDATE SET count = uses.count + 1
-            """,
-            today,
+            "INSERT INTO stats (user_id, command) VALUES ($1, $2)",
+            user_id,
+            command_name,
         )
-        from datetime import timedelta
-
-        cutoff = today - timedelta(days=7)
-        await conn.execute("DELETE FROM uses WHERE day < $1", cutoff)
 
 
-async def get_usage_stats(pool: Pool) -> tuple[int, int]:
-    today = date.today()
+async def get_usage_counts(pool: Pool) -> tuple[int, int]:
     async with pool.acquire() as conn:
         day_count = (
-            await conn.fetchval("SELECT count FROM uses WHERE day = $1", today) or 0
+            await conn.fetchval(
+                "SELECT COUNT(*) FROM stats WHERE created_at >= CURRENT_DATE"
+            )
+            or 0
         )
 
         week_count = (
             await conn.fetchval(
-                "SELECT SUM(count) FROM uses WHERE day >= $1",
-                today - timedelta(days=6),
+                "SELECT COUNT(*) FROM stats WHERE created_at >= NOW() - INTERVAL '7 days'"
             )
             or 0
         )

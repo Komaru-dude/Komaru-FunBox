@@ -36,12 +36,14 @@ class ChatWatcher(BaseMiddleware):
                     actual_event = event.callback_query
                 elif event.my_chat_member:
                     actual_event = event.my_chat_member
+
             if isinstance(actual_event, ChatMemberUpdated):
                 new_status = actual_event.new_chat_member.status
-
                 if new_status in [ChatMemberStatus.KICKED, ChatMemberStatus.LEFT]:
                     user = actual_event.from_user
                     chat = actual_event.chat
+                    if not user:
+                        return await handler(event, data)
 
                     if chat.type == "private":
                         msg = f"🗑 Пользователь заблокировал бота: <a href='tg://user?id={user.id}'>{user.full_name}</a> ({user.id})"
@@ -59,33 +61,47 @@ class ChatWatcher(BaseMiddleware):
                             pass
 
                 return await handler(event, data)
+
             if isinstance(actual_event, CallbackQuery):
                 return await handler(event, data)
 
             if isinstance(actual_event, Message):
                 user = actual_event.from_user
                 chat = actual_event.chat
+
+                if not user:
+                    return await handler(event, data)
+
                 text = actual_event.text or ""
                 chat_type = chat.type
-                is_bot_command = False
 
-                bot_obj = await bot.me()
-                bot_username = bot_obj.username.lower()
+                is_bot_command = False
+                command_name = "text_message"
 
                 if text and actual_event.entities:
+                    bot_obj = await bot.get_me()
+                    bot_username = bot_obj.username.lower()
+
                     for entity in actual_event.entities:
                         if entity.type == "bot_command":
-                            command = text[
+                            raw_cmd = text[
                                 entity.offset : entity.offset + entity.length
                             ].lower()
-                            if "@" in command:
-                                cmd, mentioned_bot = command.split("@", 1)
+
+                            if "@" in raw_cmd:
+                                cmd_part, mentioned_bot = raw_cmd.split("@", 1)
                                 if mentioned_bot == bot_username:
                                     is_bot_command = True
+                                    command_name = cmd_part
                                     break
                             else:
                                 if chat_type == "private":
                                     is_bot_command = True
+                                    command_name = raw_cmd
+                                    break
+                                else:
+                                    is_bot_command = True
+                                    command_name = raw_cmd
                                     break
 
                 user_id = user.id
@@ -106,10 +122,12 @@ class ChatWatcher(BaseMiddleware):
                                 link = f"https://t.me/{chat.username}"
                                 await bot.send_message(owner_id, f"🔗 Ссылка: {link}")
 
-                if chat_type == "private" or is_bot_command:
-                    await db.log_command()
+                if is_bot_command or chat_type == "private":
+                    await db.log_command(user_id, command_name)
+
                     if not await db.user_exists(user_id, chat_id):
                         await db.add_user(user_id, chat_id)
+
                     if not await db.get_global_user(user_id):
                         await db.add_global_user(
                             user_id, {"language_code": language_code, "name": user_name}

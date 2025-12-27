@@ -92,7 +92,7 @@ async def cmd_status(message: Message, bot: Bot, db: Database):
             branch = "unknown"
             update_status = "unknown"
 
-        day_count, week_count = await db.get_use_stats()
+        day_count, week_count = await db.get_use_counts()
 
         status_message = (
             f"<blockquote><b>🍕 Komaru FunBox</b>\n"
