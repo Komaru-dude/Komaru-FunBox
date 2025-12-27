@@ -101,8 +101,9 @@ BONUM_STICKER_ID = (
 
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800, silent=True))
-async def cmd_tea(message: Message, bot: Bot):
+async def cmd_tea(message: Message, db: Database, bot: Bot):
     try:
+        await db.log_command()
 
         t418 = URLInputFile(url="https://http.cat/418.jpg", filename="418.jpg")
         if message.reply_to_message:
@@ -363,7 +364,8 @@ async def cmd_nillerxs(message: Message):
 
 
 @etc_router.message(Command("bonum"), CooldownFilter("bonum", 30, silent=True))
-async def cmd_bonum(message: Message, bot: Bot):
+async def cmd_bonum(message: Message, db: Database, bot: Bot):
+    await db.log_command()
     await bot.send_sticker(
         message.chat.id, BONUM_STICKER_ID, reply_to_message_id=message.message_id
     )
