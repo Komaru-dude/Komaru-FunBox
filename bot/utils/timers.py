@@ -216,48 +216,61 @@ async def change_stocks():
                 basic_data = json.loads(await file.read())
 
             current_data = {}
-            file_exists = os.path.exists(STOCKS_PATH)
-
-            if file_exists:
+            if os.path.exists(STOCKS_PATH):
                 async with aiofiles.open(STOCKS_PATH, "r", encoding="utf-8") as file:
                     current_data = json.loads(await file.read())
-                logger.debug("🔄 Начинаем обновление цен акций...")
             else:
-                logger.info("🔄 Создаём цены акций с нуля")
-                current_data = copy.deepcopy(basic_data)
+                for key, data in basic_data.items():
+                    current_data[key] = copy.deepcopy(data)
+                    current_data[key]["momentum"] = 0.0
+                    current_data[key]["history"] = [data["price"]]
 
-            basic_keys = set(basic_data.keys())
-            current_keys = set(current_data.keys())
+            active_keys = set(basic_data.keys())
+            current_data = {k: v for k, v in current_data.items() if k in active_keys}
 
-            for key in current_keys - basic_keys:
-                del current_data[key]
-
-            for key in basic_keys:
+            for key in active_keys:
                 if key not in current_data:
                     current_data[key] = copy.deepcopy(basic_data[key])
-                    continue
+                    current_data[key]["momentum"] = 0.0
+                    current_data[key].setdefault("history", [basic_data[key]["price"]])
 
-                current_stock = current_data[key]
-                basic_stock = basic_data[key]
-
-                current_price = current_stock["price"]
-                current_data[key] = copy.deepcopy(basic_stock)
-                current_data[key]["price"] = current_price
-
-            for stock in current_data.values():
+                stock = current_data[key]
                 price = stock["price"]
-                volatility = stock["volatility"]
-                change = price * volatility * (random.random() * 2 - 1)
-                stock["price"] = round(max(price + change, 0.01), 2)
+                vol = stock["volatility"]
+
+                if random.random() < 0.10:
+                    stock["momentum"] = random.uniform(-vol, vol * 1.1)
+                else:
+                    stock["momentum"] += random.uniform(-0.01, 0.01)
+
+                stock["momentum"] = max(min(stock["momentum"], vol * 1.5), -vol * 1.5)
+
+                noise = random.uniform(-vol, vol)
+
+                change_percent = stock["momentum"] + noise
+
+                base_price = basic_data[key]["price"]
+                if price < base_price * 0.2:
+                    change_percent += abs(noise) * 0.5
+
+                new_price = price * (1 + change_percent)
+
+                stock["price"] = round(max(new_price, 0.10), 2)
+
+                history = stock.get("history", [])
+                history.append(stock["price"])
+                stock["history"] = history[-10:]
 
             async with aiofiles.open(STOCKS_PATH, "w", encoding="utf-8") as file:
                 await file.write(json.dumps(current_data, ensure_ascii=False, indent=2))
 
-            logger.info(f"✅ Цены {len(current_data)} акций обновлены")
-        except Exception as e:
-            logger.critical(
-                f"❌ Не удалось обновить цены на акции: {str(e)}", exc_info=True
+            logger.info(
+                f"📈 Рынок обновлен. Лидер роста: {max(current_data.values(), key=lambda x: x['momentum'])['name']}"
             )
+
+        except Exception as e:
+            logger.critical(f"❌ Критическая ошибка рынка: {e}", exc_info=True)
+
         await asyncio.sleep(1800)
 
 
