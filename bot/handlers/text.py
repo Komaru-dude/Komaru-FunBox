@@ -398,9 +398,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
 
-        if text_msg.lower() == "/бонум" and await db.is_command_available(
-            user1.id, "bonum", 30
-        ):
+        if text_msg.lower() == "/бонум":
             await cmd_bonum(message, bot)
 
     except openai.InternalServerError:

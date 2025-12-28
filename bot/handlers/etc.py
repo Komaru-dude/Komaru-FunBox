@@ -6,6 +6,7 @@ import platform
 import random
 import re
 import shutil
+import time
 import traceback
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -28,6 +29,7 @@ from bot.database.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
+from bot.utils.global_storage import eco_config
 
 etc_router = Router()
 
@@ -95,9 +97,12 @@ WEATHER_ICONS = {
 
 WEATHER_CACHE = {}  # Хранит прогнозы на текущий день
 
-BONUM_STICKER_ID = (
-    "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA"
-)
+BONUM_STICKERS_ID = {
+    1: "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA",  # Обычный
+    2: "CAACAgIAAxkBAAEHtwZpURF3TSiBenasXJH0NQayehM9LQACJZcAAgyRgEqz4u63TP-QeTYE",  # Неудачный
+    3: "CAACAgIAAxkBAAEHtw9pURGnLf6gkyGFXIarSX0tqGiE2QACqnwAAnK2iEqzLJoLqlTpTTYE",  # Редкий
+    4: "CAACAgIAAxkBAAEHtxBpURGsMmRzKX2wbb_TQpOUK2t47AACzI0AAvkFiUoEM91HhGYvnzYE",  # Очень редкий
+}
 
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800, silent=True))
@@ -363,12 +368,73 @@ async def cmd_nillerxs(message: Message):
     await message.reply("нильрекс")
 
 
-@etc_router.message(Command("bonum"), CooldownFilter("bonum", 30, silent=True))
+@etc_router.message(Command("bonum"))
 async def cmd_bonum(message: Message, db: Database, bot: Bot):
-    await db.log_command(message.from_user.id if message.from_user else 0, "bonum")
+    user_id = message.from_user.id if message.from_user else 0
+    if not user_id:
+        return
+
+    cooldown = eco_config.get("bonum_cooldown", 7200)
+    if not await db.is_command_available(user_id, "bonum", cooldown):
+        rem = await db.get_cooldown_remaining(user_id, "bonum")
+        return await message.reply(
+            f"⏳ Попробуй через {rem // 3600}ч {(rem % 3600) // 60}м."
+        )
+
+    now = int(time.time())
+    raw_ts = await db.get_global_user_param(user_id, "bonum_ts")
+    last_use = int(raw_ts) if isinstance(raw_ts, (int, str, float)) else 0
+
+    time_mult = 1.0
+    if last_use > 0:
+        idle_time = now - (last_use + cooldown)
+        if idle_time > 0:
+            time_mult += (idle_time // 21600) * 0.1
+            time_mult = min(time_mult, 2.5)
+
+    choice = random.choices([1, 2, 3, 4], weights=[1, 14, 55, 30], k=1)[0]
+    bonus_amount = 0
+    cur = eco_config.get("currency_sign", "🪙")
+    sticker_id = BONUM_STICKERS_ID.get(1)
+
+    if choice == 1:
+        base = random.randint(*eco_config["bonum_4_rewards"])
+        bonus_amount = int(base * time_mult)
+        sticker_id = BONUM_STICKERS_ID.get(4)
+        msg = f"🏆 <b>Невероятно повезло!</b>\n\n🍀 Редкий бонум!\n💰 Награда: {bonus_amount} {cur}"
+    elif choice == 2:
+        base = random.randint(*eco_config["bonum_3_rewards"])
+        bonus_amount = int(base * time_mult)
+        sticker_id = BONUM_STICKERS_ID.get(3)
+        msg = f"🌟 <b>Удача!</b>\n\nВы получили солидный бонус: {bonus_amount} {cur}"
+    elif choice == 3:
+        base = random.randint(*eco_config["bonum_2_rewards"])
+        bonus_amount = int(base * time_mult)
+        sticker_id = BONUM_STICKERS_ID.get(2)
+        msg = f"✨ <b>Бонус:</b>\n\nВы получили {bonus_amount} {cur}"
+    else:
+        penalty = random.randint(*eco_config["bonum_1_fines"])
+        bonus_amount = -penalty
+        sticker_id = BONUM_STICKERS_ID.get(1)
+        msg = f"💀 <b>Неудача...</b>\n\nВы потеряли: {penalty} {cur}"
+
+    if time_mult > 1.0 and choice != 4:
+        msg += f"\n<i>⏱ Бонус ожидания: x{time_mult:.1f}</i>"
+
+    raw_money = await db.get_global_user_param(user_id, "money")
+    user_bal = int(raw_money) if isinstance(raw_money, (int, str, float)) else 0
+
+    await db.set_global_user_param(user_id, "money", user_bal + bonus_amount)
+    await db.set_global_user_param(user_id, "bonum_ts", now)
+    await db.log_command(user_id, "bonum")
+
     await bot.send_sticker(
-        message.chat.id, BONUM_STICKER_ID, reply_to_message_id=message.message_id
+        message.chat.id,
+        sticker_id
+        or "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA",
+        reply_to_message_id=message.message_id,
     )
+    await message.answer(msg, parse_mode="HTML")
 
 
 @etc_router.message(

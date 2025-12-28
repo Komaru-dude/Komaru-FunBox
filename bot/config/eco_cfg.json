@@ -33,5 +33,10 @@
     "easy": [5, 15],
     "medium": [16, 30],
     "hard": [31, 50]
-  }
+  },
+  "bonum_cooldown": 7200,
+  "bonum_1_fines": [800, 1500],
+  "bonum_4_rewards": [500, 750],
+  "bonum_3_rewards": [250, 500],
+  "bonum_2_rewards": [50, 250]
 }
