@@ -185,3 +185,34 @@ async def cmd_help(message: Message):
         f"Описание команд по категориям доступны в вики::\n{BASE_COMMANDS_URL}/",
         disable_web_page_preview=True,
     )
+
+
+@base_router.message(Command("usage_stats"), CooldownFilter("ustats", 300))
+async def cmd_ustats(message: Message, bot: Bot, db: Database):
+    try:
+        day_count, week_count = await db.get_use_counts()
+        top_cmds = await db.get_usage_top(limit=5)
+
+        header = (
+            "📊 <b>Статистика использования</b>\n\n"
+            f"📈 За последние 24 часа: <code>{day_count}</code>\n"
+            f"📅 За последние 7 дней: <code>{week_count}</code>\n\n"
+            "🏆 <b>Топ-5 команд недели:</b>\n"
+        )
+
+        if not top_cmds:
+            top_lines = "<i>🫤 Данных пока нет</i>"
+        else:
+            medals = {0: "🥇", 1: "🥈", 2: "🥉", 3: "🏅", 4: "🏅"}
+            top_lines = ""
+            for i, row in enumerate(top_cmds):
+                medal = medals.get(i, "🔹")
+                cmd = row["command"]
+                count = row["usage_count"]
+                top_lines += f"{medal} <code>/{cmd:<10}</code> — <b>{count}</b>\n"
+
+        msg = header + top_lines
+
+        await message.reply(msg, parse_mode=ParseMode.HTML)
+    except Exception:
+        await error_report(message, bot, traceback.format_exc(), "usage_stats")

@@ -68,6 +68,23 @@ async def get_usage_counts(pool: Pool) -> tuple[int, int]:
         return day_count, week_count
 
 
+async def get_usage_top(pool: Pool, limit: int) -> list:
+    async with pool.acquire() as conn:
+        top_cmds_week = await conn.fetch(
+            """
+            SELECT command, COUNT(*) as usage_count 
+            FROM stats 
+            WHERE created_at >= NOW() - INTERVAL '7 days' 
+            GROUP BY command 
+            ORDER BY usage_count DESC 
+            LIMIT $1
+        """,
+            limit,
+        )
+
+        return top_cmds_week
+
+
 async def get_cooldown_remaining(pool: Pool, user_id: int, command: str) -> int:
     now = int(time.time())
     async with pool.acquire() as conn:

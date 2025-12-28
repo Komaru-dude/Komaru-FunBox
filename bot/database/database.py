@@ -362,3 +362,7 @@ class Database:
     async def get_use_counts(self):
         pool = await self.ensure_connection()
         return await utils.get_usage_counts(pool)
+
+    async def get_usage_top(self, limit: int = 5):
+        pool = await self.ensure_connection()
+        return await utils.get_usage_top(pool, limit)
