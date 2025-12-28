@@ -209,7 +209,7 @@ async def cmd_ustats(message: Message, bot: Bot, db: Database):
                 medal = medals.get(i, "🔹")
                 cmd = row["command"]
                 count = row["usage_count"]
-                top_lines += f"{medal} <code>/{cmd:<10}</code> — <b>{count}</b>\n"
+                top_lines += f"{medal} <code>{cmd:<10}</code> — <b>{count}</b>\n"
 
         msg = header + top_lines
 
