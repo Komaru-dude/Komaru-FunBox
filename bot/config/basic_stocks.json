@@ -1,12 +1,62 @@
 {
-  "1": {"name": "🏢 Joja Corp", "price": 100.0, "volatility": 0.04, "sector": "retail"},
-  "2": {"name": "🌐 GlobalTech", "price": 200.0, "volatility": 0.08, "sector": "tech"},
-  "4": {"name": "🌱 GreenGrowth", "price": 150.0, "volatility": 0.05, "sector": "agriculture"},
-  "5": {"name": "⚡ NorthEnergy", "price": 180.0, "volatility": 0.06, "sector": "energy"},
-  "6": {"name": "🚚 Logistics", "price": 90.0, "volatility": 0.10, "sector": "transport"},
-  "7": {"name": "🏭 IronWorks", "price": 160.0, "volatility": 0.07, "sector": "industry"},
-  "8": {"name": "🛒 Gigamart", "price": 120.0, "volatility": 0.09, "sector": "retail"},
-  "9": {"name": "📡 SkyNetics", "price": 220.0, "volatility": 0.12, "sector": "tech"},
-  "10": {"name": "🏥 HealthPlus", "price": 140.0, "volatility": 0.05, "sector": "medical"},
-  "12": {"name": "🔋 Voltix", "price": 170.0, "volatility": 0.11, "sector": "tech"}
+  "1": {
+    "name": "🏢 Joja Corp",
+    "price": 100.0,
+    "volatility": 0.04,
+    "sector": "retail"
+  },
+  "2": {
+    "name": "🌐 GlobalTech",
+    "price": 200.0,
+    "volatility": 0.08,
+    "sector": "tech"
+  },
+  "4": {
+    "name": "🌱 GreenGrowth",
+    "price": 150.0,
+    "volatility": 0.05,
+    "sector": "agriculture"
+  },
+  "5": {
+    "name": "⚡ NorthEnergy",
+    "price": 180.0,
+    "volatility": 0.06,
+    "sector": "energy"
+  },
+  "6": {
+    "name": "🚚 Logistics",
+    "price": 90.0,
+    "volatility": 0.10,
+    "sector": "transport"
+  },
+  "7": {
+    "name": "🏭 IronWorks",
+    "price": 160.0,
+    "volatility": 0.07,
+    "sector": "industry"
+  },
+  "8": {
+    "name": "🛒 Gigamart",
+    "price": 120.0,
+    "volatility": 0.09,
+    "sector": "retail"
+  },
+  "9": {
+    "name": "📡 SkyNetics",
+    "price": 220.0,
+    "volatility": 0.12,
+    "sector": "tech"
+  },
+  "10": {
+    "name": "🏥 HealthPlus",
+    "price": 140.0,
+    "volatility": 0.05,
+    "sector": "medical"
+  },
+  "12": {
+    "name": "🔋 Voltix",
+    "price": 170.0,
+    "volatility": 0.11,
+    "sector": "tech"
+  }
 }
