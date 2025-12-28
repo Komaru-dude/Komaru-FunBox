@@ -39,8 +39,8 @@ from .handlers.video import video_router
 token = os.getenv("BOT_API_TOKEN") or sys.exit(1)
 bot = Bot(token)
 dp = Dispatcher()
-dp.update.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(ChatWatcher())
+dp.callback_query.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(SpecificChat())
 db = Database()
 dp["db"] = db
