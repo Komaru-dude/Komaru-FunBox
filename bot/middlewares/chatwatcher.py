@@ -1,6 +1,7 @@
+import json
 import os
 import traceback
-from typing import Any, Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict, Set
 
 from aiogram import BaseMiddleware, Bot
 from aiogram.enums import ChatMemberStatus, ParseMode
@@ -12,11 +13,23 @@ from aiogram.types import (
     Update,
 )
 
-from bot import logger
+from bot import COMMANDS_DIR, logger
 from bot.database.database import Database
 
 
 class ChatWatcher(BaseMiddleware):
+    def __init__(self) -> None:
+        self.valid_commands = self._get_valid_commands()
+        super().__init__()
+
+    def _get_valid_commands(self) -> Set[str]:
+        try:
+            with open(COMMANDS_DIR / "default.json", "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return {item["command"] for item in data.get("commands", [])}
+        except Exception:
+            return set()
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
@@ -92,17 +105,12 @@ class ChatWatcher(BaseMiddleware):
                                 cmd_part, mentioned_bot = raw_cmd.split("@", 1)
                                 if mentioned_bot == bot_username:
                                     is_bot_command = True
-                                    command_name = cmd_part
+                                    command_name = cmd_part.lstrip("/")
                                     break
                             else:
-                                if chat_type == "private":
-                                    is_bot_command = True
-                                    command_name = raw_cmd
-                                    break
-                                else:
-                                    is_bot_command = True
-                                    command_name = raw_cmd
-                                    break
+                                is_bot_command = True
+                                command_name = raw_cmd.lstrip("/")
+                                break
 
                 user_id = user.id
                 chat_id = chat.id
@@ -122,7 +130,15 @@ class ChatWatcher(BaseMiddleware):
                                 link = f"https://t.me/{chat.username}"
                                 await bot.send_message(owner_id, f"🔗 Ссылка: {link}")
 
-                if is_bot_command or chat_type == "private":
+                should_log = False
+                if is_bot_command:
+                    if command_name in self.valid_commands:
+                        should_log = True
+                elif chat_type == "private":
+                    if not text.startswith("/"):
+                        should_log = True
+
+                if should_log:
                     await db.log_command(user_id, command_name)
 
                     if not await db.user_exists(user_id, chat_id):
