@@ -398,8 +398,12 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             await message.reply("🪵 В лесу аукай, себе в сраку себе")
             return
 
-        if text_msg.lower() == "/бонум":
-            await cmd_bonum(message, bot)
+        if text_msg.lower() == "/бонум" and await db.is_command_available(user1.id, "bonum_ru", 5):
+                await bot.send_sticker(
+                message.chat.id,
+                "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA",
+                reply_to_message_id=message.message_id,
+            )
 
     except openai.InternalServerError:
         await message.reply("⚠️ Внутренняя ошибка API")
