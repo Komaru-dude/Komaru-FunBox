@@ -20,6 +20,11 @@ from .global_storage import update_cache
 
 db = Database()
 
+MEAN_REVERSION_STRENGTH = 0.02  # Сила возврата к базовой цене (0.01-0.05)
+MOMENTUM_DECAY = 0.85  # Насколько долго держится тренд (0.7-0.95)
+MAX_PRICE_MULT = 10.0  # Максимальный барьер (10х от начальной цены)
+MIN_PRICE_MULT = 0.1  # Минимальный барьер (10% от начальной цены)
+
 
 async def check_updates():
     while True:
@@ -235,27 +240,30 @@ async def change_stocks():
                     current_data[key].setdefault("history", [basic_data[key]["price"]])
 
                 stock = current_data[key]
-                price = stock["price"]
+                base_price = basic_data[key]["price"]
+                current_price = stock["price"]
                 vol = stock["volatility"]
 
-                if random.random() < 0.10:
-                    stock["momentum"] = random.uniform(-vol, vol * 1.1)
+                # Momentum
+                if random.random() < 0.15:
+                    stock["momentum"] = random.uniform(-vol, vol)
                 else:
-                    stock["momentum"] += random.uniform(-0.01, 0.01)
+                    stock["momentum"] *= MOMENTUM_DECAY
 
-                stock["momentum"] = max(min(stock["momentum"], vol * 1.5), -vol * 1.5)
+                # Mean reversion
+                deviation = (base_price - current_price) / base_price
+                reversion = deviation * MEAN_REVERSION_STRENGTH
 
-                noise = random.uniform(-vol, vol)
+                # GBM
+                noise = random.normalvariate(0, vol)
+                change_percent = reversion + stock["momentum"] + noise
 
-                change_percent = stock["momentum"] + noise
-
-                base_price = basic_data[key]["price"]
-                if price < base_price * 0.2:
-                    change_percent += abs(noise) * 0.5
-
-                new_price = price * (1 + change_percent)
-
-                stock["price"] = round(max(new_price, 0.10), 2)
+                new_price = current_price * (1 + change_percent)
+                new_price = max(
+                    min(new_price, base_price * MAX_PRICE_MULT),
+                    base_price * MIN_PRICE_MULT,
+                )
+                stock["price"] = round(new_price, 2)
 
                 history = stock.get("history", [])
                 history.append(stock["price"])
@@ -264,8 +272,17 @@ async def change_stocks():
             async with aiofiles.open(STOCKS_PATH, "w", encoding="utf-8") as file:
                 await file.write(json.dumps(current_data, ensure_ascii=False, indent=2))
 
+            leader = max(
+                current_data.values(),
+                key=lambda x: (
+                    x["price"]
+                    - basic_data[next(k for k, v in current_data.items() if v == x)][
+                        "price"
+                    ]
+                ),
+            )
             logger.info(
-                f"📈 Рынок обновлен. Лидер роста: {max(current_data.values(), key=lambda x: x['momentum'])['name']}"
+                f"📈 Рынок обновлен. В лидерах: {leader['name']} ({leader['price']}🪙)"
             )
 
         except Exception as e:
