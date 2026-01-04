@@ -3,10 +3,11 @@ import os
 import traceback
 import uuid
 from datetime import datetime, timedelta
+from typing import cast
 
 import aiohttp
 from aiogram import Bot
-from aiogram.types import Message
+from aiogram.types import Message, User
 
 from bot import PYRO_HOST, PYRO_PORT, logger
 from bot.utils.bot_tools import fetch_json
@@ -28,22 +29,28 @@ async def get_user_id(message: Message) -> tuple[int | None, str | None]:
     error_msg = None
 
     if message.reply_to_message:
+        assert message.reply_to_message.from_user is not None
         return message.reply_to_message.from_user.id, None
 
     if message.entities:
         for entity in message.entities:
             if entity.type == "text_mention":
+                assert entity.user is not None
                 return entity.user.id, None
 
             if entity.type == "mention":
-                username = text[entity.offset : entity.offset + entity.length].lstrip(
-                    "@"
-                )
+                target_text = message.text or ""
+                username = target_text[
+                    entity.offset : entity.offset + entity.length
+                ].lstrip("@")
+
                 data = await fetch_user_data(username=username)
+
                 if data and "user_id" in data:
                     return data["user_id"], None
+
                 error_msg = "Пользователь не найден"
-                logger.debug("Не удалось найти пользователя")
+                logger.debug(f"{error_msg}: {username}")
                 break
 
     if text:
@@ -147,6 +154,12 @@ async def error_report(
             f"❌ Возникла ошибка при обработке команды\n🔢 Report ID: {report_id}"
         )
 
+        if msg is None:
+            logger.error(
+                f"📛 Не получилось отправить сообщение о репорте для ID {report_id}. Traceback: {traceback}"
+            )
+            return
+
         reply_info = (
             f"\n📦 Ответ на сообщение: {message.reply_to_message.text}"
             if message.reply_to_message
@@ -154,7 +167,7 @@ async def error_report(
         )
         error_report_text = (
             f"❌ Во время обработки команды {command} возникла ошибка!\n"
-            f"🔢 Report ID: {report_id}\n👤 User ID: {message.from_user.id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
+            f"🔢 Report ID: {report_id}\n👤 User ID: {cast(User, message.from_user).id}\n💬 Сообщение пользователя: {message.text}{reply_info}\n\n"
             f"📛 Traceback:\n{traceback}"
         )
 
@@ -166,7 +179,7 @@ async def error_report(
         ]
         for chunk in chunks:
             try:
-                await bot.send_message(os.getenv("OWNER_ID"), chunk)
+                await bot.send_message(cast(str, os.getenv("OWNER_ID")), chunk)
             except Exception as e:
                 logger.error(f"Ошибка при отправке отчёта владельцу: {e}")
 
@@ -181,10 +194,10 @@ async def error_report(
         alert_message = (
             f"⚠️ Слишком много ошибок! Получено 3+ отчетов за 15 минут.\n"
             f"Последний Report ID: {report_id}\n"
-            f"Сообщение: {message.text[:300]}..."
+            f"Сообщение: {message or "".text[:300]}..."
         )
         try:
-            await bot.send_message(os.getenv("OWNER_ID"), alert_message)
+            await bot.send_message(cast(str, os.getenv("OWNER_ID")), alert_message)
         except Exception as e:
             logger.error(f"Ошибка при отправке предупреждения: {e}")
 
