@@ -93,6 +93,7 @@ class ChatWatcher(BaseMiddleware):
 
                 if text and actual_event.entities:
                     bot_obj = await bot.get_me()
+                    assert bot_obj.username is not None
                     bot_username = bot_obj.username.lower()
 
                     for entity in actual_event.entities:
