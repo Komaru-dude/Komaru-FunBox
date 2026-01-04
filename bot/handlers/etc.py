@@ -134,6 +134,7 @@ async def cmd_tea(message: Message, db: Database, bot: Bot):
 @etc_router.message(Command("http_cat"), CooldownFilter("http_pets", 5))
 async def cmd_http_cat(message: Message, bot: Bot):
     try:
+        assert message.text
         split_text = message.text.split()
         code = None
 
@@ -165,6 +166,7 @@ async def cmd_http_cat(message: Message, bot: Bot):
 @etc_router.message(Command("http_dog"), CooldownFilter("http_pets", 5))
 async def cmd_http_dog(message: Message, bot: Bot):
     try:
+        assert message.text
         split_text = message.text.split()
         code = None
 
@@ -300,6 +302,8 @@ def create_days_keyboard(current_day_delta: int, user_id: int) -> InlineKeyboard
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def weather_command(message: Message, bot: Bot, db: Database):
     try:
+        if not message.from_user or not message.text:
+            return
         parts = message.text.strip().split(maxsplit=1)
         if len(parts) < 2:
             await message.reply(
@@ -311,7 +315,7 @@ async def weather_command(message: Message, bot: Bot, db: Database):
         city = parts[1]
 
         text, err = await fetch_weather(city, 0)
-        if err:
+        if err or not text:
             await message.reply(f"📛 Ошибка: {err}")
             await db.reset_cooldown(message.from_user.id, "weather")
             return
@@ -326,6 +330,7 @@ async def weather_command(message: Message, bot: Bot, db: Database):
 async def weather_callback(query: CallbackQuery, bot: Bot):
     try:
         try:
+            assert query.data
             day_delta = int(query.data.split(":")[1])
         except (ValueError, IndexError):
             await query.answer("❌ Некорректный запрос", show_alert=True)
@@ -335,6 +340,10 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             await query.answer(
                 "❌ Комару не разрешает отвечать на чужие колбэки", show_alert=True
             )
+            return
+
+        if not isinstance(query.message, Message) or not query.message.text:
+            await query.answer("❌ Сообщение недоступно или удалено", show_alert=True)
             return
 
         try:
@@ -352,12 +361,13 @@ async def weather_callback(query: CallbackQuery, bot: Bot):
             await query.answer("📛 Не удалось получить данные", show_alert=True)
             return
 
-        keyboard = create_days_keyboard(day_delta)
+        keyboard = create_days_keyboard(day_delta, query.from_user.id)
         await query.message.edit_text(
             text, parse_mode=ParseMode.HTML, reply_markup=keyboard
         )
         await query.answer()
     except Exception:
+        assert isinstance(query.message, Message)
         await error_report(
             query.message, bot, "weather_callback", traceback.format_exc()
         )
@@ -444,6 +454,7 @@ async def cmd_bonum(message: Message, db: Database, bot: Bot):
 )
 async def cmd_tagall(message: Message, bot: Bot, db: Database):
     try:
+        assert message.from_user
         chat_id = message.chat.id
         user_id = message.from_user.id
 
@@ -463,6 +474,7 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
             await message.reply(f"📛 Ошибка при получении участников: {str(e)}")
             return
 
+        assert message.bot
         bot_id = (await message.bot.get_me()).id
         tags = [
             f'<a href="tg://user?id={member["user_id"]}">\u2060</a>'
@@ -490,7 +502,7 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
 
 
 @etc_router.message(Command("cowsay"))
-async def cmd_cowsay(message: Message, bot):
+async def cmd_cowsay(message: Message, bot: Bot):
     try:
         if platform.system() != "Linux" or not shutil.which("cowsay"):
             await message.reply(
@@ -498,7 +510,7 @@ async def cmd_cowsay(message: Message, bot):
             )
             return
 
-        words = message.text.strip().split(maxsplit=1)
+        words = message.text.strip().split(maxsplit=1)  # type: ignore
 
         if len(words) < 2 or not words[1].strip():
             if message.reply_to_message and message.reply_to_message.text:
@@ -526,7 +538,7 @@ async def cmd_cowsay(message: Message, bot):
         stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
-            await error_report(message, bot, "cowsay", stderr)
+            await error_report(message, bot, "cowsay", stderr.decode(errors="replace"))
             return
 
         result = stdout.decode()
