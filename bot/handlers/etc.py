@@ -24,7 +24,7 @@ from aiogram.types import (
 )
 from aiohttp import ClientSession
 
-from bot import API_URL, FREE_GAMES_PATH, logger
+from bot import API_URL, BASE_DIR, FREE_GAMES_PATH, logger
 from bot.database.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
@@ -42,67 +42,16 @@ def load_http_codes(filename):
 
 cat_http_codes = load_http_codes("cat_http_codes.json")
 dog_http_codes = load_http_codes("dog_http_codes.json")
-
-
-WEATHER_ICONS = {
-    1000: "☀️",
-    1003: "⛅",
-    1006: "☁️",
-    1009: "🌥️",
-    1030: "🌫️",
-    1063: "🌦️",
-    1066: "🌨️",
-    1069: "🌧️",
-    1072: "🌧️",
-    1087: "⛈️",
-    1114: "🌨️",
-    1117: "❄️",
-    1135: "🌁",
-    1147: "🌁",
-    1150: "🌧️",
-    1153: "🌧️",
-    1168: "🌧️",
-    1171: "🌧️",
-    1180: "🌧️",
-    1183: "🌧️",
-    1186: "🌧️",
-    1189: "🌧️",
-    1192: "🌧️",
-    1195: "🌧️",
-    1198: "🌧️",
-    1201: "🌧️",
-    1204: "🌨️",
-    1207: "🌨️",
-    1210: "🌨️",
-    1213: "🌨️",
-    1216: "🌨️",
-    1219: "🌨️",
-    1222: "🌨️",
-    1225: "❄️",
-    1237: "🌨️",
-    1240: "🌦️",
-    1243: "🌧️",
-    1246: "🌧️",
-    1249: "🌨️",
-    1252: "🌨️",
-    1255: "🌨️",
-    1258: "❄️",
-    1261: "🌨️",
-    1264: "❄️",
-    1273: "⛈️",
-    1276: "⛈️",
-    1279: "🌩️",
-    1282: "⛈️",
-}
-
 WEATHER_CACHE = {}  # Хранит прогнозы на текущий день
-
 BONUM_STICKERS_ID = {
     1: "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA",  # Обычный
     2: "CAACAgIAAxkBAAEHtwZpURF3TSiBenasXJH0NQayehM9LQACJZcAAgyRgEqz4u63TP-QeTYE",  # Неудачный
     3: "CAACAgIAAxkBAAEHtw9pURGnLf6gkyGFXIarSX0tqGiE2QACqnwAAnK2iEqzLJoLqlTpTTYE",  # Редкий
     4: "CAACAgIAAxkBAAEHtxBpURGsMmRzKX2wbb_TQpOUK2t47AACzI0AAvkFiUoEM91HhGYvnzYE",  # Очень редкий
 }
+
+with open(BASE_DIR / "media" / "weather_codes", "r") as f:
+    WEATHER_ICONS = {int(k): v for k, v in json.load(f).items()}
 
 
 @etc_router.message(Command("coffee"), CooldownFilter("418_cat", 604800, silent=True))
