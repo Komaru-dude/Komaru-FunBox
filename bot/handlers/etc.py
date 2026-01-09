@@ -50,7 +50,7 @@ BONUM_STICKERS_ID = {
     4: "CAACAgIAAxkBAAEHtxBpURGsMmRzKX2wbb_TQpOUK2t47AACzI0AAvkFiUoEM91HhGYvnzYE",  # Очень редкий
 }
 
-with open(BASE_DIR / "media" / "weather_codes", "r") as f:
+with open(BASE_DIR / "media" / "weather_codes.json", "r") as f:
     WEATHER_ICONS = {int(k): v for k, v in json.load(f).items()}
 
 
