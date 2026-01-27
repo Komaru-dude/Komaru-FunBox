@@ -18,14 +18,14 @@ async def cmd_time_to_new_year(message: Message, bot: Bot):
     try:
         tz = moscow_tz
 
-        event_date = datetime(2026, 1, 1, 0, 0, 0)
+        event_date = datetime(2027, 1, 1, 0, 0, 0)
         event_date = tz.localize(event_date)
 
         now = datetime.now(tz)
         time_delta = event_date - now
 
         if time_delta.days < 0 or (time_delta.days == 0 and time_delta.seconds <= 0):
-            await message.reply("🎉 УРА! 2026 год уже наступил!")
+            await message.reply("🎉 УРА! 2027 год уже наступил!")
             return
 
         days = time_delta.days
@@ -33,7 +33,7 @@ async def cmd_time_to_new_year(message: Message, bot: Bot):
         minutes, seconds = divmod(remainder, 60)
 
         await message.reply(
-            f"⏳ До 2026 года осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
+            f"⏳ До 2027 года осталось: {days} дней, {hours} часов, {minutes} минут, {seconds} секунд!"
         )
     except Exception:
         await error_report(message, bot, "new_year", traceback.format_exc())
