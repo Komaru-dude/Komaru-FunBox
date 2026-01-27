@@ -523,7 +523,9 @@ async def cmd_epic_games(message: Message, bot: Bot):
             updated_at = data.get("_updated_at")
 
         if not available and not unavailable:
-            await message.reply("🤷‍♀️ Сейчас нет бесплатных игр или данные не получены.")
+            await message.reply(
+                "🤷‍♀️ Сейчас нет бесплатных игр или данные не получены."
+            )
             return
 
         msg_lines = []

@@ -70,7 +70,8 @@ def setting_options_keyboard(setting_name: str, current_value, owner_id: int):
             text="➕", callback_data=f"uchange_int:{setting_name}:+1:{owner_id}"
         )
         builder.button(
-            text="✏️ Ввести число", callback_data=f"uinput_int:{setting_name}:{owner_id}"
+            text="✏️ Ввести число",
+            callback_data=f"uinput_int:{setting_name}:{owner_id}",
         )
     # Float
     elif setting[2] is float:
