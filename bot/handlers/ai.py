@@ -131,10 +131,16 @@ async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
 
     request_data = {"model": model, "prompt": prompt, "ratio": ratio}
 
+    osq_key = os.getenv("ONLYSQ_API_KEY")
+    if osq_key is None:
+        raise RuntimeError("ONLYSQ_API_KEY is not set in environment variables")
+
+    headers = {"Authorization": f"Bearer {osq_key}"}
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                os.getenv("IMAGEN_API_URL"), json=request_data
+                os.getenv("IMAGEN_API_URL"), json=request_data, headers=headers
             ) as response:
                 response.raise_for_status()
                 j = await response.json()
