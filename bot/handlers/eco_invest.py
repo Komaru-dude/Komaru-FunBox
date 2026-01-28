@@ -132,7 +132,6 @@ async def cb_quick_buy(
 async def cb_ask_buy_qty(
     callback: CallbackQuery,
     bot: Bot,
-    db: Database,
     callback_data: InvestMenuCallback,
     state: FSMContext,
 ):
@@ -308,7 +307,7 @@ async def cb_ask_sell_qty(
         )
 
 
-@invest_router.message(state=AskQty.waiting_qty)
+@invest_router.message(AskQty.waiting_qty)
 async def process_entered_qty(
     message: Message, state: FSMContext, db: Database, bot: Bot
 ):
