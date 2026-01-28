@@ -7,4 +7,4 @@ class InvestMenuCallback(CallbackData, prefix="imenu"):
     action: str
     user_id: int
     stock_id: Optional[int] = None
-    item_idx: Optional[int] = None
+    qty: Optional[int] = None
