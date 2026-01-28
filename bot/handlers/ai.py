@@ -144,16 +144,21 @@ async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
             ) as response:
                 j = await response.json()
                 if response.status != 200:
-                    return {"error": True, "msg": j}
+                    return {"error": True, "status": response.status, "msg": j}
                 return {
                     "error": False,
+                    "status": 200,
                     "file": base64.b64decode(j["files"][0]),
                     "elapsed_time": j.get("elapsed-time", 0),
                 }
 
     except aiohttp.ClientResponseError as e:
         logger.debug(f"Ошибка генерации изображения: {e.status} {e.message}")
-        return {"error": True, "msg": f"Ошибка генерации: {e.status} {e.message}"}
+        return {
+            "error": True,
+            "status": e.status,
+            "msg": f"Ошибка генерации: {e.message}",
+        }
 
     except Exception:
         logger.debug(
@@ -161,6 +166,7 @@ async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
         )
         return {
             "error": True,
+            "status": 418,
             "msg": f"Неизвестная ошибка генерации: {traceback.format_exc()}",
         }
 
@@ -618,6 +624,21 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
         await processing_message.edit_text(f"🎨 Генерация ({model_name})...")
 
         response = await generate_image(model=model_name, prompt=prompt_en)
+        resp_status = response.get("status")
+
+        if resp_status in (500, 502, 503, 504):
+            await message.reply("⚠️ Внутренняя ошибка API")
+            await db.reset_cooldown(user_id, "image")
+            await processing_message.delete()
+            return
+        elif resp_status == 429:
+            await message.reply(
+                "📛 Слишком много запросов.\n📝 Попробуйте другую модель"
+            )
+            await db.reset_cooldown(user_id, "image")
+            await processing_message.delete()
+            return
+
         if response.get("error"):
             raise RuntimeError(response["msg"])
 
