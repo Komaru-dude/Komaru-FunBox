@@ -566,12 +566,12 @@ async def handle_dice_throw(
 
         if emoji in ("🎲", "🎯", "🎳"):
             if value == 6:
-                multiplier = 1.3
-                msg_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x1.3)\n"
+                multiplier = 2.5
+                msg_text = f"🎉 Большая победа! +{round(bet * multiplier, 2)} (x2.5)\n"
                 win_amount = bet * multiplier
             elif value == 5:
-                multiplier = 1.15
-                msg_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.15)\n"
+                multiplier = 1.2
+                msg_text = f"🎉 Победа! +{round(bet * multiplier, 2)} (x1.2)\n"
                 win_amount = bet * multiplier
             elif value == 4:
                 msg_text = f"🎲 Ничья. Ваша ставка возвращена.\n"
@@ -582,8 +582,8 @@ async def handle_dice_throw(
 
         elif emoji in ("🏀", "⚽"):
             if value == 5:
-                multiplier = 1.25
-                msg_text = f"🏆 Гол! +{round(bet * multiplier, 2)} (x1.25)\n"
+                multiplier = 2.5
+                msg_text = f"🏆 Гол! +{round(bet * multiplier, 2)} (x2.5)\n"
                 win_amount = bet * multiplier
             elif value == 4:
                 msg_text = f"⚖️ Ничья. Ваша ставка возвращена.\n"
@@ -594,9 +594,9 @@ async def handle_dice_throw(
 
         elif emoji == "🎰":
             if value == 64:
-                multiplier = 5.0
+                multiplier = 7.5
                 msg_text = (
-                    f"🎰 ДЖЕКПОТ! Все семёрки! +{round(bet * multiplier, 2)} (x5)\n"
+                    f"🎰 ДЖЕКПОТ! Все семёрки! +{round(bet * multiplier, 2)} (x7.5)\n"
                 )
                 win_amount = bet * multiplier
             elif value in (1, 22, 43):
@@ -606,8 +606,8 @@ async def handle_dice_throw(
             # fmt: off
             elif value in (2,3,4,5,6,9,11,13,16,17,18,21,23,24,26,27,30,32,33,35,38,39,41,42,44,47,48,49,52,54,56,59,60,61,62,63):
                 # fmt: on
-                multiplier = 1.2
-                msg_text = f"🥉 Слегка повезло. Есть совпавшие! +{round(bet * multiplier, 2)} (x1.2)\n"
+                multiplier = 0.9
+                msg_text = f"🥉 Слегка повезло. Есть совпавшие! +{round(bet * multiplier, 2)} (x0.9)\n"
                 win_amount = bet * multiplier
             else:
                 msg_text = f"💸 Проигрыш. -{bet}\n"
