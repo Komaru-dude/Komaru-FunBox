@@ -142,8 +142,9 @@ async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
             async with session.post(
                 os.getenv("IMAGEN_API_URL"), json=request_data, headers=headers
             ) as response:
-                response.raise_for_status()
                 j = await response.json()
+                if response.status != 200:
+                    return {"error": True, "msg": j}
                 return {
                     "error": False,
                     "file": base64.b64decode(j["files"][0]),
