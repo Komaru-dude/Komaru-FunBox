@@ -116,7 +116,7 @@ async def cb_quick_buy(
         if not isinstance(items, list):
             items = []
         for _ in range(qty):
-            items.append({"type": "stock", "id": stock_id, "price": round(price, 2)
+            items.append({"type": "stock", "id": stock_id, "price": round(price, 2)})
         await db.set_global_user_param(user_id, "items", items)
         await callback.answer(
             f"✅ Куплено: {stock['name']} x{qty} за {total_cost}$", show_alert=True
