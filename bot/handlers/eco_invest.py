@@ -79,7 +79,7 @@ async def cb_buy_stock_item(
             await callback.answer("❌ Акция не найдена", show_alert=True)
             return
         user_bal = await db.get_global_user_param(user_id, "money") or 0
-        kb = make_buy_options_kb(user_id, stock_id, stock_price, 2), user_bal)
+        kb = make_buy_options_kb(user_id, stock_id, round(stock_price, 2), user_bal)
         await callback.message.edit_text(
             f"📈 {stock['name']} — {stock_price}$\nВыберите опцию:", reply_markup=kb
         )
