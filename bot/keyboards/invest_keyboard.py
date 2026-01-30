@@ -53,7 +53,7 @@ def make_stocks_kb(user_id: int) -> InlineKeyboardMarkup:
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"{stock['name']} — {stock['price']}$",
+                    text=f"{stock['name']} — {round(stock['price']}, 2)$",
                     callback_data=InvestMenuCallback(
                         action="buy_stock_item", user_id=user_id, stock_id=int(stock_id)
                     ).pack(),
@@ -76,6 +76,7 @@ def make_stocks_kb(user_id: int) -> InlineKeyboardMarkup:
 def make_buy_options_kb(
     user_id: int, stock_id: int, price: float, user_bal: float, max_limit: int = 1000
 ) -> InlineKeyboardMarkup:
+    price = round(price, 2)
     max_by_money = int(user_bal // price) if price > 0 else max_limit
     allowed_max = max(1, min(max_limit, max_by_money))
     presets = [1, 5, 10]
@@ -134,7 +135,7 @@ def make_sell_stocks_kb(
         info = market.get(stock_id)
         if not info:
             continue
-        cp = info["price"]
+        cp = round(info["price"], 2)
         text = f"{info['name']} ({data['count']} шт.)\n📈 {cp}$ / шт."
         rows.append(
             [
