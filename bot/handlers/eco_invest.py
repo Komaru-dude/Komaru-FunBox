@@ -208,7 +208,8 @@ async def cb_sell_stock_item(
         owned = len(user_stocks)
         kb = make_sell_options_kb(user_id, int(stock_id), owned)
         await callback.message.edit_text(
-            f"📤 {info['name']} — {round(info['price'], 2)}$\nВыберите опцию:", reply_markup=kb
+            f"📤 {info['name']} — {round(info['price'], 2)}$\nВыберите опцию:",
+            reply_markup=kb,
         )
     except Exception:
         await error_report(
