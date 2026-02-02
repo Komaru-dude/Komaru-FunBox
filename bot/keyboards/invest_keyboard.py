@@ -53,7 +53,7 @@ def make_stocks_kb(user_id: int) -> InlineKeyboardMarkup:
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"{stock['name']} — {round(stock['price'])}, 2)$",
+                    text=f"{stock['name']} — {round(stock['price'], 2)}$",
                     callback_data=InvestMenuCallback(
                         action="buy_stock_item", user_id=user_id, stock_id=int(stock_id)
                     ).pack(),
