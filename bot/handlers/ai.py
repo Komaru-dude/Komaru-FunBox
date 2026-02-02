@@ -28,6 +28,7 @@ from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_mod
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
 DEFAULT_MODEL = "gemini-2.5-flash"
+DEFAULT_IMAGE_MODEL = "flux"
 
 SUPPORTED_LANGUAGES = {
     "zh": "Китайский",
@@ -563,7 +564,7 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
             return
 
         args_text = args[1]
-        model_name = "flux"  # Модель по умолчанию
+        model_name = DEFAULT_IMAGE_MODEL
 
         if "-m" in args_text:
             model_match = re.search(r"-m\s+(\S+)", args_text)
