@@ -252,7 +252,7 @@ async def cb_quick_sell(
                 del items[idx]
                 removed += 1
         user_bal = await db.get_global_user_param(user_id, "money") or 0
-        total_get = price(current_price * qty, 2)
+        total_get = round(current_price * qty, 2)
         await db.set_global_user_param(user_id, "money", user_bal + total_get)
         await db.set_global_user_param(user_id, "items", items)
         avg_buy = round((buy_total / qty), 2) if qty > 0 else 0
