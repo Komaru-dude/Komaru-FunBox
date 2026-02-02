@@ -1,6 +1,6 @@
 {
-    "release": "2.2.2",
-    "test": "2.2.3-beta",
+    "release": "2.3.2",
+    "test": "2.3.2",
     "repo": "https://github.com/Not-a-dude/Komaru-FunBox",
     "repo_api": "https://api.github.com/repos/Not-a-dude/Komaru-FunBox"
 }
