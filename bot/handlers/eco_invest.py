@@ -74,13 +74,14 @@ async def cb_buy_stock_item(
         stock_id = callback_data.stock_id
         stocks = load_stocks()
         stock = stocks.get(str(stock_id))
+        stock_price = round(stock["price"], 2)
         if not stock:
             await callback.answer("❌ Акция не найдена", show_alert=True)
             return
         user_bal = await db.get_global_user_param(user_id, "money") or 0
-        kb = make_buy_options_kb(user_id, stock_id, stock["price"], user_bal)
+        kb = make_buy_options_kb(user_id, stock_id, round(stock_price, 2), user_bal)
         await callback.message.edit_text(
-            f"📈 {stock['name']} — {stock['price']}$\nВыберите опцию:", reply_markup=kb
+            f"📈 {stock['name']} — {stock_price}$\nВыберите опцию:", reply_markup=kb
         )
     except Exception:
         await error_report(
@@ -106,7 +107,7 @@ async def cb_quick_buy(
             return
         price = stock["price"]
         user_bal = await db.get_global_user_param(user_id, "money") or 0
-        total_cost = price * qty
+        total_cost = round(price * qty, 2)
         if user_bal < total_cost:
             await callback.answer("💸 Недостаточно денег", show_alert=True)
             return
@@ -115,7 +116,7 @@ async def cb_quick_buy(
         if not isinstance(items, list):
             items = []
         for _ in range(qty):
-            items.append({"type": "stock", "id": stock_id, "price": price})
+            items.append({"type": "stock", "id": stock_id, "price": round(price, 2)})
         await db.set_global_user_param(user_id, "items", items)
         await callback.answer(
             f"✅ Куплено: {stock['name']} x{qty} за {total_cost}$", show_alert=True
@@ -207,7 +208,7 @@ async def cb_sell_stock_item(
         owned = len(user_stocks)
         kb = make_sell_options_kb(user_id, int(stock_id), owned)
         await callback.message.edit_text(
-            f"📤 {info['name']} — {info['price']}$\nВыберите опцию:", reply_markup=kb
+            f"📤 {info['name']} — {price(info['price'], 2)}$\nВыберите опцию:", reply_markup=kb
         )
     except Exception:
         await error_report(
@@ -239,7 +240,7 @@ async def cb_quick_sell(
             return
         market = load_stocks()
         info = market.get(stock_id, {})
-        current_price = info.get("price", 0)
+        current_price = price(info.get("price", 0), 2)
         removed = 0
         buy_total = 0
         for idx in reversed(range(len(items))):
@@ -251,10 +252,10 @@ async def cb_quick_sell(
                 del items[idx]
                 removed += 1
         user_bal = await db.get_global_user_param(user_id, "money") or 0
-        total_get = current_price * qty
+        total_get = price(current_price * qty, 2)
         await db.set_global_user_param(user_id, "money", user_bal + total_get)
         await db.set_global_user_param(user_id, "items", items)
-        avg_buy = (buy_total / qty) if qty > 0 else 0
+        avg_buy = round((buy_total / qty), 2) if qty > 0 else 0
         profit = total_get - buy_total
         stock_name = info.get("name", "Акция")
         if profit >= 0:
@@ -335,7 +336,7 @@ async def process_entered_qty(
                 await message.answer("❌ Акция больше не найдена на рынке.")
                 await state.clear()
                 return
-            price = stock["price"]
+            price = round(stock["price"], 2)
             user_bal = (
                 await db.get_global_user_param(message.from_user.id, "money") or 0
             )
@@ -349,7 +350,7 @@ async def process_entered_qty(
                 )
                 await state.clear()
                 return
-            total_cost = price * qty
+            total_cost = round(price * qty, 2)
             await db.set_global_user_param(
                 message.from_user.id, "money", user_bal - total_cost
             )
@@ -389,7 +390,7 @@ async def process_entered_qty(
             user_bal = (
                 await db.get_global_user_param(message.from_user.id, "money") or 0
             )
-            total_get = current_price * qty
+            total_get = round(current_price * qty, 2)
             await db.set_global_user_param(
                 message.from_user.id, "money", user_bal + total_get
             )
@@ -432,7 +433,7 @@ async def cb_my_portfolio(
             if not info:
                 continue
             name = info["name"]
-            current_price = info["price"]
+            current_price = round(info["price"], 2)
             if name not in summary:
                 summary[name] = {"count": 0, "current_total": 0, "buy_total": 0}
             summary[name]["count"] += 1
@@ -440,8 +441,8 @@ async def cb_my_portfolio(
             summary[name]["buy_total"] += s["price"]
         text = "💼 Ваш портфель:\n"
         for name, data in summary.items():
-            avg_buy = data["buy_total"] / data["count"]
-            cur_per = data["current_total"] / data["count"]
+            avg_buy = round(data["buy_total"] / data["count"], 2)
+            cur_per = round(data["current_total"] / data["count"], 2)
             text += f"- {name} ({data['count']} шт.): {cur_per}$ за шт. (ср. цена покупки: {avg_buy:.2f}$)\n"
             total_value += data["current_total"]
         text += f"\n💰 Общая стоимость: {total_value}$"
