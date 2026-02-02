@@ -433,7 +433,7 @@ async def cb_my_portfolio(
             if not info:
                 continue
             name = info["name"]
-            current_price = price(info["price"], 2)
+            current_price = round(info["price"], 2)
             if name not in summary:
                 summary[name] = {"count": 0, "current_total": 0, "buy_total": 0}
             summary[name]["count"] += 1
