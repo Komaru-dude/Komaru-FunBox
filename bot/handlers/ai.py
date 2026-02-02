@@ -200,7 +200,7 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
             category_body = []
 
             for model in models:
-                stream_icon = " ⚡️Стриминг" if model.get("can-stream", False) else ""
+                stream_icon = " 🧠 Думающая" if model.get("can-think", False) else ""
                 display_name = model["id"]
 
                 model_line = f"<code>{display_name}</code>{stream_icon}\n"
@@ -210,7 +210,7 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
 
         legend_text = (
             "\n❓ Что значат все эти эмодзи?\n\n"
-            "⚡️Стриминг — Могут отправлять ответ 'кусками', не завершая обработку"
+            "🧠 Думающая — может размышлять перед ответом, повышает качество ответа ценой большего времени ожидания"
         )
 
         await message.reply(
@@ -276,6 +276,12 @@ async def cmd_ai(
                     return
                 if model_info["modality"] != "text":
                     await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
+                    await db.reset_cooldown(user_id, "ai")
+                    return
+                if model_info["can_stream"] != "true":
+                    await base_msg.edit_text(
+                        f"❌ Модель {model_name} не поддерживает стриминг."
+                    )
                     await db.reset_cooldown(user_id, "ai")
                     return
                 model = model_name
@@ -460,35 +466,15 @@ async def cmd_ai(
                 raise ValueError("Нет ответа от API")
 
             answer_content = choices[0].message.content
-            if model == "deepseek-r1":
-                answer = re.sub(
-                    r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
-                ).strip()
-            elif model == "gemini-2.5-flash":
-                answer = re.sub(
-                    r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
-                ).strip()
-            else:
-                answer = answer_content
+            answer = re.sub(
+                r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
+            ).strip()
+            answer = re.sub(
+                r"<thought>.*?</thought>", "", answer_content, flags=re.DOTALL
+            ).strip()
 
             if cli_mode:
                 return answer
-            else:
-                raw_answer = (
-                    f"💭 Запрос: {request}\n"
-                    f"🧠 Модель: {model_display_name}\n\n"
-                    f"📝 Ответ: {escape(answer)}"
-                )
-
-                chunks = [
-                    raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)
-                ]
-
-                for idx, chunk in enumerate(chunks):
-                    if idx == 0:
-                        await base_msg.edit_text(chunk)
-                    else:
-                        await message.reply(chunk)
 
     except openai.InternalServerError:
         if not cli_mode:
