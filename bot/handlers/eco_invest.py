@@ -240,7 +240,7 @@ async def cb_quick_sell(
             return
         market = load_stocks()
         info = market.get(stock_id, {})
-        current_price = price(info.get("price", 0), 2)
+        current_price = round(info.get("price", 0), 2)
         removed = 0
         buy_total = 0
         for idx in reversed(range(len(items))):
