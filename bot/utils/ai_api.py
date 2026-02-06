@@ -87,14 +87,13 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
         raise ValueError("JIGSAW_API_KEY не найден в переменных окружения.")
 
     file_key = f"ocr_{os.urandom(4).hex()}.{file_ext}"
-    upload_url = f"https://api.jigsawstack.com/v1/store/file?key={file_key}"
+    upload_url = f"https://api.jigsawstack.com/v1/store/upload?key={file_key}"
     headers = {
         "x-api-key": JIGSAW_API_KEY,
         "Content-Type": f"image/{file_ext if file_ext != 'jpg' else 'jpeg'}",
     }
 
     async with aiohttp.ClientSession() as session:
-        # 1. Загрузка
         async with session.post(upload_url, data=file_bytes, headers=headers) as resp:
             if resp.status != 200:
                 raise RuntimeError(f"Ошибка загрузки на OCR: {resp.status}")
@@ -113,6 +112,6 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
                 return "\n".join([s["text"] for s in res.get("sections", [])])
         finally:
             await session.delete(
-                f"https://api.jigsawstack.com/v1/store/file/read/{f_key}",
+                f"https://api.jigsawstack.com/v1/store/file/delete/{f_key}",
                 headers={"x-api-key": JIGSAW_API_KEY},
             )
