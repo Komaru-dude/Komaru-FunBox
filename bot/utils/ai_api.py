@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 
 import aiohttp
@@ -86,32 +87,40 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
     if not JIGSAW_API_KEY:
         raise ValueError("JIGSAW_API_KEY не найден в переменных окружения.")
 
-    file_key = f"ocr_{os.urandom(4).hex()}.{file_ext}"
-    upload_url = f"https://api.jigsawstack.com/v1/store/upload?key={file_key}"
-    headers = {
-        "x-api-key": JIGSAW_API_KEY,
-        "Content-Type": f"image/{file_ext if file_ext != 'jpg' else 'jpeg'}",
+    url = "https://api.jigsawstack.com/v1/vocr"
+
+    form = aiohttp.FormData()
+
+    content_type = f"image/{'jpeg' if file_ext.lower() == 'jpg' else file_ext.lower()}"
+    form.add_field(
+        name="file",
+        value=file_bytes,
+        filename=f"image.{file_ext}",
+        content_type=content_type,
+    )
+
+    payload = {
+        "prompt": "Extract all visible text from the image exactly as it appears, line by line."
     }
+    form.add_field(
+        name="body",
+        value=json.dumps(payload),
+        content_type="application/json",
+    )
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(upload_url, data=file_bytes, headers=headers) as resp:
+        async with session.post(
+            url,
+            data=form,
+            headers={"x-api-key": JIGSAW_API_KEY},
+        ) as resp:
             if resp.status != 200:
-                raise RuntimeError(f"Ошибка загрузки на OCR: {resp.status}")
-            data = await resp.json()
-            f_key = data.get("key")
+                error_text = await resp.text()
+                raise RuntimeError(f"Ошибка OCR: {resp.status} — {error_text}")
 
-        try:
-            v_url = "https://api.jigsawstack.com/v1/vocr"
-            payload = {"prompt": ["thing"], "file_store_key": f_key}
-            async with session.post(
-                v_url, json=payload, headers={"x-api-key": JIGSAW_API_KEY}
-            ) as v_resp:
-                res = await v_resp.json()
-                if "sections" not in res:
-                    return f"Ошибка OCR: {res}"
-                return "\n".join([s["text"] for s in res.get("sections", [])])
-        finally:
-            await session.delete(
-                f"https://api.jigsawstack.com/v1/store/file/delete/{f_key}",
-                headers={"x-api-key": JIGSAW_API_KEY},
-            )
+            res = await resp.json()
+
+            if "sections" not in res:
+                return f"Ошибка OCR: {res}"
+
+            return "\n".join(s.get("text", "") for s in res.get("sections", []))
