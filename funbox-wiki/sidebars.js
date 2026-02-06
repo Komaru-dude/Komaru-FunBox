@@ -33,7 +33,7 @@ const sidebars = {
         type: 'doc', 
         id: 'commands/commands'
       },
-      items: ['commands/ai'],
+      items: ['commands/basic', 'commands/ai'],
     },
   ],
 };
