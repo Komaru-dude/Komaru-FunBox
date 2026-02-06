@@ -1,0 +1,118 @@
+import base64
+import os
+
+import aiohttp
+import openai
+
+client = openai.AsyncOpenAI(
+    api_key=os.getenv("ONLYSQ_API_KEY"),
+    base_url=os.getenv("OPENAI_SDK_API_URL"),
+)
+
+JIGSAW_API_KEY = os.getenv("JIGSAW_API_KEY")
+
+ALLOWED_RATIOS = {
+    "1:1",
+    "16:9",
+    "21:9",
+    "3:2",
+    "2:3",
+    "4:5",
+    "5:4",
+    "3:2",
+    "2:3",
+    "4:5",
+    "5:4",
+    "3:4",
+    "4:3",
+    "9:16",
+    "9:21",
+}
+
+
+async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dict:
+    """Генерация изображений через внешний API."""
+    if ratio not in ALLOWED_RATIOS:
+        return {"error": True, "msg": f"Недопустимое соотношение сторон: {ratio}"}
+
+    request_data = {"model": model, "prompt": prompt, "ratio": ratio}
+    headers = {"Authorization": f"Bearer {os.getenv('ONLYSQ_API_KEY')}"}
+    img_url = os.getenv("IMAGEN_API_URL")
+
+    if not img_url:
+        return {"error": True, "msg": "IMAGEN_API_URL не настроен в env."}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                img_url, json=request_data, headers=headers
+            ) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    return {"error": True, "status": resp.status, "msg": data}
+                return {
+                    "error": False,
+                    "file": base64.b64decode(data["files"][0]),
+                    "elapsed_time": data.get("elapsed-time", 0),
+                }
+    except Exception as e:
+        return {"error": True, "msg": str(e)}
+
+
+async def stream_text_api(model: str, messages: list):
+    """Генератор для потоковой передачи текста."""
+    stream = await client.chat.completions.create(
+        model=model,
+        messages=messages,
+        stream=True,
+    )
+    async for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
+
+async def simple_text_api(model: str, messages: list) -> str:
+    """Обычный запрос текста (без стриминга)."""
+    response = await client.chat.completions.create(
+        model=model, messages=messages, stream=False
+    )
+    if not response.choices:
+        return ""
+    return response.choices[0].message.content  # type: ignore
+
+
+async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
+    """Распознавание текста через JigsawStack."""
+    if not JIGSAW_API_KEY:
+        raise ValueError("JIGSAW_API_KEY не найден в переменных окружения.")
+
+    file_key = f"ocr_{os.urandom(4).hex()}.{file_ext}"
+    upload_url = f"https://api.jigsawstack.com/v1/store/file?key={file_key}"
+    headers = {
+        "x-api-key": JIGSAW_API_KEY,
+        "Content-Type": f"image/{file_ext if file_ext != 'jpg' else 'jpeg'}",
+    }
+
+    async with aiohttp.ClientSession() as session:
+        # 1. Загрузка
+        async with session.post(upload_url, data=file_bytes, headers=headers) as resp:
+            if resp.status != 200:
+                raise RuntimeError(f"Ошибка загрузки на OCR: {resp.status}")
+            data = await resp.json()
+            f_key = data.get("key")
+
+        try:
+            v_url = "https://api.jigsawstack.com/v1/vocr"
+            payload = {"prompt": ["thing"], "file_store_key": f_key}
+            async with session.post(
+                v_url, json=payload, headers={"x-api-key": JIGSAW_API_KEY}
+            ) as v_resp:
+                res = await v_resp.json()
+                if "sections" not in res:
+                    return f"Ошибка OCR: {res}"
+                return "\n".join([s["text"] for s in res.get("sections", [])])
+        finally:
+            await session.delete(
+                f"https://api.jigsawstack.com/v1/store/file/read/{f_key}",
+                headers={"x-api-key": JIGSAW_API_KEY},
+            )
