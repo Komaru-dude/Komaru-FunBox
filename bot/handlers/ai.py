@@ -21,10 +21,10 @@ from bot import logger
 from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
+from bot.utils.ai_api import ocr_process_api
 from bot.utils.aio_tools import error_report
 from bot.utils.bot_tools import make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
-from bot.utils.ai_api import ocr_process_api
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
@@ -777,9 +777,9 @@ async def cmd_ocr(message: Message, bot: Bot, db: Database):
         if not file_bytes:
             await message.reply("📛 Не удалось скачать файл, обратитесь к разработчику")
             return
-        
+
         if file_bytes:
-            content = file_bytes.read() 
+            content = file_bytes.read()
             vocr_resp = await ocr_process_api(content)
 
         chunks = [vocr_resp[i : i + 4096] for i in range(0, len(vocr_resp), 4096)]
