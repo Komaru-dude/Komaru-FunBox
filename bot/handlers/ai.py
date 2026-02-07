@@ -15,7 +15,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import BufferedInputFile, Message
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from bot import logger
 from bot.database.database import Database
@@ -24,6 +24,7 @@ from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report
 from bot.utils.bot_tools import make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
+from bot.utils.ai_api import ocr_process_api
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
@@ -773,62 +774,20 @@ async def cmd_ocr(message: Message, bot: Bot, db: Database):
         file_path = file.file_path
         file_bytes = await bot.download_file(file_path)
 
-        content_type = "image/jpeg"
-
-        file_key = f"{file_id}.jpg"
-
-        upload_url = f"https://api.jigsawstack.com/v1/store/file?key={file_key}"
-        headers = {"x-api-key": jigsaw_api_key, "Content-Type": content_type}
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                upload_url, data=file_bytes, headers=headers
-            ) as resp_upload:
-                if resp_upload.status != 200:
-                    await message.reply(
-                        f"❌ Ошибка загрузки файла: статус {resp_upload.status}"
-                    )
-                    return
-                upload_resp = await resp_upload.json()
-                file_store_key = upload_resp.get("key")
-                if not file_store_key:
-                    await message.reply("❌ Не получен file_store_key после загрузки")
-                    return
-
-        vocr_url = "https://api.jigsawstack.com/v1/vocr"
-        payload = {
-            "prompt": ["thing"],
-            "file_store_key": file_store_key,
-        }
-        headers = {"x-api-key": jigsaw_api_key}
-
-        vocr_resp, error = await make_post_request(vocr_url, payload, headers)
-
-        if error:
-            await message.reply(error)
+        if not file_bytes:
+            await message.reply("📛 Не удалось скачать файл, обратитесь к разработчику")
             return
-        elif not vocr_resp or "sections" not in vocr_resp:
-            await message.reply("📛 Пустой ответ от API, обратитесь к разработчику")
-            await db.reset_cooldown(message.from_user.id, "ocr")
-            return
+        
+        if file_bytes:
+            content = file_bytes.read() 
+            vocr_resp = await ocr_process_api(content)
 
-        answer = "\n".join([section["text"] for section in vocr_resp["sections"]])
-        chunks = [answer[i : i + 4096] for i in range(0, len(answer), 4096)]
+        chunks = [vocr_resp[i : i + 4096] for i in range(0, len(vocr_resp), 4096)]
         for idx, chunk in enumerate(chunks):
             if idx == 0:
                 await base_msg.edit_text(chunk)
             else:
                 await message.reply(chunk)
-
-        delete_url = f"https://api.jigsawstack.com/v1/store/file/read/{file_store_key}"
-        async with aiohttp.ClientSession() as session:
-            async with session.delete(
-                delete_url, headers={"x-api-key": jigsaw_api_key}
-            ) as resp_delete:
-                if resp_delete.status != 200:
-                    await message.reply(
-                        f"⚠️ Ошибка удаления файла: статус {resp_delete.status}"
-                    )
     except Exception:
         await error_report(message, bot, "ocr", traceback.format_exc())
 
