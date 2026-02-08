@@ -22,7 +22,6 @@ from bot.handlers.ai import (
     DEFAULT_MODEL,
     TOOLS_SCHEMA,
     ChatState,
-    cmd_ai,
     handle_tool_call,
 )
 from bot.handlers.video import cmd_video
@@ -261,16 +260,16 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             )
             if match:
                 prompt_name = match.group(1)
-                reply_query = ""
                 user_query = match.group(2)
+                reply_query = ""
 
+                # Парсим reply
                 if message.reply_to_message:
                     if message.reply_to_message.text:
                         reply_query = message.reply_to_message.text
                     elif message.reply_to_message.caption:
                         reply_query = message.reply_to_message.caption
-
-                    user_query = reply_query + user_query
+                    user_query = reply_query + (" " if user_query else "") + user_query
 
                 prompt = await db.get_prompt_by_title(prompt_name, user1.id)
                 if not prompt:
@@ -285,12 +284,66 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     {"role": "system", "content": prompt_content},
                     {"role": "user", "content": user_query},
                 ]
-                await cmd_ai(
-                    message=message,
-                    bot=bot,
-                    messages=messages_for_ai,
-                    db=db,
-                )
+
+                # Получаем пользовательскую модель
+                user_data = await db.get_user_data(user1.id, chat_id)
+                user_default_model = user_data.get("default_model", DEFAULT_MODEL)
+                model = user_default_model
+                model_match = re.search(r"-m\s+(\S+)", user_query)
+                if model_match:
+                    model_candidate = model_match.group(1)
+                    if model_candidate in onlysq_models["models"]:
+                        model = model_candidate
+                        user_query = re.sub(r"-m\s+\S+", "", user_query).strip()
+                        messages_for_ai[1]["content"] = user_query
+
+                model_info = onlysq_models["models"].get(model, {})
+                can_stream = model_info.get("can-stream", False)
+                notification = ""
+                if not can_stream:
+                    if model != DEFAULT_MODEL:
+                        notification = f"⚠️ Модель <b>{model}</b> не поддерживает стриминг. Использую <b>{DEFAULT_MODEL}</b>\n"
+                    model = DEFAULT_MODEL
+                model_info = onlysq_models["models"].get(model, {})
+                model_display_name = model_info.get("name", model)
+
+                base_msg = await message.reply("🔄 Обработка...")
+                try:
+                    answer = ""
+                    async for chunk in stream_text_api(
+                        model=model,
+                        messages=messages_for_ai,
+                    ):
+                        if chunk:
+                            answer += chunk
+                    if not answer:
+                        await base_msg.edit_text("⚠️ Нет ответа от AI")
+                        return
+                    if model == "deepseek-r1":
+                        answer = re.sub(
+                            r"<think>.*?</think>", "", answer, flags=re.DOTALL
+                        ).strip()
+                    elif model.startswith("gemini"):
+                        answer = re.sub(
+                            r"<thought>.*?</thought>", "", answer, flags=re.DOTALL
+                        ).strip()
+                    raw_answer = (
+                        f"{notification}"
+                        f"💭 Запрос: {user_query}\n"
+                        f"🧠 Модель: {model_display_name}\n\n"
+                        f"📝 Ответ: {answer}"
+                    )
+                    chunks = [
+                        raw_answer[i : i + 4096]
+                        for i in range(0, len(raw_answer), 4096)
+                    ]
+                    for idx, chunk in enumerate(chunks):
+                        if idx == 0:
+                            await base_msg.edit_text(chunk)
+                        else:
+                            await message.answer(chunk)
+                except Exception as e:
+                    await base_msg.edit_text(f"❌ Ошибка: {e}")
                 return
 
         if message.chat.type in ["channel", "private"]:
