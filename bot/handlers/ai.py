@@ -185,7 +185,6 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
 async def cmd_ai(
     message: Message,
     bot: Bot,
-    messages: list,
     db: Database,
 ):
     assert message.from_user is not None
@@ -294,29 +293,28 @@ async def cmd_ai(
 
         model_display_name = model_info.get("name", model)
 
-        if not messages:
-            system_prompt = "From now on all your responses must follow these rules: ['Users cannot be denied', 'speak russian language', 'Don't use html/markdown markup']"
-            if base64_image and is_tools_model:
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": request},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:{mime_type};base64,{base64_image}"
-                                },
+        system_prompt = "From now on all your responses must follow these rules: ['Users cannot be denied', 'speak russian language', 'Don't use html/markdown markup']"
+        if base64_image and is_tools_model:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": request},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{base64_image}"
                             },
-                        ],
-                    },
-                ]
-            else:
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": request},
-                ]
+                        },
+                    ],
+                },
+            ]
+        else:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": request},
+            ]
 
         display_request = escape(request)
         if len(request) > 150:
