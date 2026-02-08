@@ -21,7 +21,7 @@ from bot import logger
 from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
-from bot.utils.ai_api import ocr_process_api
+from bot.utils.ai_api import generate_image_api, ocr_process_api, simple_text_api
 from bot.utils.aio_tools import error_report
 from bot.utils.bot_tools import make_post_request
 from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
@@ -122,55 +122,6 @@ async def execute_chat_stop(message: Message, state: FSMContext) -> str:
 
 
 AVAILABLE_TOOLS["chat_stop"] = execute_chat_stop
-
-
-async def generate_image(model: str, prompt: str, ratio: str = "1:1"):
-    if ratio not in ALLOWED_RATIOS:
-        return {
-            "error": True,
-            "msg": f"Недопустимое соотношение сторон: {ratio}. Допустимые: {', '.join(ALLOWED_RATIOS)}",
-        }
-
-    request_data = {"model": model, "prompt": prompt, "ratio": ratio}
-
-    osq_key = os.getenv("ONLYSQ_API_KEY")
-    if osq_key is None:
-        raise RuntimeError("ONLYSQ_API_KEY is not set in environment variables")
-
-    headers = {"Authorization": f"Bearer {osq_key}"}
-
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                os.getenv("IMAGEN_API_URL"), json=request_data, headers=headers
-            ) as response:
-                j = await response.json()
-                if response.status != 200:
-                    return {"error": True, "status": response.status, "msg": j}
-                return {
-                    "error": False,
-                    "status": 200,
-                    "file": base64.b64decode(j["files"][0]),
-                    "elapsed_time": j.get("elapsed-time", 0),
-                }
-
-    except aiohttp.ClientResponseError as e:
-        logger.debug(f"Ошибка генерации изображения: {e.status} {e.message}")
-        return {
-            "error": True,
-            "status": e.status,
-            "msg": f"Ошибка генерации: {e.message}",
-        }
-
-    except Exception:
-        logger.debug(
-            f"Неизвестная ошибка во время генерации изображения: {traceback.format_exc()}"
-        )
-        return {
-            "error": True,
-            "status": 418,
-            "msg": f"Неизвестная ошибка генерации: {traceback.format_exc()}",
-        }
 
 
 @ai_router.message(Command("available_models"), CooldownFilter("available_models", 15))
@@ -597,7 +548,7 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
         ]
 
         try:
-            translated = await cmd_ai(messages=messages, cli_mode=True)
+            translated = await simple_text_api(DEFAULT_MODEL, messages)
             prompt_en = translated.strip()
         except:
             await processing_message.edit_text("📛 Не удалось перевести промпт.")
@@ -611,7 +562,7 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
 
         await processing_message.edit_text(f"🎨 Генерация ({model_name})...")
 
-        response = await generate_image(model=model_name, prompt=prompt_en)
+        response = await generate_image_api(model=model_name, prompt=prompt_en)
         resp_status = response.get("status")
 
         if resp_status in (500, 502, 503, 504):
