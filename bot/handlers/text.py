@@ -19,14 +19,14 @@ from aiogram.types import Message
 from bot import logger
 from bot.database.database import Database
 from bot.handlers.ai import (
+    DEFAULT_MODEL,
     TOOLS_SCHEMA,
     ChatState,
     cmd_ai,
-    execute_chat_stop,
     handle_tool_call,
 )
-from bot.handlers.etc import cmd_bonum
 from bot.handlers.video import cmd_video
+from bot.utils.ai_api import simple_text_api, stream_text_api
 from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 from bot.utils.global_storage import active_chats, onlysq_models
 
@@ -59,6 +59,8 @@ async def get_chat_commands(chat_id: int):
 @text_router.message(F.text)
 async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
+        assert message.from_user is not None
+        assert message.text is not None
         user1 = message.from_user
         chat_id = message.chat.id
         text_msg = message.text
@@ -72,7 +74,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             base_msg = await message.reply("🔄 Обработка...")
             user_data = await state.get_data()
             messages = user_data.get("messages", [])
-            model = user_data.get("model", "gemini-2.0-flash")
+            model = user_data.get("model", DEFAULT_MODEL)
             user_message = text_msg.strip()
 
             messages.append({"role": "user", "content": user_message})
@@ -115,11 +117,10 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     messages.append(response_message)
                     messages.extend(temp_messages)
 
-                    final_response = await client.chat.completions.create(
+                    final_text = await simple_text_api(
                         model=model,
                         messages=messages,
                     )
-                    final_text = final_response.choices[0].message.content
                 else:
                     final_text = response_message.content
 
@@ -159,20 +160,18 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     edited_once = False
                     last_edit_time = time.monotonic()
 
-                    async for chunk in await client.chat.completions.create(
+                    async for chunk in stream_text_api(
                         model=model,
                         messages=messages,
-                        stream=True,
                     ):
-                        delta = chunk.choices[0].delta.content
-                        if delta:
-                            final_text += delta
-                            buffer += delta
+                        if chunk:
+                            final_text += chunk
+                            buffer += chunk
 
                             now = time.monotonic()
                             if (
                                 len(buffer) > 30
-                                or delta.endswith((".", "!", "?", "\n"))
+                                or chunk.endswith((".", "!", "?", "\n"))
                                 or now - last_edit_time > 3.0
                             ):
                                 try:
@@ -204,15 +203,14 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     await state.update_data(messages=messages)
 
                 else:
-                    response = await client.chat.completions.create(
+                    response = await simple_text_api(
                         model=model,
                         messages=messages,
                     )
-                    choices = response.choices
-                    if not choices:
+                    if not response:
                         raise ValueError("Нет ответа от API")
 
-                    answer_content = choices[0].message.content
+                    answer_content = response
                     if model == "deepseek-r1":
                         answer = re.sub(
                             r"<think>.*?</think>", "", answer_content, flags=re.DOTALL
@@ -240,7 +238,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                         else:
                             await message.answer(chunk)
 
-                    ai_response = response.choices[0].message.content
+                    ai_response = response
                     ai_response = re.sub(r"[*_`#]", "", ai_response).strip()
 
                     messages.append({"role": "assistant", "content": ai_response})
@@ -335,8 +333,11 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 },
                 {"role": "user", "content": message.reply_to_message.text},
             ]
-            answer = await cmd_ai(messages=messages, cli_mode=True)
-            await message.reply(f"📝 Ответ: {answer}")
+            answer = await simple_text_api(model=DEFAULT_MODEL, messages=messages)
+            if not answer:
+                await message.reply("⚠️ Нет ответа от AI")
+            else:
+                await message.reply(f"📝 Ответ: {answer}")
             return
         elif text_msg.startswith(
             ("http://", "https://")

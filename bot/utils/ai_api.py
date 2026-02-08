@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+from typing import Any, AsyncGenerator, Optional
 
 import aiohttp
 import openai
@@ -60,13 +61,25 @@ async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dic
         return {"error": True, "msg": str(e)}
 
 
-async def stream_text_api(model: str, messages: list):
-    """Генератор для потоковой передачи текста."""
-    stream = await client.chat.completions.create(
-        model=model,
-        messages=messages,
-        stream=True,
-    )
+async def stream_text_api(
+    model: str,
+    messages: list[dict[str, Any]],
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+) -> AsyncGenerator[str, None]:
+
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "stream": True,
+    }
+
+    if tools is not None:
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = tool_choice
+
+    stream = await client.chat.completions.create(**kwargs)
+
     async for chunk in stream:
         if chunk.choices and chunk.choices[0].delta.content:
             yield chunk.choices[0].delta.content
