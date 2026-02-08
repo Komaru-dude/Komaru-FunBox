@@ -230,7 +230,7 @@ async def cmd_ai(
                     await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
                     await db.reset_cooldown(user_id, "ai")
                     return
-                if model_info["can-stream"] != "true":
+                if model_info["can-stream"] != True:
                     await base_msg.edit_text(
                         f"❌ Модель {model_name} не поддерживает стриминг."
                     )
