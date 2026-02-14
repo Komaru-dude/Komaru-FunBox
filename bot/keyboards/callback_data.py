@@ -8,3 +8,8 @@ class InvestMenuCallback(CallbackData, prefix="imenu"):
     user_id: int
     stock_id: Optional[int] = None
     qty: Optional[int] = None
+
+
+class WeatherCallback(CallbackData, prefix="weather"):
+    day: int
+    user_id: int

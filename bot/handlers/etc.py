@@ -8,7 +8,7 @@ import re
 import shutil
 import time
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from aiogram import Bot, F, Router
@@ -17,8 +17,6 @@ from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.filters import Command
 from aiogram.types import (
     CallbackQuery,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
     Message,
     URLInputFile,
 )
@@ -28,6 +26,8 @@ from bot import API_URL, BASE_DIR, FREE_GAMES_PATH, logger
 from bot.database.database import Database
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
+from bot.keyboards.callback_data import WeatherCallback
+from bot.keyboards.weather_keyboard import create_days_keyboard
 from bot.utils.aio_tools import error_report, fetch_json
 from bot.utils.global_storage import eco_config
 
@@ -216,38 +216,6 @@ async def fetch_weather(city: str, day_delta: int):
     return text, None
 
 
-def create_days_keyboard(current_day_delta: int, user_id: int) -> InlineKeyboardMarkup:
-    inline_keyboard = []
-    nav_row = []
-
-    if current_day_delta > 0:
-        nav_row.append(
-            InlineKeyboardButton(
-                text="⬅️", callback_data=f"weather:{current_day_delta - 1}:{user_id}"
-            )
-        )
-
-    today_date = datetime.now()
-    target_date = today_date + timedelta(days=current_day_delta)
-    day_name = target_date.strftime("%a, %b %d")
-    nav_row.append(
-        InlineKeyboardButton(
-            text=f"🗓 {day_name}",
-            callback_data="ignore",
-        )
-    )
-
-    if current_day_delta < 2:
-        nav_row.append(
-            InlineKeyboardButton(
-                text="➡️", callback_data=f"weather:{current_day_delta + 1}:{user_id}"
-            )
-        )
-
-    inline_keyboard.append(nav_row)
-    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
-
-
 @etc_router.message(Command("weather"), CooldownFilter("weather", 150))
 async def weather_command(message: Message, bot: Bot, db: Database):
     try:
@@ -275,17 +243,18 @@ async def weather_command(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "weather", traceback.format_exc())
 
 
-@etc_router.callback_query(F.data.startswith("weather:"))
-async def weather_callback(query: CallbackQuery, bot: Bot):
+@etc_router.callback_query(WeatherCallback.filter())
+async def weather_callback(
+    query: CallbackQuery, callback_data: WeatherCallback, bot: Bot
+):
     try:
         try:
-            assert query.data
-            day_delta = int(query.data.split(":")[1])
+            day_delta = callback_data.day
         except (ValueError, IndexError):
             await query.answer("❌ Некорректный запрос", show_alert=True)
             return
 
-        if query.data.split(":")[2] != query.from_user.id:
+        if callback_data.user_id != query.from_user.id:
             await query.answer(
                 "❌ Комару не разрешает отвечать на чужие колбэки", show_alert=True
             )
