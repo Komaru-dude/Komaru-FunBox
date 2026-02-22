@@ -19,6 +19,7 @@
 
 ```bash
 sudo bash -c "$(curl -sSL [https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh](https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh))"
+```
 
 ## Вики
 
