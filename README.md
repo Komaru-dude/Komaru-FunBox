@@ -8,13 +8,17 @@
 
 ## Требования
 
-* Python 3.9 и новее
-* Linux
-* Systemd
+* AMD64
+* 512 мб свободной ОЗУ
+* 1-2 гб свободного пространства
+* Docker
 
 ## Настройка
 
-`sudo bash -c "$(curl -sSL https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh)"`
+Запустите команду для автоматической установки всех зависимостей и развертывания бота:
+
+```bash
+sudo bash -c "$(curl -sSL [https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh](https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh))"
 
 ## Вики
 

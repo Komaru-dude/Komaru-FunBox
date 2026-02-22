@@ -1,12 +1,10 @@
 import asyncio
 import os
-import platform
-import shutil
 import subprocess
 import traceback
 import uuid
-from pathlib import Path
 from urllib.parse import urlparse
+import sys
 
 import aiohttp
 from aiogram import Bot, Router
@@ -24,44 +22,23 @@ admin_router = Router()
 models_path = DATA_DIR / "models.json"
 
 
-def get_service_name() -> str:
-    folder_name = Path(__file__).parent.parent.parent.name
-    if "test" in folder_name:
-        return "komaru-funbox_test.service"
-    else:
-        return "komaru-funbox.service"
-
-
-SERVICE_NAME = get_service_name()
-
-
 @admin_router.message(Command("restart"))
 async def cmd_restart(message: Message, bot: Bot, db: Database):
-    if platform.system() != "Linux" or not shutil.which("systemctl"):
-        await message.reply(
-            "❌ Платформа не поддерживается\n📀 Требуется Linux + Systemd"
-        )
-        return
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    if not await db.has_permission(user_id, chat_id, 4):
-        await message.reply("❌ Эта команда только для персонала.")
-        return
-    await message.answer("Перезапускаюсь... 🔄")
-
     try:
-        subprocess.Popen(["sudo", "systemctl", "restart", SERVICE_NAME])
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+        if not await db.has_permission(user_id, chat_id, 4):
+            await message.reply("❌ Эта команда только для персонала.")
+            return
+        await message.answer("Перезапускаюсь... 🔄")
+
+        sys.exit(1)
     except Exception:
         await error_report(message, bot, "restart", traceback.format_exc())
 
 
 @admin_router.message(Command("update"))
 async def cmd_update(message: Message, bot: Bot, db: Database):
-    if platform.system() != "Linux" or not shutil.which("systemctl"):
-        await message.reply(
-            "❌ Платформа не поддерживается\n📀 Требуется Linux + Systemd"
-        )
-        return
     user_id = message.from_user.id
     chat_id = message.chat.id
     if not await db.has_permission(user_id, chat_id, 4):
@@ -116,7 +93,47 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
         await update_msg.edit_text("⚠️ Не удалось удалить кэш загруженных моделей")
 
     try:
-        subprocess.Popen(["sudo", "systemctl", "restart", SERVICE_NAME])
+        await update_msg.edit_text("⏳ Получаю изменения из репозитория...")
+        git_process = await asyncio.create_subprocess_exec(
+            "git",
+            "pull",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        git_stdout, git_stderr = await git_process.communicate()
+        
+        if git_process.returncode != 0:
+            return await update_msg.edit_text(f"❌ Ошибка git pull: {git_stderr.decode()}")
+        
+        await update_msg.edit_text("🐳 Перестраиваю Docker образ...")
+        docker_build = await asyncio.create_subprocess_exec(
+            "docker",
+            "compose",
+            "build",
+            "bot",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, build_stderr = await docker_build.communicate()
+        
+        if docker_build.returncode != 0:
+            return await update_msg.edit_text(f"❌ Ошибка при сборке образа: {build_stderr.decode()}")
+        
+        await update_msg.edit_text("🔄 Перезапускаю контейнеры...")
+        docker_restart = await asyncio.create_subprocess_exec(
+            "docker",
+            "compose",
+            "up",
+            "-d",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, restart_stderr = await docker_restart.communicate()
+        
+        if docker_restart.returncode == 0:
+            await update_msg.edit_text("✅ Обновление выполнено успешно!")
+        else:
+            await update_msg.edit_text(f"⚠️ Ошибка при перезагрузке: {restart_stderr.decode()}")
     except Exception:
         await error_report(message, bot, "update", traceback.format_exc())
 
@@ -124,11 +141,6 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
 @admin_router.message(Command("logs"))
 async def cmd_send_logs(message: Message, bot: Bot, db: Database):
     try:
-        if platform.system() != "Linux" or not shutil.which("systemctl"):
-            await message.reply(
-                "❌ Платформа не поддерживается\n📀 Требуется Linux + Systemd"
-            )
-            return
         random_log_name = f"{uuid.uuid4()}.log"
         out_path = CACHE_DIR / random_log_name
 
@@ -138,13 +150,14 @@ async def cmd_send_logs(message: Message, bot: Bot, db: Database):
 
         out_path.parent.mkdir(exist_ok=True, parents=True)
 
+        container_name = os.getenv("DOCKER_CONTAINER", "komaru-funbox-bot-1")
+        
+        # Получаем логи из Docker контейнера
         process = await asyncio.create_subprocess_exec(
-            "journalctl",
-            "--no-pager",
-            "-u",
-            SERVICE_NAME,
-            "-n",
-            "80",
+            "docker",
+            "logs",
+            "--tail=100",
+            container_name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -152,7 +165,8 @@ async def cmd_send_logs(message: Message, bot: Bot, db: Database):
         stdout, stderr = await process.communicate()
 
         if process.returncode != 0:
-            raise RuntimeError(f"Ошибка выполнения команды: {stderr.decode()}")
+            await message.reply(f"❌ Ошибка при получении логов: {stderr.decode()}")
+            return
 
         with open(out_path, "wb") as f:
             f.write(stdout)

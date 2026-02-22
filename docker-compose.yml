@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ${INSTANCE_NAME:-komaru}-db
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - komaru-network
+
+  bot:
+    build: 
+      context: .
+      args:
+        - APP_DIR=/opt/Komaru-FunBox
+    container_name: ${INSTANCE_NAME:-komaru}-bot
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - .:/opt/Komaru-FunBox  # ВАЖНО: Монтируем текущую папку, чтобы git pull работал с реальными файлами
+      - /var/run/docker.sock:/var/run/docker.sock  # ВАЖНО: Пробрасываем управление Docker
+    environment:
+      - DB_HOST=db
+      - DOCKER_CONTAINER=${INSTANCE_NAME:-komaru}-bot
+    networks:
+      - komaru-network
+
+networks:
+  komaru-network:
+    driver: bridge

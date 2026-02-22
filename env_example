@@ -28,9 +28,16 @@ WEATHER_API_KEY=your_api_key
 SPECIFIC_CHAT=false
 SPECIFIC_CHATS_ID=123456789,987654321
 
+# Docker-специфичные переменные
+# Включить автоматическое обновление при запуске контейнера
+AUTO_UPDATE=false
+
+# Имя Docker контейнера для команд /restart, /update, /logs
+DOCKER_CONTAINER=komaru-funbox-bot-1
+
 # Бд, не трогайте это
-DB_NAME=DB_NAME
-DB_USER=DB_USER
-DB_PASSWORD=DB_PASSWORD
-DB_HOST=localhost
+DB_NAME=funbox_db
+DB_USER=komaru
+DB_PASSWORD=your_secure_password
+DB_HOST=db
 DB_PORT=5432
