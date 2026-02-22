@@ -18,7 +18,7 @@
 Запустите команду для автоматической установки всех зависимостей и развертывания бота:
 
 ```bash
-sudo bash -c "$(curl -sSL [https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh](https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh))"
+sudo bash -c "$(curl -sSL https://github.com/Not-a-dude/Komaru-FunBox/raw/test/setup.sh)"
 ```
 
 ## Вики
