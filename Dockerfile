@@ -3,7 +3,7 @@ FROM python:3.12-slim
 ARG APP_DIR=/opt/Komaru-FunBox
 WORKDIR ${APP_DIR}
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
     git \
