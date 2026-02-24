@@ -177,9 +177,7 @@ async def check_models(tier_filtered: bool = True, include_image: bool = False):
         {"role": "user", "content": "Write hello world"},
     ]
 
-    for model in models:
-        model_id = model["id"]
-
+    for model_id, model in models.items():
         logger.info(f"⌛️ Проверяем модель {model["name"]}")
 
         if tier_filtered and model["tier"] > current_tier:
@@ -230,9 +228,7 @@ async def check_rpm_limit(model_id: str) -> bool:
         model_id: ID модели
     """
     server_tier = int(os.getenv("ONLYSQ_TIER", 0))
-    model_info = next(
-        (m for m in onlysq_models.get("models", []) if m["id"] == model_id), None
-    )
+    model_info = onlysq_models.get("models", {}).get(model_id)
 
     if not model_info or "limits" not in model_info:
         return True
