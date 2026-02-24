@@ -1,10 +1,10 @@
 import asyncio
 import os
 import subprocess
+import sys
 import traceback
 import uuid
 from urllib.parse import urlparse
-import sys
 
 import aiohttp
 from aiogram import Bot, Router
@@ -101,10 +101,12 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
             stderr=asyncio.subprocess.PIPE,
         )
         git_stdout, git_stderr = await git_process.communicate()
-        
+
         if git_process.returncode != 0:
-            return await update_msg.edit_text(f"❌ Ошибка git pull: {git_stderr.decode()}")
-        
+            return await update_msg.edit_text(
+                f"❌ Ошибка git pull: {git_stderr.decode()}"
+            )
+
         await update_msg.edit_text("🐳 Перестраиваю Docker образ...")
         docker_build = await asyncio.create_subprocess_exec(
             "docker",
@@ -115,10 +117,12 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
             stderr=asyncio.subprocess.PIPE,
         )
         _, build_stderr = await docker_build.communicate()
-        
+
         if docker_build.returncode != 0:
-            return await update_msg.edit_text(f"❌ Ошибка при сборке образа: {build_stderr.decode()}")
-        
+            return await update_msg.edit_text(
+                f"❌ Ошибка при сборке образа: {build_stderr.decode()}"
+            )
+
         await update_msg.edit_text("🔄 Перезапускаю контейнеры...")
         docker_restart = await asyncio.create_subprocess_exec(
             "docker",
@@ -129,11 +133,13 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
             stderr=asyncio.subprocess.PIPE,
         )
         _, restart_stderr = await docker_restart.communicate()
-        
+
         if docker_restart.returncode == 0:
             await update_msg.edit_text("✅ Обновление выполнено успешно!")
         else:
-            await update_msg.edit_text(f"⚠️ Ошибка при перезагрузке: {restart_stderr.decode()}")
+            await update_msg.edit_text(
+                f"⚠️ Ошибка при перезагрузке: {restart_stderr.decode()}"
+            )
     except Exception:
         await error_report(message, bot, "update", traceback.format_exc())
 
@@ -151,7 +157,7 @@ async def cmd_send_logs(message: Message, bot: Bot, db: Database):
         out_path.parent.mkdir(exist_ok=True, parents=True)
 
         container_name = os.getenv("DOCKER_CONTAINER", "komaru-funbox-bot-1")
-        
+
         # Получаем логи из Docker контейнера
         process = await asyncio.create_subprocess_exec(
             "docker",

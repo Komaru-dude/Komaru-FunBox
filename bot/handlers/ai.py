@@ -22,6 +22,7 @@ from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.utils.ai_api import (
+    check_rpm_limit,
     generate_image_api,
     ocr_process_api,
     simple_text_api,
@@ -78,6 +79,25 @@ ALLOWED_RATIOS = {
     "9:16",
     "9:21",
 }
+
+
+def is_model_available_for_user(model_id: str, user_tier: int) -> bool:
+    """
+    Проверяет доступна ли модель для пользователя.
+    user_tier: 0 = свободный, 1+ = премиум
+    """
+    free_models = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+    free_models = [m.strip() for m in free_models if m.strip()]
+
+    if model_id in free_models:
+        return True
+
+    if user_tier > 0:
+        premium_models = os.getenv("ONLYSQ_ALLOWED_PREMIUM_MODELS", "").split(",")
+        premium_models = [m.strip() for m in premium_models if m.strip()]
+        return model_id in premium_models
+
+    return False
 
 
 class ChatState(StatesGroup):
@@ -192,6 +212,8 @@ async def cmd_ai(
     base_msg = await message.reply("🔄 Обработка...")
 
     try:
+        user_tier = await db.get_user_tier(user_id)
+
         request = ""
         user_default_model = None
         base64_image = None
@@ -231,6 +253,13 @@ async def cmd_ai(
             if not model_info.get("can-stream"):
                 await base_msg.edit_text(
                     f"❌ Модель {model_name} не поддерживает стриминг."
+                )
+                await db.reset_cooldown(user_id, "ai")
+                return
+            if not is_model_available_for_user(model_name, user_tier):
+                tier_name = "премиумные" if user_tier > 0 else "свободные"
+                await base_msg.edit_text(
+                    f"❌ Модель {model_name} недоступна в вашем тарифе. Используйте {tier_name} модели."
                 )
                 await db.reset_cooldown(user_id, "ai")
                 return
@@ -381,8 +410,16 @@ async def cmd_ai(
             )
 
     except openai.RateLimitError:
+        models_list = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+        free_models = [m.strip() for m in models_list if m.strip()]
+        models_text = ", ".join(f"<code>{m}</code>" for m in free_models[:5])
         await base_msg.edit_text(
-            "❌ Превышен лимит запросов к API. Попробуйте сменить модель"
+            f"❌ Превышен лимит RPM для данной модели.\n\n"
+            f"🔄 Попробуйте:\n"
+            f"- Подождать несколько минут\n"
+            f"- Выбрать другую модель (например: {models_text})\n\n"
+            f"<i>Используйте /available_models для просмотра доступных моделей</i>",
+            parse_mode=ParseMode.HTML,
         )
         await db.reset_cooldown(user_id, "ai")
     except (openai.InternalServerError, openai.APIError):
@@ -400,6 +437,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
         assert message.text is not None
         user_id = message.from_user.id
         base_msg = await message.reply("🔄 Агрессивно обрабатываю...")
+        user_tier = await db.get_user_tier(user_id)
 
         command_text = message.text if message.text else message.caption
         split_text = command_text.split(maxsplit=1) if command_text else [""]
@@ -424,6 +462,13 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
             ):
                 await base_msg.edit_text(
                     f"❌ Модель {model_name} недоступна или не текстовая."
+                )
+                await db.reset_cooldown(user_id, "ai")
+                return
+            if not is_model_available_for_user(model_name, user_tier):
+                tier_name = "премиумные" if user_tier > 0 else "свободные"
+                await base_msg.edit_text(
+                    f"❌ Модель {model_name} недоступна в вашем тарифе. Используйте {tier_name} модели."
                 )
                 await db.reset_cooldown(user_id, "ai")
                 return
@@ -504,8 +549,16 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
             )
 
     except openai.RateLimitError:
+        models_list = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+        free_models = [m.strip() for m in models_list if m.strip()]
+        models_text = ", ".join(f"<code>{m}</code>" for m in free_models[:5])
         await base_msg.edit_text(
-            "❌ Превышен лимит запросов к API. Попробуйте сменить модель"
+            f"❌ Превышен лимит RPM для данной модели.\n\n"
+            f"🔄 Попробуйте:\n"
+            f"- Подождать несколько минут\n"
+            f"- Выбрать другую модель (например: {models_text})\n\n"
+            f"<i>Используйте /available_models для просмотра доступных моделей</i>",
+            parse_mode=ParseMode.HTML,
         )
         await db.reset_cooldown(user_id, "ai")
     except (openai.InternalServerError, openai.APIError):
@@ -521,6 +574,8 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
     assert message.from_user is not None
     user_id = message.from_user.id
     try:
+        user_tier = await db.get_user_tier(user_id)
+
         command_text = message.text or message.caption or ""
         args = command_text.split(maxsplit=1)
 
@@ -547,6 +602,14 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
 
         if not prompt_ru:
             await message.answer("✍️ Промпт не может быть пустым.")
+            await db.reset_cooldown(user_id, "image")
+            return
+
+        if not is_model_available_for_user(model_name, user_tier):
+            tier_name = "премиумные" if user_tier > 0 else "свободные"
+            await message.answer(
+                f"❌ Модель {model_name} недоступна в вашем тарифе. Используйте {tier_name} модели."
+            )
             await db.reset_cooldown(user_id, "image")
             return
 
@@ -601,8 +664,16 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
             await processing_message.delete()
             return
         elif resp_status == 429:
+            models_list = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+            free_models = [m.strip() for m in models_list if m.strip()]
+            models_text = ", ".join(f"<code>{m}</code>" for m in free_models[:5])
             await message.reply(
-                "📛 Слишком много запросов.\n📝 Попробуйте другую модель"
+                f"❌ Превышен лимит RPM для данной модели.\n\n"
+                f"🔄 Попробуйте:\n"
+                f"- Подождать несколько минут\n"
+                f"- Выбрать другую модель (например: {models_text})\n\n"
+                f"<i>Используйте /available_models для просмотра доступных моделей</i>",
+                parse_mode=ParseMode.HTML,
             )
             await db.reset_cooldown(user_id, "image")
             await processing_message.delete()
@@ -638,6 +709,12 @@ async def cmd_translate(
     try:
         assert message.from_user is not None
         base_msg = await message.reply("🔄 Обработка...")
+        user_id = message.from_user.id
+        chat_id = message.chat.id
+
+        user_data = await db.get_user_data(user_id, chat_id)
+        default_model = user_data.get("default_model", None) or DEFAULT_MODEL
+
         default_lang = "en"
 
         original_text = message.text or message.caption or ""
@@ -691,12 +768,26 @@ async def cmd_translate(
 
         try:
             translated_text = await simple_text_api(
-                model=DEFAULT_MODEL, messages=messages
+                model=default_model, messages=messages
             )
 
             if not translated_text:
                 raise ValueError("Пустой ответ от модели")
 
+        except openai.RateLimitError:
+            models_list = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+            free_models = [m.strip() for m in models_list if m.strip()]
+            models_text = ", ".join(f"<code>{m}</code>" for m in free_models[:5])
+            await base_msg.edit_text(
+                f"❌ Превышен лимит RPM для данной модели.\n\n"
+                f"🔄 Попробуйте:\n"
+                f"- Подождать несколько минут\n"
+                f"- Выбрать другую модель (например: {models_text})\n\n"
+                f"<i>Используйте /available_models для просмотра доступных моделей</i>",
+                parse_mode=ParseMode.HTML,
+            )
+            await db.reset_cooldown(message.from_user.id, "ai")
+            return
         except Exception:
             await base_msg.edit_text(
                 "📛 Не удалось перевести текст.\n🧩 Обратитесь к разработчику."

@@ -263,3 +263,24 @@ async def delete_global_user(pool: Pool, user_id: int):
             "DELETE FROM global_users WHERE user_id = $1",
             user_id,
         )
+
+
+async def get_user_tier(pool: Pool, user_id: int) -> int:
+    async with pool.acquire() as conn:
+        tier = await conn.fetchval(
+            "SELECT tier FROM global_users WHERE user_id = $1",
+            user_id,
+        )
+        if tier is None:
+            await add_global_user(pool, user_id)
+            return 0
+        return tier
+
+
+async def set_user_tier(pool: Pool, user_id: int, tier: int):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE global_users SET tier = $1 WHERE user_id = $2",
+            tier,
+            user_id,
+        )

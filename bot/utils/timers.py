@@ -13,6 +13,7 @@ from aiogram import Bot
 
 from bot import BASE_DIR, FREE_GAMES_PATH, STOCKS_PATH, logger
 from bot.database.database import Database
+from bot.utils.ai_api import check_models
 from bot.utils.bot_tools import download_osq_models
 from bot.utils.get_free_epic_games import get_free_games
 
@@ -303,6 +304,17 @@ async def update_osq_models():
         await asyncio.sleep(86400)
 
 
+async def check_models_timer():
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            await check_models(include_image=True)
+        except Exception as e:
+            logger.critical(
+                f"❌ Не удалось обновить ИИ модели с OnlySq: {e}", exc_info=True
+            )
+
+
 async def background_checker(bot: Bot):
     """Главная функция для запуска фоновых задач"""
     update_task = asyncio.create_task(check_updates())
@@ -310,8 +322,9 @@ async def background_checker(bot: Bot):
     epic_task = asyncio.create_task(check_free_games(bot))
     update_stocks = asyncio.create_task(change_stocks())
     update_osq = asyncio.create_task(update_osq_models())
+    check_models = asyncio.create_task(check_models_timer())
 
     # Ждём того чего не случится
     await asyncio.gather(
-        update_task, cleanup_task, epic_task, update_stocks, update_osq
+        update_task, cleanup_task, epic_task, update_stocks, update_osq, check_models
     )

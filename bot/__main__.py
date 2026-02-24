@@ -15,6 +15,7 @@ from bot import DATA_DIR, IS_TEST, PYRO_HOST, PYRO_PORT, logger
 from bot.database.database import Database
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
+from bot.utils.ai_api import check_models
 from bot.utils.bot_tools import download_osq_models
 from bot.utils.cmd_manager import apply_all_command_sets
 from bot.utils.global_storage import onlysq_models
@@ -107,6 +108,7 @@ async def main():
         logger.info("▶️ Подготовка...")
         clear_cache()
         await load_models()
+        await check_models(include_image=True)
         await db.connect()
         await apply_all_command_sets(bot)
     except Exception:

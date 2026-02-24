@@ -464,6 +464,16 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
     except openai.InternalServerError:
         await message.reply("⚠️ Внутренняя ошибка API")
     except openai.RateLimitError:
-        await message.reply("❌ Превышен лимит запросов к API. Попробуйте позже")
+        models_list = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+        free_models = [m.strip() for m in models_list if m.strip()]
+        models_text = ", ".join(f"<code>{m}</code>" for m in free_models[:5])
+        await message.reply(
+            f"❌ Превышен лимит RPM для данной модели.\n\n"
+            f"🔄 Попробуйте:\n"
+            f"- Подождать несколько минут\n"
+            f"- Выбрать другую модель (например: {models_text})\n\n"
+            f"<i>Используйте /available_models для просмотра доступных моделей</i>",
+            parse_mode=ParseMode.HTML,
+        )
     except Exception:
         await error_report(message, bot, "text", traceback.format_exc())

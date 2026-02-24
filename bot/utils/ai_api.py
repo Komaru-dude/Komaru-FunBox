@@ -1,10 +1,16 @@
 import base64
 import json
 import os
+import time
 from typing import Any, AsyncGenerator, Optional
 
 import aiohttp
+import magic
 import openai
+
+from bot import logger
+from bot.database.redis_client import redis_db
+from bot.utils.global_storage import filtered_models, onlysq_models
 
 client = openai.AsyncOpenAI(
     api_key=os.getenv("ONLYSQ_API_KEY"),
@@ -34,6 +40,13 @@ ALLOWED_RATIOS = {
 
 async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dict:
     """Генерация изображений через внешний API."""
+    if not await check_rpm_limit(model):
+        return {
+            "error": True,
+            "status": 429,
+            "msg": "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель.",
+        }
+
     if ratio not in ALLOWED_RATIOS:
         return {"error": True, "msg": f"Недопустимое соотношение сторон: {ratio}"}
 
@@ -67,6 +80,12 @@ async def stream_text_api(
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: str = "auto",
 ) -> AsyncGenerator[str, None]:
+    if not await check_rpm_limit(model):
+        raise openai.RateLimitError(
+            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель.",
+            response=None,
+            body=None,
+        )
 
     kwargs: dict[str, Any] = {
         "model": model,
@@ -87,6 +106,13 @@ async def stream_text_api(
 
 async def simple_text_api(model: str, messages: list) -> str:
     """Обычный запрос текста (без стриминга)."""
+    if not await check_rpm_limit(model):
+        raise openai.RateLimitError(
+            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель.",
+            response=None,
+            body=None,
+        )
+
     response = await client.chat.completions.create(
         model=model, messages=messages, stream=False
     )
@@ -137,3 +163,91 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
                 return f"Ошибка OCR: {res}"
 
             return "\n".join(s.get("text", "") for s in res.get("sections", []))
+
+
+async def check_models(tier_filtered: bool = True, include_image: bool = False):
+    """Асинхронная проверка доступности моделей"""
+    logger.info("🧠 Проверяем доступность моделей")
+    models = onlysq_models["models"]
+    checked_models = {}
+
+    current_tier = int(os.getenv("ONLYSQ_TIER", 0))
+
+    test_messages = [
+        {"role": "user", "content": "Write hello world"},
+    ]
+
+    for model in models:
+        model_id = model["id"]
+
+        logger.info(f"⌛️ Проверяем модель {model["name"]}")
+
+        if tier_filtered and model["tier"] > current_tier:
+            continue
+
+        if model["type"] == "text":
+            try:
+                model_answer = await simple_text_api(model_id, test_messages)
+
+                if not len(model_answer) > 5:
+                    raise RuntimeError
+
+                checked_models[model_id] = model
+            except Exception as e:
+                logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
+        elif model["type"] == "image" and include_image:
+            try:
+                api_resp = await generate_image_api(model_id, "Ginger cat")
+
+                if api_resp.get("error"):
+                    raise RuntimeError(f"API вернуло ошибку: {api_resp.get("error")}")
+
+                image_bytes = api_resp.get("file")
+
+                if not image_bytes or not isinstance(image_bytes, bytes):
+                    raise RuntimeError("Поле 'file' пустое или имеет неверный формат")
+
+                mime = magic.from_buffer(image_bytes, mime=True)
+
+                if not mime.startswith("image/"):
+                    raise RuntimeError("Модель не вернула изображение")
+
+                checked_models[model_id] = model
+            except Exception as e:
+                logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
+
+    filtered_models.update(checked_models)
+    logger.info(f"✅ Модели проверены, рабочие: {len(checked_models)}")
+
+
+async def check_rpm_limit(model_id: str) -> bool:
+    """
+    Проверяет RPM лимит на основе ONLYSQ_TIER сервера.
+    Возвращает True, если слот есть.
+    Если лимит превышен (с учетом 1 прозапас), возвращает False.
+
+    Args:
+        model_id: ID модели
+    """
+    server_tier = int(os.getenv("ONLYSQ_TIER", 0))
+    model_info = next(
+        (m for m in onlysq_models.get("models", []) if m["id"] == model_id), None
+    )
+
+    if not model_info or "limits" not in model_info:
+        return True
+
+    limit = max(0, model_info["limits"][server_tier] - 1)
+
+    now = time.time()
+    current_minute = int(now // 60)
+    key = f"rpm_limit:{model_id}:{current_minute}"
+
+    current_usage = await redis_db.client.incr(key)
+    if current_usage == 1:
+        await redis_db.client.expire(key, 60)
+
+    if current_usage > limit:
+        return False
+
+    return True

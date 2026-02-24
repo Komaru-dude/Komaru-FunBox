@@ -366,3 +366,11 @@ class Database:
     async def get_usage_top(self, limit: int = 5):
         pool = await self.ensure_connection()
         return await utils.get_usage_top(pool, limit)
+
+    async def get_user_tier(self, user_id: int):
+        pool = await self.ensure_connection()
+        return await users.get_user_tier(pool, user_id)
+
+    async def set_user_tier(self, user_id: int, tier: int):
+        pool = await self.ensure_connection()
+        return await users.set_user_tier(pool, user_id, tier)
