@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     postgresql-client \
+    libmagic1 \
     && curl -fsSL https://get.docker.com | sh \
     && rm -rf /var/lib/apt/lists/*
 
