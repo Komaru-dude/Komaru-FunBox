@@ -1,7 +1,6 @@
 import asyncio
 import os
 import subprocess
-import sys
 import traceback
 import uuid
 from urllib.parse import urlparse
@@ -32,7 +31,7 @@ async def cmd_restart(message: Message, bot: Bot, db: Database):
             return
         await message.answer("Перезапускаюсь... 🔄")
 
-        sys.exit(1)
+        os._exit(1)
     except Exception:
         await error_report(message, bot, "restart", traceback.format_exc())
 
@@ -100,7 +99,7 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        git_stdout, git_stderr = await git_process.communicate()
+        _, git_stderr = await git_process.communicate()
 
         if git_process.returncode != 0:
             return await update_msg.edit_text(
@@ -123,23 +122,8 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
                 f"❌ Ошибка при сборке образа: {build_stderr.decode()}"
             )
 
-        await update_msg.edit_text("🔄 Перезапускаю контейнеры...")
-        docker_restart = await asyncio.create_subprocess_exec(
-            "docker",
-            "compose",
-            "up",
-            "-d",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        _, restart_stderr = await docker_restart.communicate()
-
-        if docker_restart.returncode == 0:
-            await update_msg.edit_text("✅ Обновление выполнено успешно!")
-        else:
-            await update_msg.edit_text(
-                f"⚠️ Ошибка при перезагрузке: {restart_stderr.decode()}"
-            )
+        await update_msg.edit_text("🔄 Обновление прошло успешно, перезапускаю контейнеры...")
+        os._exit(1)
     except Exception:
         await error_report(message, bot, "update", traceback.format_exc())
 

@@ -45,6 +45,12 @@ if [ "${AUTO_UPDATE:-false}" = "true" ]; then
     fi
 fi
 
+# Check and install dependencies
+if [ -f "requirements.txt" ]; then
+    echo -e "${BLUE}📦 Checking/Installing dependencies...${NC}"
+    pip install --no-cache-dir -r requirements.txt --quiet
+fi
+
 # Start the bot
 echo -e "${GREEN}🤖 Starting bot...${NC}"
 exec python -u -m bot

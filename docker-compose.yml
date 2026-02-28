@@ -38,7 +38,6 @@ services:
       - .env
     volumes:
       - .:/opt/Komaru-FunBox  # ВАЖНО: Монтируем текущую папку, чтобы git pull работал с реальными файлами
-      - /var/run/docker.sock:/var/run/docker.sock  # ВАЖНО: Пробрасываем управление Docker
     environment:
       - DB_HOST=db
       - DOCKER_CONTAINER=${INSTANCE_NAME:-komaru}-bot
