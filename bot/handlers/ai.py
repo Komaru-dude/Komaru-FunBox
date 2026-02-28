@@ -5,6 +5,7 @@ import re
 import time
 import traceback
 from html import escape
+
 import openai
 from aiogram import Bot, Router
 from aiogram.enums import ParseMode
@@ -136,7 +137,9 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
         user_id = message.from_user.id
         user_tier = await db.get_user_tier(user_id)
 
-        available_models = filter_models_by_availability(filtered_models, user_tier=user_tier)
+        available_models = filter_models_by_availability(
+            filtered_models, user_tier=user_tier
+        )
 
         if not available_models:
             await message.reply(
@@ -264,7 +267,7 @@ async def cmd_ai(
             user_data = await db.get_user_data(user_id, message.chat.id)
             user_default_model = user_data.get("default_model", None)
             model = user_default_model or DEFAULT_MODEL
-            
+
             if not is_model_available_for_user(model, user_tier):
                 await base_msg.edit_text(
                     f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
@@ -921,9 +924,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             return
 
         model_display_name = (
-            filtered_models[model]["name"]
-            if model in filtered_models
-            else model
+            filtered_models[model]["name"] if model in filtered_models else model
         )
         if (
             model == user_default_model and not model == DEFAULT_MODEL

@@ -310,7 +310,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                         model = model_candidate
                         user_query = re.sub(r"-m\s+\S+", "", user_query).strip()
                         messages_for_ai[1]["content"] = user_query
-            
+
                 user_tier = await db.get_user_tier(user1.id)
                 if not is_model_available_for_user(model, user_tier):
                     tier_name = "премиумные" if user_tier > 0 else "свободные"

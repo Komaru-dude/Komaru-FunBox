@@ -122,7 +122,9 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
                 f"❌ Ошибка при сборке образа: {build_stderr.decode()}"
             )
 
-        await update_msg.edit_text("🔄 Обновление прошло успешно, перезапускаю контейнеры...")
+        await update_msg.edit_text(
+            "🔄 Обновление прошло успешно, перезапускаю контейнеры..."
+        )
         os._exit(1)
     except Exception:
         await error_report(message, bot, "update", traceback.format_exc())
@@ -604,9 +606,7 @@ async def cmd_remove_money(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "remove_money", traceback.format_exc())
 
 
-@admin_router.message(
-    Command("grant_premium"), CooldownFilter("premium_tools", 15)
-)
+@admin_router.message(Command("grant_premium"), CooldownFilter("premium_tools", 15))
 async def cmd_grant_premium(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -684,9 +684,7 @@ async def cmd_grant_premium(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "grant_premium", traceback.format_exc())
 
 
-@admin_router.message(
-    Command("revoke_premium"), CooldownFilter("premium_tools", 15)
-)
+@admin_router.message(Command("revoke_premium"), CooldownFilter("premium_tools", 15))
 async def cmd_revoke_premium(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id

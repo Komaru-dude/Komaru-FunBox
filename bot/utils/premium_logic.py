@@ -109,9 +109,7 @@ def get_user_available_models(user_tier: int) -> Dict[str, str]:
     return result
 
 
-def filter_models_by_availability(
-    models: Dict, user_tier: int
-) -> Dict:
+def filter_models_by_availability(models: Dict, user_tier: int) -> Dict:
     """
     Фильтрует модели в зависимости от доступности для пользователя.
 
