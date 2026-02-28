@@ -172,15 +172,40 @@ async def check_models(tier_filtered: bool = True, include_image: bool = False):
     """Асинхронная проверка доступности моделей"""
     logger.info("🧠 Проверяем доступность моделей")
     models = onlysq_models["models"]
-    checked_models = {}
 
+    free_models = [
+        m.strip()
+        for m in os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
+        if m.strip()
+    ]
+    premium_models = [
+        m.strip()
+        for m in os.getenv("ONLYSQ_ALLOWED_PREMIUM_MODELS", "").split(",")
+        if m.strip()
+    ]
+    allowed_ids = set(free_models + premium_models)
+
+    all_api_models = onlysq_models.get("models", {})
+    checked_models = {}
     current_tier = int(os.getenv("ONLYSQ_TIER", 0))
 
     test_messages = [
         {"role": "user", "content": "Write hello world"},
     ]
 
-    for model_id, model in models.items():
+    for model_id in allowed_ids:
+        if model_id not in all_api_models:
+            logger.error(
+                f"❌ Модель {model_id} указана в .env, но отсутствует в API OnlySQ!"
+            )
+            continue
+
+        model = all_api_models[model_id]
+
+        if tier_filtered and model.get("tier", 0) > current_tier:
+            logger.info(f"⏭ Пропускаем {model_id}: ваш Tier ниже необходимого.")
+            continue
+
         logger.info(f"⌛️ Проверяем модель {model["name"]}")
 
         if tier_filtered and model["tier"] > current_tier:
