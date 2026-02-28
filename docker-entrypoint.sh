@@ -30,7 +30,7 @@ echo -e "${GREEN}✅ Database is ready!${NC}"
 # Check for auto-update on startup
 if [ "${AUTO_UPDATE:-false}" = "true" ]; then
     echo -e "${BLUE}🔄 AUTO_UPDATE enabled, checking for updates...${NC}"
-    if cd /app && git fetch --quiet origin; then
+    if cd /opt/Komaru-FunBox && git fetch --quiet origin; then
         CURRENT=$(git rev-parse HEAD)
         LATEST=$(git rev-parse origin/$(git rev-parse --abbrev-ref HEAD) 2>/dev/null || echo "$CURRENT")
         

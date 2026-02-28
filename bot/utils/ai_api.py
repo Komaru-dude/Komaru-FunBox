@@ -38,6 +38,13 @@ ALLOWED_RATIOS = {
 }
 
 
+class LocalRateLimitError(Exception):
+    """Выбрасывается, когда наш API вываливается в рейтлимит"""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
 async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dict:
     """Генерация изображений через внешний API."""
     if not await check_rpm_limit(model):
@@ -81,10 +88,8 @@ async def stream_text_api(
     tool_choice: str = "auto",
 ) -> AsyncGenerator[str, None]:
     if not await check_rpm_limit(model):
-        raise openai.RateLimitError(
-            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель.",
-            response=None,
-            body=None,
+        raise LocalRateLimitError(
+            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель."
         )
 
     kwargs: dict[str, Any] = {
@@ -107,10 +112,8 @@ async def stream_text_api(
 async def simple_text_api(model: str, messages: list) -> str:
     """Обычный запрос текста (без стриминга)."""
     if not await check_rpm_limit(model):
-        raise openai.RateLimitError(
-            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель.",
-            response=None,
-            body=None,
+        raise LocalRateLimitError(
+            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель."
         )
 
     response = await client.chat.completions.create(
@@ -183,7 +186,7 @@ async def check_models(tier_filtered: bool = True, include_image: bool = False):
         if tier_filtered and model["tier"] > current_tier:
             continue
 
-        if model["type"] == "text":
+        if model["modality"] == "text":
             try:
                 model_answer = await simple_text_api(model_id, test_messages)
 
@@ -193,7 +196,7 @@ async def check_models(tier_filtered: bool = True, include_image: bool = False):
                 checked_models[model_id] = model
             except Exception as e:
                 logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
-        elif model["type"] == "image" and include_image:
+        elif model["modality"] == "image" and include_image:
             try:
                 api_resp = await generate_image_api(model_id, "Ginger cat")
 

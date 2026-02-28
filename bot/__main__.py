@@ -13,6 +13,7 @@ from aiogram.methods import DeleteWebhook
 
 from bot import DATA_DIR, IS_TEST, PYRO_HOST, PYRO_PORT, logger
 from bot.database.database import Database
+from bot.database.redis_client import redis_db
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
 from bot.utils.ai_api import check_models
@@ -108,8 +109,9 @@ async def main():
         logger.info("▶️ Подготовка...")
         clear_cache()
         await load_models()
-        await check_models(include_image=True)
         await db.connect()
+        await redis_db.connect()
+        await check_models(include_image=True)
         await apply_all_command_sets(bot)
     except Exception:
         logger.fatal(
@@ -161,6 +163,7 @@ async def main():
         logger.fatal(f"📛 Запуск не удался.\n\nTraceback: {format_exc()}")
     finally:
         await bot.session.close()
+        await redis_db.close()
         if pyrogram_process.poll() is None:
             if sys.platform == "win32":
                 pyrogram_process.send_signal(signal.CTRL_BREAK_EVENT)

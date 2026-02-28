@@ -22,8 +22,8 @@ ONLYSQ_API_KEY=openai
 ONLYSQ_TIER=0
 
 # Разрешённые модели onlysq (см список тут: https://api.onlysq.ru/ai/models). Разделяйте модели через запятые
-ONLYSQ_ALLOWED_FREE_MODELS=llama-3.3-70b,gpt-4.1-mini,gemini-2.5-flash,qwen2.5-turbostandard,rev-perplexitylite
-ONLYSQ_ALLOWED_PREMIUM_MODELS=gpt-5-chat,gpt-5-mini,gpt-4.1,deepseek-v3,deepseek-r1,qwen3-max,gemini-3-flash,o1
+ONLYSQ_ALLOWED_FREE_MODELS=llama-3.3-70b,gpt-4.1-mini,gemini-2.5-flash,qwen2.5-turbostandard,rev-perplexitylite,flux,gpt-image-1,gpt-image-1-mini
+ONLYSQ_ALLOWED_PREMIUM_MODELS=gpt-5-chat,gpt-5-mini,gpt-4.1,deepseek-v3,deepseek-r1,qwen3-max,gemini-3-flash,o1,gpt-image-1.5
 
 # Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
 JIGSAW_API_KEY=your_api_key
