@@ -5,8 +5,6 @@ import re
 import time
 import traceback
 from html import escape
-
-import aiohttp
 import openai
 from aiogram import Bot, Router
 from aiogram.enums import ParseMode
@@ -17,24 +15,25 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import BufferedInputFile, Message
 from pydantic import BaseModel
 
-from bot import logger
 from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
 from bot.utils.ai_api import (
-    check_rpm_limit,
     generate_image_api,
     ocr_process_api,
     simple_text_api,
     stream_text_api,
 )
 from bot.utils.aio_tools import error_report
-from bot.utils.bot_tools import make_post_request
-from bot.utils.global_storage import active_chats, active_chats_lock, onlysq_models
+from bot.utils.global_storage import active_chats, active_chats_lock, filtered_models
+from bot.utils.premium_logic import (
+    filter_models_by_availability,
+    is_model_available_for_user,
+)
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
-DEFAULT_MODEL = "qwen2.5-turbo"
+DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_IMAGE_MODEL = "flux"
 
 SUPPORTED_LANGUAGES = {
@@ -79,25 +78,6 @@ ALLOWED_RATIOS = {
     "9:16",
     "9:21",
 }
-
-
-def is_model_available_for_user(model_id: str, user_tier: int) -> bool:
-    """
-    Проверяет доступна ли модель для пользователя.
-    user_tier: 0 = свободный, 1+ = премиум
-    """
-    free_models = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
-    free_models = [m.strip() for m in free_models if m.strip()]
-
-    if model_id in free_models:
-        return True
-
-    if user_tier > 0:
-        premium_models = os.getenv("ONLYSQ_ALLOWED_PREMIUM_MODELS", "").split(",")
-        premium_models = [m.strip() for m in premium_models if m.strip()]
-        return model_id in premium_models
-
-    return False
 
 
 class ChatState(StatesGroup):
@@ -152,16 +132,24 @@ AVAILABLE_TOOLS["chat_stop"] = execute_chat_stop
 @ai_router.message(Command("available_models"), CooldownFilter("available_models", 15))
 async def show_working_models(message: Message, bot: Bot, db: Database):
     try:
-        working_models = [
-            {"id": model_id, **model_data}
-            for model_id, model_data in onlysq_models["models"].items()
-            if model_data["status"] == "work"
-        ]
+        assert message.from_user is not None
+        user_id = message.from_user.id
+        user_tier = await db.get_user_tier(user_id)
+
+        available_models = filter_models_by_availability(filtered_models, user_tier=user_tier)
+
+        if not available_models:
+            await message.reply(
+                "❌ На данный момент нет доступных моделей.",
+                parse_mode=ParseMode.HTML,
+            )
+            await db.reset_cooldown(user_id, "available_models")
+            return
 
         categories = {}
-        for model in working_models:
-            modality = model["modality"]
-            categories.setdefault(modality, []).append(model)
+        for model_id, model_data in available_models.items():
+            modality = model_data["modality"]
+            categories.setdefault(modality, []).append({"id": model_id, **model_data})
 
         message_text = ""
         category_names = {
@@ -177,21 +165,29 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
             category_body = []
 
             for model in models:
-                stream_icon = " 🧠 Думающая" if model.get("can-think", False) else ""
+                premium_icon = " 💎" if model.get("is_premium", False) else ""
+                thinking_icon = " 🧠" if model.get("can-think", False) else ""
                 display_name = model["id"]
 
-                model_line = f"<code>{display_name}</code>{stream_icon}\n"
+                model_line = (
+                    f"<code>{display_name}</code>{premium_icon}{thinking_icon}\n"
+                )
                 category_body.append(model_line)
 
             message_text += category_header + "".join(category_body) + "\n"
 
-        legend_text = (
-            "\n❓ Что значат все эти эмодзи?\n\n"
-            "🧠 Думающая — может размышлять перед ответом, повышает качество ответа ценой большего времени ожидания"
-        )
+        legend_text = "\n❓ <b>Что значат все эти эмодзи?</b>\n\n"
+        legend_text += "💎 Премиум — модель доступна только для премиум пользователей\n"
+        legend_text += "🧠 Думающая — может размышлять перед ответом, повышает качество ответа ценой большего времени ожидания"
+
+        user_tier_text = "\n\n👤 <b>Ваш тариф:</b> "
+        if user_tier > 0:
+            user_tier_text += "💎 Премиум"
+        else:
+            user_tier_text += "🆓 Обычный"
 
         await message.reply(
-            f"🚀 <b>Доступные модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}",
+            f"🚀 <b>Доступные модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}{user_tier_text}",
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
         )
@@ -235,7 +231,7 @@ async def cmd_ai(
             args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
 
         if model_name:
-            model_info = onlysq_models["models"].get(model_name)
+            model_info = filtered_models.get(model_name)
             if not model_info:
                 await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
                 await db.reset_cooldown(user_id, "ai")
@@ -268,6 +264,16 @@ async def cmd_ai(
             user_data = await db.get_user_data(user_id, message.chat.id)
             user_default_model = user_data.get("default_model", None)
             model = user_default_model or DEFAULT_MODEL
+            
+            if not is_model_available_for_user(model, user_tier):
+                await base_msg.edit_text(
+                    f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
+                    f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
+                    f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
+                    f"📋 Используйте <code>/available_models</code> для просмотра доступных моделей",
+                    parse_mode=ParseMode.HTML,
+                )
+                model = DEFAULT_MODEL
 
         if message.reply_to_message and message.reply_to_message.text:
             request += f'"{message.reply_to_message.text}"\n'
@@ -280,7 +286,7 @@ async def cmd_ai(
         elif message.reply_to_message and message.reply_to_message.photo:
             photo_to_process = message.reply_to_message.photo[-1]
 
-        is_tools_model = onlysq_models["models"].get(model).get("can-tools", False)
+        is_tools_model = filtered_models.get(model, {}).get("can-tools", False)
         if photo_to_process and is_tools_model:
             try:
                 await base_msg.edit_text("🔄 Обнаружено фото, обрабатываю...")
@@ -308,12 +314,7 @@ async def cmd_ai(
                 return
             request = "Что на картинке?"
 
-        client = openai.AsyncOpenAI(
-            api_key=os.getenv("ONLYSQ_API_KEY"),
-            base_url=os.getenv("OPENAI_SDK_API_URL"),
-        )
-
-        model_info = onlysq_models["models"].get(model)
+        model_info = filtered_models.get(model)
         if not model_info:
             await base_msg.edit_text("📛 Модель не найдена. Сброс до стандартной.")
             await db.set_user_param(user_id, message.chat.id, "default_model", None)
@@ -367,9 +368,9 @@ async def cmd_ai(
                     now = time.monotonic()
 
                     if (
-                        len(buffer) > 30
+                        len(buffer) > 35
                         or chunk.endswith((".", "!", "?", "\n"))
-                        or now - last_edit_time > 3.0
+                        or now - last_edit_time > 10.0
                     ):
                         try:
                             await base_msg.edit_text(
@@ -454,7 +455,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
             args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
 
         if model_name:
-            model_info = onlysq_models["models"].get(model_name)
+            model_info = filtered_models.get(model_name)
             if (
                 not model_info
                 or model_info.get("status") != "work"
@@ -489,7 +490,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
             await db.reset_cooldown(user_id, "ai")
             return
 
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = filtered_models.get(model, {})
         model_display_name = f"{model_info.get('name', model)} (Aggressive)"
 
         messages = [
@@ -521,9 +522,9 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
                 now = time.monotonic()
 
                 if (
-                    len(buffer) > 30
+                    len(buffer) > 35
                     or chunk.endswith((".", "!", "?", "\n"))
-                    or (now - last_edit_time > 3.0)
+                    or now - last_edit_time > 10.0
                 ):
                     try:
                         await base_msg.edit_text(
@@ -881,7 +882,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             args_text = re.sub(r"-m\s+\S+", "", args_text, 1).strip()
 
         if model_name:
-            model_info = onlysq_models["models"].get(model_name)
+            model_info = filtered_models.get(model_name)
             if not model_info:
                 await message.reply(f"❌ Модель {model_name} не найдена")
                 await db.reset_cooldown(user_id, "ai")
@@ -907,9 +908,21 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
 
         model = model or user_default_model or DEFAULT_MODEL
 
+        user_tier = await db.get_user_tier(user_id)
+        if not is_model_available_for_user(model, user_tier):
+            await message.reply(
+                f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
+                f"🔄 Используйте стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
+                f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
+                f"📋 Используйте <code>/available_models</code> для просмотра доступных моделей",
+                parse_mode=ParseMode.HTML,
+            )
+            await db.reset_cooldown(user_id, "ai")
+            return
+
         model_display_name = (
-            onlysq_models["models"][model]["name"]
-            if model in onlysq_models["models"]
+            filtered_models[model]["name"]
+            if model in filtered_models
             else model
         )
         if (
@@ -1049,7 +1062,7 @@ async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
 
         model_name = parts[1].strip()
 
-        model_info = onlysq_models["models"].get(model_name)
+        model_info = filtered_models.get(model_name)
         if not model_info:
             await message.reply(
                 f"❌ Модель <code>{model_name}</code> не найдена",

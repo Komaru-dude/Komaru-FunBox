@@ -28,6 +28,7 @@ from bot.handlers.video import cmd_video
 from bot.utils.ai_api import simple_text_api, stream_text_api
 from bot.utils.aio_tools import error_report, fetch_user_data, get_user_id
 from bot.utils.global_storage import active_chats, onlysq_models
+from bot.utils.premium_logic import is_model_available_for_user
 
 text_router = Router()
 BASE_COMMANDS_PATH = Path("bot/config/basic_rp.json")
@@ -75,6 +76,19 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             messages = user_data.get("messages", [])
             model = user_data.get("model", DEFAULT_MODEL)
             user_message = text_msg.strip()
+
+            user_tier = await db.get_user_tier(user1.id)
+            if not is_model_available_for_user(model, user_tier):
+                await state.clear()
+                tier_name = "премиумные" if user_tier > 0 else "свободные"
+                await base_msg.edit_text(
+                    f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
+                    f"🔄 Сброс на стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
+                    f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
+                    f"📋 Используйте <code>/available_models</code> для просмотра {tier_name} моделей",
+                    parse_mode=ParseMode.HTML,
+                )
+                return
 
             messages.append({"role": "user", "content": user_message})
 
@@ -169,9 +183,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
                             now = time.monotonic()
                             if (
-                                len(buffer) > 30
+                                len(buffer) > 35
                                 or chunk.endswith((".", "!", "?", "\n"))
-                                or now - last_edit_time > 3.0
+                                or now - last_edit_time > 10.0
                             ):
                                 try:
                                     await base_msg.edit_text(
@@ -296,6 +310,18 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                         model = model_candidate
                         user_query = re.sub(r"-m\s+\S+", "", user_query).strip()
                         messages_for_ai[1]["content"] = user_query
+            
+                user_tier = await db.get_user_tier(user1.id)
+                if not is_model_available_for_user(model, user_tier):
+                    tier_name = "премиумные" if user_tier > 0 else "свободные"
+                    await message.reply(
+                        f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
+                        f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
+                        f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
+                        f"📋 Используйте <code>/available_models</code> для просмотра {tier_name} моделей",
+                        parse_mode=ParseMode.HTML,
+                    )
+                    model = DEFAULT_MODEL
 
                 model_info = onlysq_models["models"].get(model, {})
                 can_stream = model_info.get("can-stream", False)

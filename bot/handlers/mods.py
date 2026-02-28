@@ -241,8 +241,11 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
         if not user_data:
             return await message.reply("❌ Пользователь не найден в базе данных")
 
+        tier = await db.get_user_tier(user_id)
+
         profile_link = f"tg://user?id={user_info['user_id']}"
         clickable_name = f'<a href="{profile_link}">{user_info["first_name"]}</a>'
+        final_tier = "💎 Премиум" if tier > 0 else "🆓 Обычный"
 
         info_text = (
             f"👤 Информация о {clickable_name}\n"
@@ -256,6 +259,7 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
             f"🏦 Банковский счёт: {await db.get_global_user_param(user_info["user_id"], "bank")}\n"
             f"📨 Сообщений: {user_data['message_count']}\n"
             f"🏅 Ранг: {user_data['rank']}\n"
+            f"{final_tier}\n"
         )
 
         await message.reply(info_text, parse_mode=ParseMode.HTML)

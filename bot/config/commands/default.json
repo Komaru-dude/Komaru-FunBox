@@ -70,6 +70,8 @@
     { "command": "get_active_users_count", "description": "Посмотреть число активных юзеров"},
     { "command": "add_money", "description": "Добавить деньги пользователю" },
     { "command": "remove_money", "description": "Вычесть деньги у пользователя" },
+    { "command": "grant_premium", "description": "Выдать премиум статус" },
+    { "command": "revoke_premium", "description": "Отозвать премиум статус" },
     { "command": "usage_stats", "description": "Статистика использований бота" }
   ]
 }
