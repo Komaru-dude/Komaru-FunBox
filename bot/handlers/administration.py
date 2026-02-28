@@ -106,25 +106,7 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
                 f"❌ Ошибка git pull: {git_stderr.decode()}"
             )
 
-        await update_msg.edit_text("🐳 Перестраиваю Docker образ...")
-        docker_build = await asyncio.create_subprocess_exec(
-            "docker",
-            "compose",
-            "build",
-            "bot",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        _, build_stderr = await docker_build.communicate()
-
-        if docker_build.returncode != 0:
-            return await update_msg.edit_text(
-                f"❌ Ошибка при сборке образа: {build_stderr.decode()}"
-            )
-
-        await update_msg.edit_text(
-            "🔄 Обновление прошло успешно, перезапускаю контейнеры..."
-        )
+        await update_msg.edit_text("🔄 Обновление прошло успешно, перезапускаюсь...")
         os._exit(1)
     except Exception:
         await error_report(message, bot, "update", traceback.format_exc())
