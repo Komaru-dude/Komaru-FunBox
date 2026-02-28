@@ -242,6 +242,7 @@ async def check_models(tier_filtered: bool = True, include_image: bool = False):
             except Exception as e:
                 logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
 
+    filtered_models.clear()
     filtered_models.update(checked_models)
     logger.info(f"✅ Модели проверены, рабочие: {len(checked_models)}")
 
