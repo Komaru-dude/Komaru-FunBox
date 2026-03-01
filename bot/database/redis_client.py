@@ -15,7 +15,6 @@ class RedisManager:
             db=db,
             decode_responses=True,
             socket_timeout=5,
-            retry_on_timeout=True,
         )
         for attempt in range(5):
             try:
