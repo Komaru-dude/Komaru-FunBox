@@ -86,12 +86,7 @@ class ChatState(StatesGroup):
 
 
 class ChatStopTool(BaseModel):
-    """
-    Останавливает текущую активную сессию чата, сбрасывая состояние пользователя.
-    Используется, если пользователь явно запрашивает завершение текущего разговора.
-    """
-
-    # Аргументы не нужны, но описание важно для LLM
+    """Останавливает текущую активную сессию чата, сбрасывая состояние пользователя."""
     pass
 
 
@@ -100,8 +95,12 @@ TOOLS_SCHEMA = [
         "type": "function",
         "function": {
             "name": "chat_stop",
-            "description": ChatStopTool.__doc__.strip(),
-            "parameters": ChatStopTool.model_json_schema(),
+            "description": "Останавливает текущую активную сессию чата, сбрасывая состояние пользователя. Используется, если пользователь явно запрашивает завершение текущего разговора.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
         },
     }
 ]
@@ -944,6 +943,10 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             )
         else:
             system_message = "Не используй markdown/html форматирование, будь краток"
+
+        is_tools_model = filtered_models.get(model, {}).get("can-tools", False)
+        if is_tools_model:
+            system_message += "\n\nДоступный инструмент: chat_stop - используй его если пользователь просит остановить чат или закончить разговор."
 
         messages = [{"role": "system", "content": system_message}]
 

@@ -100,9 +100,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
             model_info = onlysq_models["models"].get(model, {})
             model_display_name = model_info.get("name", model)
 
-            is_gemini_tool_model = model.startswith("gemini")
+            is_tools_model = model_info.get("can-tools", False)
 
-            if is_gemini_tool_model:
+            if is_tools_model:
                 response = await client.chat.completions.create(
                     model=model,
                     messages=messages,
@@ -119,6 +119,15 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
                     for tool_call in response_message.tool_calls:
                         tool_output = await handle_tool_call(tool_call, message, state)
+                        
+                        if tool_call.function.name == "chat_stop":
+                            await base_msg.edit_text(
+                                f"💭 Запрос: {user_message}\n"
+                                f"🧠 Модель: {model_display_name}\n\n"
+                                f"📝 ✅ Чат успешно остановлен"
+                            )
+                            return
+                        
                         temp_messages.append(
                             {
                                 "role": "tool",
@@ -345,14 +354,9 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     if not answer:
                         await base_msg.edit_text("⚠️ Нет ответа от AI")
                         return
-                    if model == "deepseek-r1":
-                        answer = re.sub(
-                            r"<think>.*?</think>", "", answer, flags=re.DOTALL
-                        ).strip()
-                    elif model.startswith("gemini"):
-                        answer = re.sub(
-                            r"<thought>.*?</thought>", "", answer, flags=re.DOTALL
-                        ).strip()
+                    answer = re.sub(
+                        r"<thought>.*?</thought>|<think>.*?</think>", "", answer, flags=re.DOTALL
+                    ).strip()
                     raw_answer = (
                         f"{notification}"
                         f"💭 Запрос: {user_query}\n"
