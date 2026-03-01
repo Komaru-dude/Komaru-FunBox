@@ -295,13 +295,12 @@ async def change_stocks():
 async def update_osq_models():
     while True:
         try:
+            await asyncio.sleep(86400)
             await download_osq_models()
         except Exception as e:
             logger.critical(
                 f"❌ Не удалось обновить ИИ модели с OnlySq: {e}", exc_info=True
             )
-
-        await asyncio.sleep(86400)
 
 
 async def check_models_timer():
