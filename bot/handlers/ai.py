@@ -87,6 +87,7 @@ class ChatState(StatesGroup):
 
 class ChatStopTool(BaseModel):
     """Останавливает текущую активную сессию чата, сбрасывая состояние пользователя."""
+
     pass
 
 

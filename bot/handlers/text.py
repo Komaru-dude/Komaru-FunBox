@@ -119,7 +119,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
                     for tool_call in response_message.tool_calls:
                         tool_output = await handle_tool_call(tool_call, message, state)
-                        
+
                         if tool_call.function.name == "chat_stop":
                             await base_msg.edit_text(
                                 f"💭 Запрос: {user_message}\n"
@@ -127,7 +127,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                                 f"📝 ✅ Чат успешно остановлен"
                             )
                             return
-                        
+
                         temp_messages.append(
                             {
                                 "role": "tool",
@@ -355,7 +355,10 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                         await base_msg.edit_text("⚠️ Нет ответа от AI")
                         return
                     answer = re.sub(
-                        r"<thought>.*?</thought>|<think>.*?</think>", "", answer, flags=re.DOTALL
+                        r"<thought>.*?</thought>|<think>.*?</think>",
+                        "",
+                        answer,
+                        flags=re.DOTALL,
                     ).strip()
                     raw_answer = (
                         f"{notification}"
