@@ -168,8 +168,23 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
             return "\n".join(s.get("text", "") for s in res.get("sections", []))
 
 
-async def check_models(tier_filtered: bool = True, include_image: bool = False):
-    """Асинхронная проверка доступности моделей"""
+async def check_models(tier_filtered: bool = True, include_image: bool = False, force_refresh: bool = False):
+    """Асинхронная проверка доступности моделей."""
+    cache_key = "check_models_cache"
+    
+    if not force_refresh:
+        try:
+            cached_result = await redis_db.client.get(cache_key)
+            if cached_result:
+                logger.info("💾 Загружаем модели из кэша")
+                checked_models = json.loads(cached_result)
+                filtered_models.clear()
+                filtered_models.update(checked_models)
+                logger.info(f"✅ Модели загружены из кэша, рабочие: {len(checked_models)}")
+                return
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка при чтении кэша: {e}")
+    
     logger.info("🧠 Проверяем доступность моделей")
     models = onlysq_models["models"]
 
@@ -244,6 +259,14 @@ async def check_models(tier_filtered: bool = True, include_image: bool = False):
 
     filtered_models.clear()
     filtered_models.update(checked_models)
+
+    try:
+        cache_data = json.dumps(checked_models)
+        await redis_db.client.set(cache_key, cache_data)
+        logger.info("💾 Результаты сохранены в кэш")
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка при сохранении в кэш: {e}")
+    
     logger.info(f"✅ Модели проверены, рабочие: {len(checked_models)}")
 
 
