@@ -170,11 +170,10 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
             for model in models:
                 premium_icon = " 💎" if model.get("is_premium", False) else ""
                 thinking_icon = " 🧠" if model.get("can-think", False) else ""
+                tools_icon = " 🔧" if model.get("can-tools", False) else ""
                 display_name = model["id"]
 
-                model_line = (
-                    f"<code>{display_name}</code>{premium_icon}{thinking_icon}\n"
-                )
+                model_line = f"<code>{display_name}</code>{premium_icon}{thinking_icon}{tools_icon}\n"
                 category_body.append(model_line)
 
             message_text += category_header + "".join(category_body) + "\n"
@@ -182,6 +181,7 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
         legend_text = "\n❓ <b>Что значат все эти эмодзи?</b>\n\n"
         legend_text += "💎 Премиум — модель доступна только для премиум пользователей\n"
         legend_text += "🧠 Думающая — может размышлять перед ответом, повышает качество ответа ценой большего времени ожидания"
+        legend_text += "🔧 Tools — может использовать инструменты. Например автоматически завершать чаты по вашему запросу."
 
         user_tier_text = "\n\n👤 <b>Ваш тариф:</b> "
         if user_tier > 0:
