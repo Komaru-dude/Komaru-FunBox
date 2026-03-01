@@ -54,7 +54,7 @@ async def load_models():
 
     try:
         if not models_path.exists():
-            logger.info("Модели отсутствуют, загружаю с API...")
+            logger.info("🔄 Модели отсутствуют, загружаю с API...")
             await download_osq_models()
 
         with open(models_path, "r") as f:
@@ -63,14 +63,14 @@ async def load_models():
             if not isinstance(cached_models, dict) or not isinstance(
                 cached_models.get("models"), dict
             ):
-                raise ValueError("Поврежденный кэш моделей")
+                raise ValueError("📛 Поврежденный кэш моделей")
 
             onlysq_models.clear()
             onlysq_models.update(cached_models)
-            logger.info(f"Загружено {len(cached_models['models'])} моделей из кэша")
+            logger.info(f"✅ Загружено {len(cached_models['models'])} моделей из кэша")
 
     except (json.JSONDecodeError, IOError, ValueError) as e:
-        logger.error(f"Критическая ошибка загрузки: {e}")
+        logger.error(f"📛 Критическая ошибка загрузки: {e}")
         onlysq_models.update(default_models)
         models_path.unlink(missing_ok=True)
 
@@ -91,11 +91,10 @@ def clear_cache():
         # Если папка существует - удаляем
         if cache_dir.exists():
             shutil.rmtree(cache_dir)
-            logger.info("🧼 Папка кэша удалена.")
 
         # Создаем папку, если отсутствует
         cache_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("✅ Кэш успешно очищен!")
+        logger.info("🧼 Кэш успешно очищен!")
 
     except Exception as e:
         logger.error(f"Ошибка очистки кэша: {str(e)}", exc_info=True)
