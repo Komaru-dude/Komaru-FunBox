@@ -306,7 +306,7 @@ async def update_osq_models():
 
 async def check_models_timer():
     while True:
-        await asyncio.sleep(3600)
+        await asyncio.sleep(14400)
         try:
             await check_models(include_image=True)
         except Exception as e:
