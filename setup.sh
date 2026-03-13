@@ -7,8 +7,13 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Загружаем переменные из .env
+if [ -f .env ]; then
+    export $(cat .env | xargs)
+    fi
+
 REPO_URL="https://github.com/Not-a-dude/Komaru-FunBox.git"
-INSTALL_DIR="/opt/Komaru-FunBox"
+INSTALL_DIR="/opt/$DOCKER_CONTAINER"
 
 echo -n "✍️ Введите имя ветки (например, main или test): "
 read branch_name
