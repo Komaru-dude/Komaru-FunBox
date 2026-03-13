@@ -29,6 +29,7 @@ from .handlers.eco_invest import invest_router
 from .handlers.economy import eco_router
 from .handlers.etc import etc_router
 from .handlers.mods import mods_router
+from .handlers.prompts import prompts_router
 from .handlers.rights import rights_router
 from .handlers.rp import rp_router
 from .handlers.service import service_router
@@ -46,6 +47,7 @@ dp.callback_query.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(SpecificChat())
 db = Database()
 dp["db"] = db
+redis_port = os.getenv("REDIS_PORT", 6379)
 
 
 async def load_models():
@@ -109,7 +111,7 @@ async def main():
         clear_cache()
         await load_models()
         await db.connect()
-        await redis_db.connect()
+        await redis_db.connect(port=redis_port)
         await check_models(include_image=True)
         await apply_all_command_sets(bot)
     except Exception:
@@ -125,6 +127,7 @@ async def main():
         rp_router,
         ai_router,
         mods_router,
+        prompts_router,
         settings_router,
         usettings_router,
         service_router,

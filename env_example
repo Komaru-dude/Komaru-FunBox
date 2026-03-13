@@ -44,6 +44,7 @@ AUTO_UPDATE=false
 
 # Имя Docker контейнера для команд /restart, /update, /logs
 DOCKER_CONTAINER=komaru-funbox-bot-1
+REDIS_PORT=6379
 
 # Бд, не трогайте это
 DB_NAME=funbox_db
