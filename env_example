@@ -21,6 +21,9 @@ ONLYSQ_API_KEY=openai
 # Тир вашего аккаунта onlysq
 ONLYSQ_TIER=0
 
+# Текстовая модель по умолчанию (должна быть в ONLYSQ_ALLOWED_FREE_MODELS)
+DEFAULT_OSQ_MODEL=deepseek-v3
+
 # Разрешённые модели onlysq (см список тут: https://api.onlysq.ru/ai/models). Разделяйте модели через запятые
 ONLYSQ_ALLOWED_FREE_MODELS=claude-haiku-4-5,gemini-2.5-flash-lite,gpt-5-mini,gpt-5-nano,gpt-4o,gpt-4.1,gpt-4,gpt-oss-20b,o1,deepseek-v3,llama-3.3-70b,qwen2.5-turbo,qwen3-235b-a22b-2507,sonar,pplx-grok-4-1-fast,flux
 ONLYSQ_ALLOWED_PREMIUM_MODELS=claude-opus-4-5,claude-sonnet-4-5,gpt-5,gpt-5-search,gpt-5.1,gpt-5.2,o3,o4-mini,o3-mini,gpt-oss-120b,deepseek-r1,glm-4.7-flash,qwen3-max,sonar-pro,sonar-reasoning-pro,pplx-gpt-5.2,pplx-gpt-5.1,flux-2-dev,phoenix-1.0

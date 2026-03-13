@@ -34,7 +34,7 @@ from bot.utils.premium_logic import (
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
-DEFAULT_MODEL = "deepseek-v3"
+DEFAULT_MODEL = os.getenv("DEFAULT_OSQ_MODEL", "deepseek-v3")
 DEFAULT_IMAGE_MODEL = "flux"
 
 SUPPORTED_LANGUAGES = {
