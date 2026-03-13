@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:8.6-alpine
     ports:
-      - "${DOCKER_CONTAINER}:6379"
+      - "${REDIS_PORT}:6379"
     networks:
       - komaru-network
 
