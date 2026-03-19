@@ -114,38 +114,30 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
 
 @admin_router.message(Command("logs"))
 async def cmd_send_logs(message: Message, bot: Bot, db: Database):
-    try:
-        random_log_name = f"{uuid.uuid4()}.log"
-        out_path = CACHE_DIR / random_log_name
+    source_log = CACHE_DIR / "bot.log"
+    out_path = CACHE_DIR / f"send_{uuid.uuid4()}.log"
 
-        if not await db.has_permission(message.from_user.id, message.chat.id, 4):
+    try:
+        if not await db.has_permission(message.from_user.id, message.chat.id, 4):  # type: ignore
             await message.reply("❌ Эта команда только для персонала.")
             return
 
-        out_path.parent.mkdir(exist_ok=True, parents=True)
-
-        container_name = os.getenv("DOCKER_CONTAINER", "komaru-funbox-bot-1")
-
-        # Получаем логи из Docker контейнера
-        process = await asyncio.create_subprocess_exec(
-            "docker",
-            "logs",
-            "--tail=100",
-            container_name,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        stdout, stderr = await process.communicate()
-
-        if process.returncode != 0:
-            await message.reply(f"❌ Ошибка при получении логов: {stderr.decode()}")
+        if not source_log.exists():
+            await message.reply("❌ Файл логов еще не создан.")
             return
 
-        with open(out_path, "wb") as f:
-            f.write(stdout)
+        with open(source_log, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            last_lines = lines[-100:]
 
-        await message.reply_document(FSInputFile(out_path), caption="📝 Вот ваши логи:")
+        with open(out_path, "w", encoding="utf-8") as temp_f:
+            temp_f.writelines(last_lines)
+
+        await message.reply_document(
+            FSInputFile(out_path, filename="bot_last_logs.log"),
+            caption="📝 Последние 100 строк лога из файла:",
+        )
+
     except Exception:
         await error_report(message, bot, "logs", traceback.format_exc())
     finally:

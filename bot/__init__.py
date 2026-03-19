@@ -38,13 +38,13 @@ def get_git_branch(path):
         return None
 
 
+for path in (DATA_DIR, CACHE_DIR, COMMANDS_DIR):
+    path.mkdir(parents=True, exist_ok=True)
+
 branch_name = get_git_branch(parent_dir)
 IS_TEST = branch_name == "test"
 if IS_TEST:
     level = logging.DEBUG
 else:
     level = logging.INFO
-logger = setup_logger(level)
-
-for path in (DATA_DIR, CACHE_DIR, COMMANDS_DIR):
-    path.mkdir(parents=True, exist_ok=True)
+logger = setup_logger(level=level, log_file=CACHE_DIR / "bot.log")
