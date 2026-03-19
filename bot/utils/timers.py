@@ -307,7 +307,7 @@ async def check_models_timer():
     while True:
         await asyncio.sleep(14400)
         try:
-            await check_models(include_image=True)
+            await check_models(include_image=True, force_refresh=True)
         except Exception as e:
             logger.critical(
                 f"❌ Не удалось обновить ИИ модели с OnlySq: {e}", exc_info=True
