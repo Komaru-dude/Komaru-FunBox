@@ -1,4 +1,10 @@
 postgres_data
+.git
+
+# Python
 __pycache__
 *.pyc
-.git
+venv/
+
+# IDE
+.vscode/
