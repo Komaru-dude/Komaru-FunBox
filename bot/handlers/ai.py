@@ -459,13 +459,23 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
 
         if model_name:
             model_info = filtered_models.get(model_name)
-            if (
-                not model_info
-                or model_info.get("status") != "work"
-                or model_info.get("modality") != "text"
-            ):
+            if not model_info:
+                await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
+                await db.reset_cooldown(user_id, "ai")
+                return
+            if model_info["status"] != "work":
                 await base_msg.edit_text(
-                    f"❌ Модель {model_name} недоступна или не текстовая."
+                    f"❌ Модель {model_name} на данный момент не работает."
+                )
+                await db.reset_cooldown(user_id, "ai")
+                return
+            if model_info["modality"] != "text":
+                await base_msg.edit_text(f"❌ Модель {model_name} не текстовая.")
+                await db.reset_cooldown(user_id, "ai")
+                return
+            if not model_info.get("can-stream"):
+                await base_msg.edit_text(
+                    f"❌ Модель {model_name} не поддерживает стриминг."
                 )
                 await db.reset_cooldown(user_id, "ai")
                 return
@@ -478,7 +488,19 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
                 return
             model = model_name
         else:
-            model = DEFAULT_MODEL
+            user_data = await db.get_user_data(user_id, message.chat.id)
+            user_default_model = user_data.get("default_model", None)
+            model = user_default_model or DEFAULT_MODEL
+
+            if not is_model_available_for_user(model, user_tier):
+                await base_msg.edit_text(
+                    f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
+                    f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
+                    f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
+                    f"📋 Используйте <code>/available_models</code> для просмотра доступных моделей",
+                    parse_mode=ParseMode.HTML,
+                )
+                model = DEFAULT_MODEL
 
         request = ""
         reply = message.reply_to_message
