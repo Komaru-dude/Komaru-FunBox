@@ -1,12 +1,15 @@
+import traceback
+
 from aiogram import Router
 from aiogram.filters import Command
-import traceback
-from bot.utils.aio_tools import error_report
+
 from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.filters.func_filter import FuncEnabled
+from bot.utils.aio_tools import error_report
 
 prompts_router = Router()
+
 
 @prompts_router.message(Command("prompts"), CooldownFilter("prompts"), 15)
 async def cmd_prompts():
