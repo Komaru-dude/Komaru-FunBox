@@ -42,7 +42,7 @@ SPECIFIC_CHATS_ID=123456789,987654321
 # Включить автоматическое обновление при запуске контейнера
 AUTO_UPDATE=false
 
-# Имя Docker контейнера для команд /restart, /update, /logs
+# Имя Docker контейнера
 DOCKER_CONTAINER=komaru-funbox-bot-1
 REDIS_PORT=6379
 
