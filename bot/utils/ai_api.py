@@ -190,7 +190,6 @@ async def check_models(
             logger.warning(f"⚠️ Ошибка при чтении кэша: {e}")
 
     logger.info("🧠 Проверяем доступность моделей")
-    models = onlysq_models["models"]
 
     free_models = [
         m.strip()
