@@ -47,7 +47,7 @@ dp.callback_query.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(SpecificChat())
 db = Database()
 dp["db"] = db
-redis_port = os.getenv("REDIS_PORT", 6379)
+redis_port = int(os.getenv("REDIS_PORT", 6379))
 
 
 async def load_models():
