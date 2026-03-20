@@ -1,5 +1,5 @@
 # Сборка
-FROM python:3.12-alpine AS builder
+FROM python:3.12-slim AS builder
 
 RUN apk add --no-cache gcc musl-dev linux-headers g++ libffi-dev openssl-dev postgresql-dev ffmpeg
 
@@ -8,7 +8,7 @@ COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /build/wheels -r requirements.txt
 
 # Финал
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
 ARG APP_DIR=/opt/Komaru-FunBox
 WORKDIR ${APP_DIR}
