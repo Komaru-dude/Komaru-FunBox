@@ -13,3 +13,21 @@ class InvestMenuCallback(CallbackData, prefix="imenu"):
 class WeatherCallback(CallbackData, prefix="weather"):
     day: int
     user_id: int
+
+
+class PromptsMenuCallback(CallbackData, prefix="pmenu"):
+    action: str
+    user_id: int
+    prompt_id: str = "none"
+
+
+class EditPromptCallback(CallbackData, prefix="edp"):
+    action: str
+    prompt_id: str
+    user_id: int
+
+
+class EditFieldCallback(CallbackData, prefix="edf"):
+    field: str  # title, content, public, save
+    prompt_id: str
+    user_id: int
