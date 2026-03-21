@@ -25,8 +25,8 @@ ONLYSQ_TIER=0
 DEFAULT_OSQ_MODEL=gemini-2.5-flash
 
 # Разрешённые модели onlysq (см список тут: https://api.onlysq.ru/ai/models). Разделяйте модели через запятые
-ONLYSQ_ALLOWED_FREE_MODELS=claude-haiku-4-5,gemini-2.5-flash,gemini-2.5-flash-lite,gpt-5-mini,gpt-5-nano,gpt-4o,gpt-4.1,gpt-4,gpt-oss-20b,deepseek-v3,deepseek-r1,sonar,pplx-grok-4-1-fast,flux
-ONLYSQ_ALLOWED_PREMIUM_MODELS=claude-opus-4-5,claude-sonnet-4-5,gemini-3-flash,gemini-3-pro,gpt-5,gpt-5-search,gpt-5.1,gpt-5.2,gpt-oss-120b,glm-4.7-flash,sonar-pro,sonar-reasoning-pro,pplx-gpt-5.2,pplx-gpt-5.1,pplx-gpt-5.2,pplx-gemini-3-pro,flux-2-dev,phoenix-1.0
+ONLYSQ_ALLOWED_FREE_MODELS=claude-haiku-4-5,gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite,gpt-5-mini,gpt-5-nano,gpt-4o,gpt-4.1,gpt-4,gpt-oss-20b,deepseek-v3,deepseek-r1,sonar,pplx-grok-4-1-fast,flux
+ONLYSQ_ALLOWED_PREMIUM_MODELS=claude-opus-4-5,claude-sonnet-4-5,gemini-3-pro,gemini-3-flash,gpt-5,gpt-5-search,gpt-5.1,gpt-5.2,gpt-oss-120b,glm-4.7-flash,sonar-pro,sonar-reasoning-pro,pplx-gpt-5.2,pplx-gpt-5.1,pplx-gpt-5.2,pplx-gemini-3-pro,flux-2-dev,phoenix-1.0
 
 # Апи ключ для jigsaw нейросетей (можно взять тут: https://jigsawstack.com/dashboard/)
 JIGSAW_API_KEY=your_api_key
