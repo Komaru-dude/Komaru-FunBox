@@ -1,7 +1,9 @@
 #!/bin/bash
 set -e
 
-git config --global --add safe.directory /opt/Komaru-FunBox
+TARGET_DIR="${APP_DIR:-/app}"
+
+git config --global --add safe.directory "$TARGET_DIR"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -30,7 +32,7 @@ echo -e "${GREEN}✅ Database is ready!${NC}"
 # Check for auto-update on startup
 if [ "${AUTO_UPDATE:-false}" = "true" ]; then
     echo -e "${BLUE}🔄 AUTO_UPDATE enabled, checking for updates...${NC}"
-    if cd /opt/Komaru-FunBox && git fetch --quiet origin; then
+    if cd "$TARGET_DIR" && git fetch --quiet origin; then
         CURRENT=$(git rev-parse HEAD)
         LATEST=$(git rev-parse origin/$(git rev-parse --abbrev-ref HEAD) 2>/dev/null || echo "$CURRENT")
         
