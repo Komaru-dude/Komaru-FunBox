@@ -136,11 +136,7 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
         user_id = message.from_user.id
         user_tier = await db.get_user_tier(user_id)
 
-        available_models = filter_models_by_availability(
-            filtered_models, user_tier=user_tier
-        )
-
-        if not available_models:
+        if not filtered_models:
             await message.reply(
                 "❌ На данный момент нет доступных моделей.",
                 parse_mode=ParseMode.HTML,
@@ -149,7 +145,7 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
             return
 
         categories = {}
-        for model_id, model_data in available_models.items():
+        for model_id, model_data in filtered_models.items():
             modality = model_data["modality"]
             categories.setdefault(modality, []).append({"id": model_id, **model_data})
 
