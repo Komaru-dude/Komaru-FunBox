@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import os
 import random
@@ -303,6 +304,16 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                     return
 
                 prompt_content = prompt["content"]
+
+                base64_image = None
+                mime_type = "image/jpeg"
+                photo_to_process = None
+
+                if message.photo:
+                    photo_to_process = message.photo[-1]
+                elif message.reply_to_message and message.reply_to_message.photo:
+                    photo_to_process = message.reply_to_message.photo[-1]
+
                 messages_for_ai = [
                     {"role": "system", "content": prompt_content},
                     {"role": "user", "content": user_query},
@@ -343,6 +354,47 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 model_display_name = model_info.get("name", model)
 
                 base_msg = await message.reply("🔄 Обработка...")
+
+                # Обработка изображения если есть
+                is_tools_model = model_info.get("can-tools", False)
+                if photo_to_process and is_tools_model:
+                    try:
+                        await base_msg.edit_text("🔄 Обнаружено фото, обрабатываю...")
+                        file = await bot.get_file(photo_to_process.file_id)
+                        assert (
+                            file.file_path is not None
+                        ), "Telegram не вернул путь к файлу"
+                        file_bytes = await bot.download_file(file.file_path)
+
+                        if file.file_path.endswith(".png"):
+                            mime_type = "image/png"
+                        elif file.file_path.endswith(".webp"):
+                            mime_type = "image/webp"
+                        else:
+                            mime_type = "image/jpeg"
+
+                        assert file_bytes is not None, "Файл не был загружен"
+                        base64_image = base64.b64encode(file_bytes.read()).decode(
+                            "utf-8"
+                        )
+
+                        messages_for_ai[1]["content"] = [
+                            {"type": "text", "text": user_query},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:{mime_type};base64,{base64_image}"
+                                },
+                            },
+                        ]
+
+                        await base_msg.edit_text("🔄 Обработка...")
+                    except Exception as e:
+                        await base_msg.edit_text(
+                            f"⚠️ Не удалось обработать изображение: {e}"
+                        )
+                        return
+
                 try:
                     answer = ""
                     async for chunk in stream_text_api(
