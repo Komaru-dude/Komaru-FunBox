@@ -202,6 +202,7 @@ async def check_models(
         if m.strip()
     ]
     allowed_ids = set(free_models + premium_models)
+    premium_models_set = set(premium_models)
 
     all_api_models = onlysq_models.get("models", {})
     checked_models = {}
@@ -236,7 +237,8 @@ async def check_models(
                 if not len(model_answer) > 5:
                     raise RuntimeError
 
-                checked_models[model_id] = model
+                model_with_premium = {**model, "is_premium": model_id in premium_models_set}
+                checked_models[model_id] = model_with_premium
             except Exception as e:
                 logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
         elif model["modality"] == "image" and include_image:
@@ -256,7 +258,8 @@ async def check_models(
                 if not mime.startswith("image/"):
                     raise RuntimeError("Модель не вернула изображение")
 
-                checked_models[model_id] = model
+                model_with_premium = {**model, "is_premium": model_id in premium_models_set}
+                checked_models[model_id] = model_with_premium
             except Exception as e:
                 logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
 
