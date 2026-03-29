@@ -28,9 +28,9 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
         if not await db.is_setting_enabled(chat_id, "user_prompts"):
             return
 
-        user_prompt_trigger = await db.get_user_setting(
-            user1.id, "custom_prompts_trigger"
-        )or "!"
+        user_prompt_trigger = (
+            await db.get_user_setting(user1.id, "custom_prompts_trigger") or "!"
+        )
 
         caption = message.caption or ""
         if not caption.startswith(user_prompt_trigger):
