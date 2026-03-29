@@ -19,6 +19,9 @@ services:
     image: redis:8.6-alpine
     ports:
       - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
     networks:
       - komaru-network
 
@@ -69,4 +72,6 @@ networks:
 
 volumes:
   postgres_data:
+    external: true
+  redis_data:
     external: true
