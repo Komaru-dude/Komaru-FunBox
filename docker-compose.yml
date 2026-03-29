@@ -36,8 +36,8 @@ services:
       DB_NAME: ${DB_NAME}
     volumes:
       - ./backups:/backups
-      - ./backup.sh:/backup.sh:ro
-    entrypoint: /backup.sh
+      - ./bd_backup.sh:/bd_backup.sh:ro
+    entrypoint: /bd_backup.sh
     networks:
       - komaru-network
 
