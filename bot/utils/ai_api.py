@@ -237,7 +237,10 @@ async def check_models(
                 if not len(model_answer) > 5:
                     raise RuntimeError
 
-                model_with_premium = {**model, "is_premium": model_id in premium_models_set}
+                model_with_premium = {
+                    **model,
+                    "is_premium": model_id in premium_models_set,
+                }
                 checked_models[model_id] = model_with_premium
             except Exception as e:
                 logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
@@ -258,7 +261,10 @@ async def check_models(
                 if not mime.startswith("image/"):
                     raise RuntimeError("Модель не вернула изображение")
 
-                model_with_premium = {**model, "is_premium": model_id in premium_models_set}
+                model_with_premium = {
+                    **model,
+                    "is_premium": model_id in premium_models_set,
+                }
                 checked_models[model_id] = model_with_premium
             except Exception as e:
                 logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
