@@ -449,11 +449,50 @@ async def process_add_content(
     message: Message, bot: Bot, state: FSMContext, db: Database
 ):
     try:
-        if not message.text:
-            await message.reply("❌ Пожалуйста, отправьте текст")
+        if not message.text and not message.document:
+            await message.reply("❌ Пожалуйста, отправьте текст или текстовый файл")
             return
 
-        text = message.text.strip()
+        if message.document and message.document.mime_type != "text/plain":
+            filename = (message.document.file_name or "").lower()
+            if not filename.endswith((".txt", ".text")):
+                await message.reply(
+                    "❌ Пожалуйста, отправьте **текстовый** файл (.txt)"
+                )
+                return
+
+        if message.text:
+            text = message.text.strip()
+        else:
+            doc = message.document
+            if not doc:
+                await message.reply("❌ Ошибка: документ не найден")
+                return
+
+            file_info = await bot.get_file(doc.file_id)
+            if not file_info.file_path:
+                await message.reply("❌ Ошибка: не удалось получить путь файла")
+                return
+
+            downloaded_file = await bot.download_file(file_info.file_path)
+            if not downloaded_file:
+                await message.reply("❌ Ошибка: не удалось скачать файл")
+                return
+
+            try:
+                text = downloaded_file.read().decode("utf-8")
+            except UnicodeDecodeError:
+                downloaded_file.seek(0)
+                try:
+                    text = downloaded_file.read().decode("windows-1251")
+                except:
+                    await message.reply(
+                        "❌ Не удалось прочитать файл. Убедитесь, что он в кодировке UTF-8 или Windows-1251."
+                    )
+                    return
+            finally:
+                downloaded_file.close()
+
         if text.lower() == "/cancel":
             await state.clear()
             return await message.reply("✅ Отменено.")
