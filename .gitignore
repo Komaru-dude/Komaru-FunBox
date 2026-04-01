@@ -9,3 +9,4 @@ __pycache__
 .session
 .session-journal
 postgres_data
+backups
