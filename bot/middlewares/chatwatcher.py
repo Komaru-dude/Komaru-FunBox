@@ -50,6 +50,11 @@ class ChatWatcher(BaseMiddleware):
                 elif event.my_chat_member:
                     actual_event = event.my_chat_member
 
+            if (
+                user := getattr(actual_event, "from_user", None)
+            ) and await db.is_user_botbanned(user.id):
+                return
+
             if isinstance(actual_event, ChatMemberUpdated):
                 new_status = actual_event.new_chat_member.status
                 if new_status in [ChatMemberStatus.KICKED, ChatMemberStatus.LEFT]:

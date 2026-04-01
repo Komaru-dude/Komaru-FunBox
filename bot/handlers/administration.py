@@ -174,7 +174,7 @@ async def cmd_reset_cooldown(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "reset_cooldown", traceback.format_exc())
 
 
-@admin_router.message(Command("ban_media"))
+@admin_router.message(Command("bot_ban"))
 async def cmd_ban_user(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -210,7 +210,7 @@ async def cmd_ban_user(message: Message, bot: Bot, db: Database):
                     return
 
             except Exception:
-                await error_report(message, bot, "ban_media", traceback.format_exc())
+                await error_report(message, bot, "bot_ban", traceback.format_exc())
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = int(split_text[1])
@@ -228,18 +228,18 @@ async def cmd_ban_user(message: Message, bot: Bot, db: Database):
         except Exception:
             first_name = "Неизвестный"
 
-    if await db.is_user_mediabanned(target_id):
+    if await db.is_user_botbanned(target_id):
         await message.reply("❌ Пользователь уже заблокирован")
         return
 
     try:
-        await db.mediaban_user(target_id)
+        await db.bot_ban(target_id)
         await message.reply(f"✅ Пользователь {first_name} был заблокирован")
     except Exception:
-        await error_report(message, bot, "ban_media", traceback.format_exc())
+        await error_report(message, bot, "bot_ban", traceback.format_exc())
 
 
-@admin_router.message(Command("unban_media"))
+@admin_router.message(Command("bot_unban"))
 async def cmd_unban_user(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -275,7 +275,7 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
                     return
 
             except Exception:
-                await error_report(message, bot, "unban_media", traceback.format_exc())
+                await error_report(message, bot, "bot_unban", traceback.format_exc())
                 return
         elif len(split_text) > 1 and split_text[1].isdigit():
             target_id = int(split_text[1])
@@ -293,15 +293,15 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
         except Exception:
             first_name = "Неизвестный"
 
-    if not await db.is_user_mediabanned(target_id):
+    if not await db.is_user_botbanned(target_id):
         await message.reply("❌ Пользователь уже разблокирован")
         return
 
     try:
-        await db.mediaunban_user(target_id)
+        await db.bot_unban(target_id)
         await message.reply(f"✅ Пользователь {first_name} был разблокирован")
     except Exception:
-        await error_report(message, bot, "unban_media", traceback.format_exc())
+        await error_report(message, bot, "bot_unban", traceback.format_exc())
 
 
 @admin_router.message(Command("delete_user"))

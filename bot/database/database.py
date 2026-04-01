@@ -292,17 +292,17 @@ class Database:
 
     # Баны
 
-    async def mediaban_user(self, user_id: int):
+    async def bot_ban(self, user_id: int):
         pool = await self.ensure_connection()
-        await admin.ban_media(pool, user_id)
+        await admin.bot_ban(pool, user_id)
 
-    async def unban_media_user(self, user_id: int):
+    async def bot_unban(self, user_id: int):
         pool = await self.ensure_connection()
-        await admin.unban_media(pool, user_id)
+        await admin.bot_unban(pool, user_id)
 
-    async def is_user_mediabanned(self, user_id: int):
+    async def is_user_botbanned(self, user_id: int):
         pool = await self.ensure_connection()
-        return await admin.check_media_ban(pool, user_id)
+        return await admin.check_bot_ban(pool, user_id)
 
     # Промпты
 
