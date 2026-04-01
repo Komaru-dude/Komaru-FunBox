@@ -7,6 +7,16 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Функции
+create_volume_if_not_exists() {
+    if ! docker volume inspect "$1" > /dev/null 2>&1; then
+        echo "Creating volume: $1"
+        docker volume create "$1"
+    else
+        echo "Volume $1 already exists. Skipping."
+    fi
+}
+
 # Загружаем переменные из .env
 if [ -f .env ]; then
     export $(cat .env | xargs)
@@ -60,6 +70,8 @@ nano .env
 
 # 5. Запуск
 echo "🏗️ Собираю и запускаю контейнеры..."
+create_volume_if_not_exists "redis_data"
+create_volume_if_not_exists "postgres_data"
 docker compose up -d --build
 
 echo "✅ Установка завершена!"
