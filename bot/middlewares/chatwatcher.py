@@ -71,6 +71,7 @@ class ChatWatcher(BaseMiddleware):
                                 owner_id, msg, parse_mode=ParseMode.HTML
                             )
                         except:
+                            logger.warning("📛 ID владельца отсутствует в .env")
                             pass
 
                 return await handler(event, data)
@@ -130,6 +131,8 @@ class ChatWatcher(BaseMiddleware):
                             if chat.username:
                                 link = f"https://t.me/{chat.username}"
                                 await bot.send_message(owner_id, f"🔗 Ссылка: {link}")
+                        else:
+                            logger.warning("📛 ID владельца отсутствует в .env")
 
                 should_log = False
                 if is_bot_command:
@@ -155,6 +158,8 @@ class ChatWatcher(BaseMiddleware):
                             await bot.send_message(
                                 owner_id, msg, parse_mode=ParseMode.HTML
                             )
+                        else:
+                            logger.warning("📛 ID владельца отсутствует в .env")
 
             return await handler(event, data)
 
@@ -167,5 +172,6 @@ class ChatWatcher(BaseMiddleware):
                         f"❌ Ошибка в ChatWatcher:\n\n{traceback.format_exc()}",
                     )
                 except:
+                    logger.warning("📛 ID владельца отсутствует в .env")
                     pass
             return await handler(event, data)
