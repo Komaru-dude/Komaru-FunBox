@@ -254,7 +254,6 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
             f"⚠ Предупреждения: {user_data['warns']}/{await db.get_setting(chat_id, "max_warnings")}\n"
             f"🔇 Мьюты: {user_data['mutes']}\n"
             f"🔨 Баны: {user_data['bans']}\n"
-            f"💎 Репутация: {user_data['reputation']}\n"
             f"🪙 Монет: {await db.get_global_user_param(user_info['user_id'], "money")}\n"
             f"🏦 Банковский счёт: {await db.get_global_user_param(user_info["user_id"], "bank")}\n"
             f"📨 Сообщений: {user_data['message_count']}\n"
@@ -335,7 +334,6 @@ async def cmd_mute(message: Message, bot: Bot, db: Database):
 
         await db.add_user(target_user_id, chat_id)
         await db.update_user_history(target_user_id, chat_id, "mute", reason)
-        await db.update_reputation(target_user_id, chat_id, "manual_rem", 10)
 
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
         await message.reply(
@@ -416,7 +414,6 @@ async def cmd_ban(message: Message, bot: Bot, db: Database):
 
         await db.add_user(target_user_id, chat_id)
         await db.update_user_history(target_user_id, chat_id, "ban", reason)
-        await db.update_reputation(target_user_id, chat_id, "manual_rem", 15)
 
         time_str = until_date.strftime("%Y-%m-%d %H:%M") if until_date else "навсегда"
         await message.reply(

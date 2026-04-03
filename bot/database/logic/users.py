@@ -113,43 +113,6 @@ async def inc_message_count(pool: Pool, user_id: int, chat_id: int):
         )
 
 
-async def modify_reputation(
-    pool: Pool, user_id: int, chat_id: int, mode: str, value: Optional[int] = 0
-):
-    if mode not in ["auto_add", "manual_add", "manual_rem"]:
-        raise ValueError("Invalid mode")
-
-    if mode == "auto_add":
-        # Используем функцию из settings для получения границ
-        from bot.database.logic import settings as st  # Избегаем цикличный импорт
-
-        min_rep = await st.get_chat_val(pool, chat_id, "min_random_rep")
-        max_rep = await st.get_chat_val(pool, chat_id, "max_random_rep")
-
-        if min_rep is None:
-            min_rep = 1
-        if max_rep is None:
-            max_rep = 4
-
-        value = random.randint(min_rep, max_rep)
-
-    async with pool.acquire() as conn:
-        if mode in ["auto_add", "manual_add"]:
-            await conn.execute(
-                "UPDATE users SET reputation = reputation + $1 WHERE user_id = $2 AND chat_id = $3",
-                value,
-                user_id,
-                chat_id,
-            )
-        elif mode == "manual_rem":
-            await conn.execute(
-                "UPDATE users SET reputation = reputation - $1 WHERE user_id = $2 AND chat_id = $3",
-                value,
-                user_id,
-                chat_id,
-            )
-
-
 async def add_history_record(
     pool: Pool, user_id: int, chat_id: int, punishment_type: str, reason: str
 ):

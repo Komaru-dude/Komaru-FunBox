@@ -125,12 +125,6 @@ class Database:
         pool = await self.ensure_connection()
         await users.inc_message_count(pool, user_id, chat_id)
 
-    async def update_reputation(
-        self, user_id: int, chat_id: int, mode: str, value: int = 0
-    ):
-        pool = await self.ensure_connection()
-        await users.modify_reputation(pool, user_id, chat_id, mode, value)
-
     async def get_user_param(self, user_id: int, chat_id: int, param: str):
         pool = await self.ensure_connection()
         return await users.get_user_param(pool, user_id, chat_id, param)

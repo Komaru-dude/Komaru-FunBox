@@ -384,14 +384,6 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
         await db.update_message_count(user1.id, chat_id)
         if not text_msg:
             return
-        if await db.is_setting_enabled(chat_id, "give_random_rep"):
-            chance = await db.get_setting(chat_id, "random_rep")
-            roll = random.random()
-            logger.debug(f"🎲 Проверка шанса: выпало {roll}, шанс {chance}")
-            if roll < chance:
-                await db.update_reputation(user1.id, chat_id, "auto_add")
-                logger.debug(f"✅ Пользователю выдана репутация: {user1.id}")
-
         commands = await get_chat_commands(chat_id)
         clean_text = text_msg.lstrip("/").strip().lower()
 

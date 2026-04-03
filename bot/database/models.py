@@ -4,7 +4,6 @@ USERS_COLUMNS = {
     "warns": "INTEGER DEFAULT 0",
     "bans": "INTEGER DEFAULT 0",
     "mutes": "INTEGER DEFAULT 0",
-    "reputation": "INTEGER DEFAULT 0",
     "rank": "TEXT DEFAULT 'Участник'",
     "message_count": "INTEGER DEFAULT 0",
     "history": "JSONB DEFAULT '[]'::JSONB",
