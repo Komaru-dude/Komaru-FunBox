@@ -1,11 +1,6 @@
-import asyncio
-import html
 import json
 import os
-import platform
 import random
-import re
-import shutil
 import time
 import traceback
 from datetime import datetime
@@ -41,7 +36,6 @@ def load_http_codes(filename):
 
 
 cat_http_codes = load_http_codes("cat_http_codes.json")
-dog_http_codes = load_http_codes("dog_http_codes.json")
 WEATHER_CACHE = {}  # Хранит прогнозы на текущий день
 BONUM_STICKERS_ID = {
     1: "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA",  # Обычный
@@ -110,39 +104,6 @@ async def cmd_http_cat(message: Message, bot: Bot):
         )
     except Exception as e:
         await error_report(message, bot, "http_cat", traceback.format_exc())
-
-
-@etc_router.message(Command("http_dog"), CooldownFilter("http_pets", 5))
-async def cmd_http_dog(message: Message, bot: Bot):
-    try:
-        assert message.text
-        split_text = message.text.split()
-        code = None
-
-        if len(split_text) > 1:
-            try:
-                user_code = int(split_text[1])
-                code = 405 if user_code == 418 else user_code
-                if code not in dog_http_codes:
-                    code = None
-            except ValueError:
-                pass
-
-        code = code or random.choice(dog_http_codes)
-        url = f"https://http.dog/{code}.jpg"
-
-        try:
-            await message.reply_photo(url, caption=f"Ваша HTTP собака: {code}")
-        except TelegramBadRequest as e:
-            await message.reply(f"📛 Не удалось отправить собаку: {e.message}")
-
-    except TelegramNetworkError:
-        await message.reply(
-            "📛 Проблемы с интернетом!\n🤔 Не пишите разработчикам об этом, они и так в курсе"
-        )
-    except Exception as e:
-        await error_report(message, bot, "http_dog", traceback.format_exc())
-
 
 @etc_router.message(Command("cat"), CooldownFilter("pets", 15))
 async def cmd_cat(message: Message, bot: Bot):
@@ -417,55 +378,6 @@ async def cmd_tagall(message: Message, bot: Bot, db: Database):
                 await base_msg.reply(f"⬆️⬆️⬆️ {tags_str}", parse_mode=ParseMode.HTML)
     except Exception:
         await error_report(message, bot, "tagall", traceback.format_exc())
-
-
-@etc_router.message(Command("cowsay"))
-async def cmd_cowsay(message: Message, bot: Bot):
-    try:
-        if platform.system() != "Linux" or not shutil.which("cowsay"):
-            await message.reply(
-                "📛 Платформа не поддерживается\n📀 Требуется Linux + пакет cowsay"
-            )
-            return
-
-        words = message.text.strip().split(maxsplit=1)  # type: ignore
-
-        if len(words) < 2 or not words[1].strip():
-            if message.reply_to_message and message.reply_to_message.text:
-                user_input = message.reply_to_message.text.strip()
-            else:
-                await message.reply(
-                    "💬 Нужно указать текст (в сообщении или через ответ)"
-                )
-                return
-        else:
-            user_input = words[1].strip()
-
-        safe_input = re.sub(
-            r"[^a-zA-Zа-яА-Я0-9 .,!?()\\/_\-+=:;\"'`~@#№$%^&*]", "", user_input
-        )
-        safe_input = safe_input[:200]
-
-        proc = await asyncio.create_subprocess_exec(
-            "cowsay",
-            "--",
-            safe_input,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await proc.communicate()
-
-        if proc.returncode != 0:
-            await error_report(message, bot, "cowsay", stderr.decode(errors="replace"))
-            return
-
-        result = stdout.decode()
-        await message.reply(
-            f"<code>{html.escape(result)}</code>", parse_mode=ParseMode.HTML
-        )
-
-    except Exception:
-        await error_report(message, bot, "cowsay", traceback.format_exc())
 
 
 @etc_router.message(Command("free_epic_games"), CooldownFilter("free_epic_games", 15))

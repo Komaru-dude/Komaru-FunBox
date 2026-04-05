@@ -36,7 +36,6 @@ from .handlers.rp import rp_router
 from .handlers.service import service_router
 from .handlers.settings import settings_router
 from .handlers.text import text_router
-from .handlers.time import time_router
 from .handlers.user_settings import usettings_router
 from .handlers.video import video_router
 
@@ -124,7 +123,6 @@ async def main():
         admin_router,
         base_router,
         etc_router,
-        time_router,
         rp_router,
         ai_router,
         mods_router,

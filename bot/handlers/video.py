@@ -2,7 +2,6 @@ import asyncio
 import io
 import json
 import re
-import shutil
 import traceback
 import uuid
 from pathlib import Path
@@ -435,81 +434,3 @@ async def quality_chosen_handler(
     finally:
         if temp_file and temp_file.exists():
             temp_file.unlink()
-
-
-@video_router.message(Command("gif"), CooldownFilter("gif", 300))
-async def cmd_gif(message: Message, bot: Bot, db: Database):
-    """Конвертация видео в GIF."""
-    # Поиск видео в сообщении
-    video = message.video or (
-        message.reply_to_message.video if message.reply_to_message else None
-    )
-
-    if not video:
-        await db.reset_cooldown(message.from_user.id, "gif")
-        await message.reply("❌ Отправьте или ответьте на видео")
-        return
-
-    temp_files = []
-    try:
-        # Скачивание видео
-        await message.reply("🔄 Обработка...")
-        file = await bot.get_file(video.file_id)
-        video_path = CACHE_DIR / f"{video.file_id}.mp4"
-        temp_files.append(video_path)
-        await bot.download_file(file.file_path, destination=video_path)
-
-        # Конвертация в GIF
-        gif_path = CACHE_DIR / f"{video.file_id}.gif"
-        frames_dir = CACHE_DIR / f"{video.file_id}_frames"
-        temp_files.extend([gif_path, frames_dir])
-
-        # Извлечение кадров
-        frames_dir.mkdir(exist_ok=True)
-        frame_pattern = frames_dir / "frame_%04d.png"
-
-        proc = await asyncio.create_subprocess_exec(
-            "ffmpeg",
-            "-i",
-            str(video_path),
-            "-vf",
-            "fps=15,scale=480:-1:flags=lanczos",
-            "-compression_level",
-            "0",
-            str(frame_pattern),
-            stderr=asyncio.subprocess.PIPE,
-        )
-        await proc.communicate()
-
-        if proc.returncode != 0:
-            raise RuntimeError("Ошибка извлечения кадров")
-
-        # Создание GIF
-        proc = await asyncio.create_subprocess_exec(
-            "gifski",
-            "--fps",
-            "15",
-            "-o",
-            str(gif_path),
-            *sorted(frames_dir.glob("*.png")),
-            stderr=asyncio.subprocess.PIPE,
-        )
-        await proc.communicate()
-
-        if not gif_path.exists():
-            raise RuntimeError("Ошибка создания GIF")
-
-        # Отправка результата
-        await message.reply_animation(FSInputFile(gif_path))
-    except Exception as e:
-        await error_report(message, bot, "gif", str(e))
-    finally:
-        # Очистка временных файлов
-        for path in temp_files:
-            try:
-                if path.is_dir():
-                    shutil.rmtree(path)
-                elif path.exists():
-                    path.unlink()
-            except Exception:
-                pass
