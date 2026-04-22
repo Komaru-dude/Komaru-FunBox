@@ -368,3 +368,19 @@ class Database:
     async def set_user_tier(self, user_id: int, tier: int):
         pool = await self.ensure_connection()
         return await users.set_user_tier(pool, user_id, tier)
+
+    async def get_premium_expire(self, user_id: int):
+        pool = await self.ensure_connection()
+        return await users.get_premium_expire(pool, user_id)
+
+    async def set_premium_expire(self, user_id: int, expire_ts: int):
+        pool = await self.ensure_connection()
+        await users.set_premium_expire(pool, user_id, expire_ts)
+
+    async def add_premium_days(self, user_id: int, days: int):
+        pool = await self.ensure_connection()
+        return await users.add_premium_days(pool, user_id, days)
+
+    async def remove_premium_days(self, user_id: int, days: int):
+        pool = await self.ensure_connection()
+        return await users.remove_premium_days(pool, user_id, days)

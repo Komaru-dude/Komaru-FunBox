@@ -37,7 +37,7 @@ GLOBAL_USERS_COLUMNS = {
     "items": "JSONB DEFAULT '[]'::JSONB",
     "settings": "JSONB DEFAULT '{}'::JSONB",
     "bonum_ts": "BIGINT DEFAULT 0",
-    "tier": "INTEGER DEFAULT 0",
+    "premium_expire": "BIGINT DEFAULT 0",
 }
 
 COMMAND_COOLDOWNS_COLUMNS = {
