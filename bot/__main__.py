@@ -23,14 +23,14 @@ from bot.utils.global_storage import onlysq_models
 from bot.utils.timers import background_checker
 
 from .handlers.administration import admin_router
-from .handlers.ai import ai_router
+from .handlers.ai.ai import ai_router
 from .handlers.basic import base_router
-from .handlers.eco_invest import invest_router
-from .handlers.economy import eco_router
+from .handlers.economy.eco_invest import invest_router
+from .handlers.economy.economy import eco_router
 from .handlers.etc import etc_router
-from .handlers.image import image_router
+from .handlers.ai.image import image_router
 from .handlers.mods import mods_router
-from .handlers.prompts import prompts_router
+from .handlers.ai.prompts import prompts_router
 from .handlers.rights import rights_router
 from .handlers.rp import rp_router
 from .handlers.service import service_router

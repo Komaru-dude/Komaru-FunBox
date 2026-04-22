@@ -18,7 +18,7 @@ from aiogram.types import Message
 
 from bot import logger
 from bot.database.database import Database
-from bot.handlers.ai import (
+from bot.handlers.ai.ai import (
     DEFAULT_MODEL,
     TOOLS_SCHEMA,
     ChatState,

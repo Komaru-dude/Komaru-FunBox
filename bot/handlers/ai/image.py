@@ -8,7 +8,7 @@ from aiogram.enums import ParseMode
 from aiogram.types import Message
 
 from bot.database.database import Database
-from bot.handlers.ai import DEFAULT_MODEL
+from bot.handlers.ai.ai import DEFAULT_MODEL
 from bot.utils.ai_api import stream_text_api
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import onlysq_models
