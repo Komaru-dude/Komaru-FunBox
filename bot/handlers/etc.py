@@ -105,6 +105,7 @@ async def cmd_http_cat(message: Message, bot: Bot):
     except Exception as e:
         await error_report(message, bot, "http_cat", traceback.format_exc())
 
+
 @etc_router.message(Command("cat"), CooldownFilter("pets", 15))
 async def cmd_cat(message: Message, bot: Bot):
     try:
