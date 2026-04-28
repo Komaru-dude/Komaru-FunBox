@@ -33,7 +33,7 @@ const sidebars = {
         type: 'doc', 
         id: 'commands/commands'
       },
-      items: ['commands/basic', 'commands/ai'],
+      items: ['commands/basic', 'commands/ai', 'commands/mods', 'commands/rights', 'commands/settings', 'commands/rp', 'commands/other'],
     },
   ],
 };
