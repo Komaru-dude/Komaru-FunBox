@@ -3,9 +3,9 @@ import json
 import random
 from typing import Any, Dict
 
-from pydantic import BaseModel
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from pydantic import BaseModel
 
 from bot import logger
 from bot.utils.ai_api import simple_text_api

@@ -1,10 +1,10 @@
 import asyncio
+import json
 import os
 import re
 import time
 import traceback
 from html import escape
-import json
 from typing import Any, cast
 
 import openai
@@ -104,7 +104,9 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
 
                 try:
                     raw_dump = json.dumps(messages, indent=2, ensure_ascii=False)
-                    logger.info(f"\n{'='*20} Дамп: {'='*20}\n{raw_dump}\n{'='*20} Конец дампа {'='*20}")
+                    logger.info(
+                        f"\n{'='*20} Дамп: {'='*20}\n{raw_dump}\n{'='*20} Конец дампа {'='*20}"
+                    )
                 except Exception as dump_ex:
                     logger.error(f"❌ Не удалось сделать дамп: {dump_ex}")
 
