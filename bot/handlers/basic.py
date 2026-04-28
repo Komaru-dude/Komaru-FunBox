@@ -31,7 +31,7 @@ async def cmd_start(message: Message):
         f"👋 Привет, <b>{message.from_user.first_name}</b>!\n"
         "🤖 Это развлекательный и модерационный бот.\n"
         "❔ Если хочешь узнать более подробную информацию о командах, напиши <code>/help.</code>\n\n"
-        "👤 Владелец бота: @komaru_dude\n"
+        "👤 Владелец бота: @not_a_dude\n"
         "📚 Гайд по настройке бота: https://Not-a-dude.github.io/Komaru-FunBox/docs/setup/faststart\n"
         "📰 Новостной канал бота: @komaru_funbox\n"
         "🧑‍💻 Исходный код бота: https://github.com/Not-a-dude/Komaru-FunBox\n\n"
