@@ -162,23 +162,6 @@ async def cmd_set_name(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "set_name", traceback.format_exc())
 
 
-async def check_wiki_page(url):
-    async with aiohttp.ClientSession() as session:
-        async with session.head(url) as response:
-            return response.status == 200 or response.status == 301
-
-
-async def find_wiki_page(name: str) -> str | None:
-    encoded_name = quote(name)
-    url_commands = f"{BASE_COMMANDS_URL}/{encoded_name}"
-    url_modules = f"{BASE_MODULES_URL}/{encoded_name}"
-    if await check_wiki_page(url_commands):
-        return url_commands
-    elif await check_wiki_page(url_modules):
-        return url_modules
-    return None
-
-
 @base_router.message(Command("help"), CooldownFilter("help", 10))
 async def cmd_help(message: Message):
     await message.reply(
