@@ -84,49 +84,13 @@ class ChatState(StatesGroup):
     active = State()
 
 
-class ChatStopTool(BaseModel):
-    """Останавливает текущую активную сессию чата, сбрасывая состояние пользователя."""
-
-    pass
-
-
-TOOLS_SCHEMA = [
-    {
-        "type": "function",
-        "function": {
-            "name": "chat_stop",
-            "description": "Останавливает текущую активную сессию чата, сбрасывая состояние пользователя. Используется, если пользователь явно запрашивает завершение текущего разговора.",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        },
-    }
-]
-
-AVAILABLE_TOOLS = {
-    "chat_stop": None,
-}
-
-
-async def execute_chat_stop(message: Message, state: FSMContext) -> str:
-    """Выполняет логику команды /chat_stop и возвращает результат для LLM."""
-    chat_id = message.chat.id
-    current_state = await state.get_state()
-
-    if current_state is not None:
-        await state.clear()
-
-    async with active_chats_lock:
-        if chat_id in active_chats:
-            active_chats.remove(chat_id)
-            return "Чат успешно остановлен, и состояние сброшено. Пользователь может начать новый разговор."
-        else:
-            return "Чат уже был остановлен. Никаких дополнительных действий не требовалось."
-
-
-AVAILABLE_TOOLS["chat_stop"] = execute_chat_stop
+from bot.handlers.ai.tools import (
+    AVAILABLE_TOOLS,
+    TOOLS_SCHEMA,
+    ChatStopTool,
+    execute_chat_stop,
+    handle_tool_call,
+)
 
 
 @ai_router.message(Command("available_models"), CooldownFilter("available_models", 15))
@@ -1016,27 +980,7 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "chat_clear", traceback.format_exc())
 
 
-async def handle_tool_call(tool_call, message: Message, state: FSMContext) -> dict:
-    """
-    Обрабатывает один вызов инструмента от LLM, вызывая соответствующую Python-функцию.
-    """
-    function_name = tool_call.function.name
-
-    if function_name == "chat_stop":
-
-        function_to_call = AVAILABLE_TOOLS[function_name]
-
-        function_result = await function_to_call(message=message, state=state)
-
-        return {
-            "tool_call_id": tool_call.id,
-            "output": function_result,
-        }
-    else:
-        return {
-            "tool_call_id": tool_call.id,
-            "output": f"Ошибка: Функция {function_name} не найдена в списке доступных инструментов.",
-        }
+# `handle_tool_call` moved to bot/handlers/ai/tools.py
 
 
 @ai_router.message(Command("chat_stop"), CooldownFilter("chat_stop", 15))
