@@ -15,6 +15,7 @@ from aiogram.types import FSInputFile, Message
 
 from bot import API_URL, CACHE_DIR, DATA_DIR
 from bot.database.database import Database
+from bot.database.redis_client import redis_db
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report, fetch_json
 from bot.utils.global_storage import eco_config
@@ -92,6 +93,14 @@ async def cmd_update(message: Message, bot: Bot, db: Database):
         os.remove(models_path)
     except FileNotFoundError:
         await update_msg.edit_text("⚠️ Не удалось удалить кэш загруженных моделей")
+
+    try:
+        await redis_db.client.delete("check_models_cache")
+    except:
+        await error_report(message, bot, "update", traceback.format_exc())
+        return await update_msg.edit_text(
+            "⚠️ Произошла ошибка при удалении кэша рабочих моделей"
+        )
 
     try:
         await update_msg.edit_text("⏳ Получаю изменения из репозитория...")
