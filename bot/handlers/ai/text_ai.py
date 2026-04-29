@@ -363,7 +363,7 @@ async def process_explain_reply(message, db: Database) -> bool:
         chat_id = message.chat.id
         if not message.reply_to_message or not message.reply_to_message.text:
             return False
-        clean_text = message.text.lower().strip().rstrip('?')
+        clean_text = message.text.lower().strip().rstrip("?")
         if clean_text != "это что":
             return False
         if not await db.is_setting_enabled(chat_id, "who"):
