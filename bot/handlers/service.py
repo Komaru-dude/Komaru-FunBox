@@ -1,6 +1,6 @@
 from traceback import format_exc
 
-from aiogram import Bot, F, Router
+from aiogram import Bot, Router
 from aiogram.filters.chat_member_updated import (
     IS_MEMBER,
     IS_NOT_MEMBER,
@@ -10,12 +10,12 @@ from aiogram.filters.chat_member_updated import (
 )
 from aiogram.types import ChatMemberUpdated, Message
 
+from bot import logger
 from bot.database.database import Database
 from bot.filters.func_filter import FuncEnabled
 from bot.utils.aio_tools import error_report
 
 service_router = Router()
-service_router.my_chat_member.filter(F.chat.type == "private")
 
 
 @service_router.message(
@@ -59,6 +59,7 @@ async def service_new_member(event: ChatMemberUpdated, db: Database):
     }
 
     text = await db.get_setting(chat.id, "welcome_message")
+    text = text or ""
 
     try:
         text = text.format_map(allowed)
@@ -66,6 +67,41 @@ async def service_new_member(event: ChatMemberUpdated, db: Database):
         pass  # Неизвестные ключи остаются как есть, без падения
 
     await event.bot.send_message(chat.id, text)
+
+
+@service_router.my_chat_member(
+    lambda ev: (
+        getattr(ev, "new_chat_member", None) is not None
+        and getattr(ev.new_chat_member.user, "is_bot", False)
+        and getattr(ev.new_chat_member, "status", None) == "member"
+        and getattr(ev.chat, "type", None) in ("group", "supergroup")
+    )
+)
+async def bot_added_to_group(
+    event: ChatMemberUpdated, db: Database
+):  # Убедитесь, что тип Database импортирован
+    chat = event.chat
+
+    logger.info(
+        f"bot_added_to_group triggered for chat_id={chat.id} chat_type={getattr(chat, 'type', None)}"
+    )
+
+    # 3. Оптимизировано: f-строка очищена от лишнего условного форматирования (у групп всегда есть title)
+    text = (
+        f"👋 Привет! Спасибо, что добавили меня в группу «{chat.title}».\n\n"
+        "▶️ Перед началом работы настоятельно рекомендуем заглянуть в статью по быстрой настройке: "
+        "https://not-a-dude.github.io/Komaru-FunBox/docs/setup/faststart/\n"
+        "💿 В этой же базе знаний вы найдете множество других полезных материалов, "
+        "которые объяснят все тонкости работы бота."
+    )
+
+    # Ensure we have a string to send
+    text = text or ""
+
+    try:
+        await event.bot.send_message(chat.id, text, disable_web_page_preview=True)
+    except Exception as e:
+        logger.error(f"Ошибка при отправке приветственного сообщения: {e}")
 
 
 @service_router.my_chat_member(ChatMemberUpdatedFilter(member_status_changed=KICKED))

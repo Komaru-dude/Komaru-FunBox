@@ -175,7 +175,9 @@ async def main():
     try:
         asyncio.create_task(background_checker(bot))
         await bot(DeleteWebhook(drop_pending_updates=True))
-        await dp.start_polling(bot)
+        await dp.start_polling(
+            bot, allowed_updates=["message", "callback_query", "my_chat_member"]
+        )
     except Exception:
         logger.fatal(f"📛 Запуск не удался.\n\nTraceback: {format_exc()}")
     finally:
