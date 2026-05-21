@@ -9,9 +9,11 @@ from pathlib import Path
 from traceback import format_exc
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.session.aiohttp import AiohttpSession
+from aiogram.client.telegram import PRODUCTION, TEST
 from aiogram.methods import DeleteWebhook
 
-from bot import DATA_DIR, IS_TEST, PYRO_HOST, PYRO_PORT, logger
+from bot import DATA_DIR, IS_TEST, IS_TEST_ENV, PYRO_HOST, PYRO_PORT, logger
 from bot.database.database import Database
 from bot.database.redis_client import redis_db
 from bot.middlewares.chatwatcher import ChatWatcher
@@ -31,6 +33,7 @@ from .handlers.economy.eco_invest import invest_router
 from .handlers.economy.economy import eco_router
 from .handlers.etc import etc_router
 from .handlers.mods import mods_router
+from .handlers.premium import premium_router
 from .handlers.rights import rights_router
 from .handlers.rp import rp_router
 from .handlers.service import service_router
@@ -39,8 +42,19 @@ from .handlers.text import text_router
 from .handlers.user_settings import usettings_router
 from .handlers.video import video_router
 
-token = os.getenv("BOT_API_TOKEN") or sys.exit(1)
-bot = Bot(token)
+# TODO: Возможно излишнее кол-во тестовых переменных, глянуть потом
+if IS_TEST_ENV:
+    token = os.getenv("TEST_BOT_API_TOKEN") or sys.exit(1)
+else:
+    token = os.getenv("BOT_API_TOKEN") or sys.exit(1)
+
+if IS_TEST_ENV:
+    session = AiohttpSession(api=TEST)
+    bot = Bot(token=token, session=session)
+    logger.debug(f"🧪 Используется тестовый API сервер: {token}")
+else:
+    bot = Bot(token=token, server=PRODUCTION)
+
 dp = Dispatcher()
 dp.message.outer_middleware(ChatWatcher())
 dp.callback_query.outer_middleware(ChatWatcher())
@@ -135,6 +149,7 @@ async def main():
         video_router,
         eco_router,
         invest_router,
+        premium_router,
         text_router,
     )
 

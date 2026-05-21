@@ -31,3 +31,9 @@ class EditFieldCallback(CallbackData, prefix="edf"):
     field: str  # title, content, public, save
     prompt_id: str
     user_id: int
+
+
+class PremiumBuyCallback(CallbackData, prefix="premium"):
+    action: str
+    user_id: int
+    time: Optional[int] = None

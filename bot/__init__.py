@@ -42,7 +42,8 @@ for path in (DATA_DIR, CACHE_DIR, COMMANDS_DIR):
     path.mkdir(parents=True, exist_ok=True)
 
 branch_name = get_git_branch(parent_dir)
-IS_TEST = branch_name == "test"
+IS_TEST = branch_name == "test" or branch_name is None
+IS_TEST_ENV = Path(DATA_DIR / "test").is_file()
 if IS_TEST:
     level = logging.DEBUG
 else:

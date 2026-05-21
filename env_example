@@ -4,6 +4,9 @@
 # Токен API бота (можно взять тут: https://t.me/BotFather)
 BOT_API_TOKEN=your_bot_api_token
 
+# Тестовый токен Telegram Bot API (можно взять тут: https://t.me/BotFather (учтите, что оно нужно только при использовании тестового сервера))
+TEST_BOT_API_TOKEN=your_test_bot_api_token
+
 # ID владельца (можно взять тут: https://t.me/getmyid_bot)
 OWNER_ID=your_owner_id
 
