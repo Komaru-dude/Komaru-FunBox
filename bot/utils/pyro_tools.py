@@ -3,6 +3,12 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+
+try:
+    asyncio.get_event_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
 from pyrogram.client import Client
 from pyrogram.enums import ChatMemberStatus
 from pyrogram.errors import UserNotParticipant
