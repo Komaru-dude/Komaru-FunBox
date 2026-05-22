@@ -241,11 +241,16 @@ async def cmd_info(message: Message, bot: Bot, db: Database):
         if not user_data:
             return await message.reply("❌ Пользователь не найден в базе данных")
 
-        tier = await db.get_user_tier(user_id)
+        premium_expire = await db.get_premium_expire(user_id)
+        premium_remain_days = premium_expire // (24 * 60 * 60)
 
         profile_link = f"tg://user?id={user_info['user_id']}"
         clickable_name = f'<a href="{profile_link}">{user_info["first_name"]}</a>'
-        final_tier = "💎 Премиум" if tier > 0 else "🆓 Обычный"
+        final_tier = (
+            f"💎 Премиум ({premium_remain_days} дней)"
+            if premium_expire > time.time()
+            else "🆓 Обычный"
+        )
 
         info_text = (
             f"👤 Информация о {clickable_name}\n"
