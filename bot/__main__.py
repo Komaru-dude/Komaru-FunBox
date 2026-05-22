@@ -158,10 +158,10 @@ async def main():
         if sys.platform == "win32"
         else Path(sys.prefix) / "bin" / "uvicorn"
     )
-    pyrogram_process = subprocess.Popen(
+    telethon_process = subprocess.Popen(
         [
             uvicorn_exec,
-            "bot.utils.pyro_tools:server",
+            "bot.utils.tele_tools:server",
             "--host",
             PYRO_HOST,
             "--port",
@@ -183,15 +183,15 @@ async def main():
     finally:
         await bot.session.close()
         await redis_db.close()
-        if pyrogram_process.poll() is None:
+        if telethon_process.poll() is None:
             if sys.platform == "win32":
-                pyrogram_process.send_signal(signal.CTRL_BREAK_EVENT)
+                telethon_process.send_signal(signal.CTRL_BREAK_EVENT)
             else:
-                pyrogram_process.send_signal(signal.SIGTERM)
+                telethon_process.send_signal(signal.SIGTERM)
             try:
-                pyrogram_process.wait(timeout=7)
+                telethon_process.wait(timeout=7)
             except subprocess.TimeoutExpired:
-                pyrogram_process.kill()
+                telethon_process.kill()
 
 
 if __name__ == "__main__":

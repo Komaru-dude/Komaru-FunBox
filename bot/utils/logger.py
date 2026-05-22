@@ -19,6 +19,6 @@ def setup_logger(log_file: Path, level=logging.INFO):
     root_logger.addHandler(handler)
     root_logger.addHandler(file_handler)
 
-    logging.getLogger("pyrogram").setLevel(logging.WARNING)
+    logging.getLogger("telethon").setLevel(logging.WARNING)
 
     return root_logger
