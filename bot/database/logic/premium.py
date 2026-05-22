@@ -132,6 +132,5 @@ async def is_premium_user(pool: Pool, user_id: int) -> bool:
         result = await connection.fetchval(
             "SELECT premium_expire FROM global_users WHERE user_id = $1", user_id
         )
-        if result > 0:
-            return True
-    return False
+        now = int(time.time())
+        return bool(result and result > now)
