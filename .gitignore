@@ -6,7 +6,7 @@ data
 bot/cache
 test
 __pycache__
-.session
-.session-journal
+*.session
+*.session-journal
 postgres_data
 backups
