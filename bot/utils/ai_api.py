@@ -178,12 +178,12 @@ async def check_models(
         try:
             cached_result = await redis_db.client.get(cache_key)
             if cached_result:
-                logger.info("💾 Загружаем модели из кэша")
+                logger.info("💾 Загружаем рабочие модели из кэша")
                 checked_models = json.loads(cached_result)
                 filtered_models.clear()
                 filtered_models.update(checked_models)
                 logger.info(
-                    f"✅ Модели загружены из кэша, рабочие: {len(checked_models)}"
+                    f"✅ Рабочие модели загружены из кэша: {len(checked_models)}"
                 )
                 return
         except Exception as e:
