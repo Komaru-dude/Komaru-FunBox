@@ -17,7 +17,6 @@
     { "command": "chat", "description": "Чат с ИИ" },
     { "command": "chat_clear", "description": "Очистить чат" },
     { "command": "chat_stop", "description": "Остановить чат с ИИ" },
-    { "command": "set_def_model", "description": "Установить модель по умолчанию" },
     { "command": "image", "description": "Сгенерировать картинку" },
     { "command": "ocr", "description": "Распознать текст с картинки" },
     { "command": "translate", "description": "Перевод текста" },

@@ -37,3 +37,14 @@ class PremiumBuyCallback(CallbackData, prefix="premium"):
     action: str
     user_id: int
     time: Optional[int] = None
+
+
+class SetModelCallback(CallbackData, prefix="setmodel"):
+    model: str
+    user_id: int
+    type: str  # 'text' или 'image'
+
+
+class SetDefaultModelCallback(CallbackData, prefix="setdefaultmodel"):
+    user_id: int
+    type: str  # 'text' или 'image'

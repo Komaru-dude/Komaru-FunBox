@@ -13,11 +13,19 @@ from aiogram.exceptions import TelegramBadRequest, TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import BufferedInputFile, Message
+from aiogram.types import (
+    BufferedInputFile,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
 from pydantic import BaseModel
 
 from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
+from bot.keyboards.ai_keyboard import make_available_models_kb
+from bot.keyboards.callback_data import SetDefaultModelCallback, SetModelCallback
 from bot.utils.ai_api import (
     generate_image_api,
     ocr_process_api,
@@ -79,6 +87,8 @@ ALLOWED_RATIOS = {
     "9:21",
 }
 
+MODELS_PER_PAGE = 7
+
 
 class ChatState(StatesGroup):
     active = State()
@@ -113,50 +123,255 @@ async def show_working_models(message: Message, bot: Bot, db: Database):
             modality = model_data["modality"]
             categories.setdefault(modality, []).append({"id": model_id, **model_data})
 
-        message_text = ""
-        category_names = {
-            "text": "📚 Текстовые модели",
-            "image": "🎨 Генерация изображений",
-            "sound": "🔊 Обработка звука",
+        category_order = ["text", "image", "sound"]
+        sorted_categories = {
+            k: categories[k] for k in category_order if k in categories
         }
 
-        for modality, models in categories.items():
-            category_header = (
-                f"<b>{category_names.get(modality, '⚙️ Другие модели')}</b>\n"
-            )
-            category_body = []
+        all_models_list = []
+        category_headers = {}
 
+        for modality, models in sorted_categories.items():
+            category_headers[len(all_models_list)] = modality
             for model in models:
-                premium_icon = " 💎" if model.get("is_premium", False) else ""
-                thinking_icon = " 🧠" if model.get("can-think", False) else ""
-                tools_icon = " 🔧" if model.get("can-tools", False) else ""
-                display_name = model["id"]
+                all_models_list.append(
+                    {"id": model["id"], "modality": modality, **model}
+                )
 
-                model_line = f"<code>{display_name}</code>{premium_icon}{thinking_icon}{tools_icon}\n"
-                category_body.append(model_line)
-
-            message_text += category_header + "".join(category_body) + "\n"
-
-        legend_text = "\n❓ <b>Что значат все эти эмодзи?</b>\n\n"
-        legend_text += "💎 Премиум — модель доступна только для премиум пользователей\n"
-        legend_text += "🧠 Думающая — может размышлять перед ответом, повышает качество ответа ценой большего времени ожидания\n"
-        legend_text += "🔧 Tools — может использовать инструменты. Например автоматически завершать чаты по вашему запросу.\n"
-
-        user_tier_text = "\n\n👤 <b>Ваш тариф:</b> "
-        if user_tier > 0:
-            user_tier_text += "💎 Премиум"
-        else:
-            user_tier_text += "🆓 Обычный"
-
-        await message.reply(
-            f"🚀 <b>Доступные модели:</b>\n\n<blockquote expandable>{message_text}</blockquote>{legend_text}{user_tier_text}",
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-        )
+        await _send_models_page(message, user_id, user_tier, all_models_list, page=0)
     except Exception:
         assert message.from_user is not None
         await error_report(message, bot, "available_models", traceback.format_exc())
         await db.reset_cooldown(message.from_user.id, "available_models")
+
+
+async def _send_models_page(
+    message: Message, user_id: int, user_tier: int, all_models: list, page: int = 0
+):
+    start_idx = page * MODELS_PER_PAGE
+    end_idx = start_idx + MODELS_PER_PAGE
+    page_models = all_models[start_idx:end_idx]
+
+    total_pages = (len(all_models) + MODELS_PER_PAGE - 1) // MODELS_PER_PAGE
+
+    legend_text = "\n❓ <b>Что значат эмодзи?</b>\n"
+    legend_text += "💎 — Премиум\n🧠 — Думающая\n🔧 — Tools\n\n"
+
+    user_tier_text = "👤 <b>Ваш тариф:</b> "
+    if user_tier > 0:
+        user_tier_text += "💎 Премиум"
+    else:
+        user_tier_text += "🆓 Обычный"
+
+    pagination_info = f"\n📄 <b>Страница {page + 1}/{total_pages}</b>"
+
+    final_text = (
+        f"🚀 <b>Доступные модели:</b>\n\n{legend_text}{user_tier_text}{pagination_info}"
+    )
+
+    inline_keyboard = []
+
+    for model in page_models:
+        model_id = model["id"]
+        premium_icon = " 💎" if model.get("is_premium", False) else ""
+        thinking_icon = " 🧠" if model.get("can-think", False) else ""
+        tools_icon = " 🔧" if model.get("can-tools", False) else ""
+        model_name = f"{model_id}{premium_icon}{thinking_icon}{tools_icon}"
+
+        inline_keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=model_name,
+                    callback_data=SetModelCallback(
+                        model=model_id,
+                        user_id=user_id,
+                        type=model.get("modality", "text"),
+                    ).pack(),
+                )
+            ]
+        )
+
+    navigation = []
+
+    if page > 0:
+        navigation.append(
+            InlineKeyboardButton(
+                text="⬅️ Назад", callback_data=f"models_page:{user_id}:{page-1}"
+            )
+        )
+
+    navigation.append(
+        InlineKeyboardButton(text=f"{page+1}/{total_pages}", callback_data="noop")
+    )
+
+    if page < total_pages - 1:
+        navigation.append(
+            InlineKeyboardButton(
+                text="Вперед ➡️", callback_data=f"models_page:{user_id}:{page+1}"
+            )
+        )
+
+    if navigation:
+        inline_keyboard.append(navigation)
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=inline_keyboard)
+
+    is_bot_message = getattr(message.from_user, "is_bot", False)
+
+    try:
+        if is_bot_message:
+            await message.edit_text(
+                final_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard,
+                disable_web_page_preview=True,
+            )
+        else:
+            await message.reply(
+                final_text,
+                parse_mode=ParseMode.HTML,
+                reply_markup=keyboard,
+                disable_web_page_preview=True,
+            )
+    except TelegramRetryAfter:
+        return
+    except Exception:
+        if not is_bot_message:
+            try:
+                await message.reply(
+                    final_text,
+                    parse_mode=ParseMode.HTML,
+                    reply_markup=keyboard,
+                    disable_web_page_preview=True,
+                )
+            except TelegramRetryAfter:
+                return
+
+
+@ai_router.callback_query(lambda c: c.data.startswith("models_page:"))
+async def cb_models_page(callback_query: CallbackQuery, db: Database, bot: Bot):
+    try:
+        data = callback_query.data.split(":")
+        if len(data) != 3:
+            return
+
+        user_id = int(data[1])
+        page = int(data[2])
+
+        if callback_query.from_user.id != user_id:
+            await callback_query.answer("❌ Это не ваш список моделей", show_alert=True)
+            return
+
+        user_tier = await db.get_user_tier(user_id)
+
+        categories = {}
+        for model_id, model_data in filtered_models.items():
+            modality = model_data["modality"]
+            categories.setdefault(modality, []).append({"id": model_id, **model_data})
+
+        category_order = ["text", "image", "sound"]
+        sorted_categories = {
+            k: categories[k] for k in category_order if k in categories
+        }
+
+        all_models_list = []
+        for modality, models in sorted_categories.items():
+            for model in models:
+                all_models_list.append(
+                    {"id": model["id"], "modality": modality, **model}
+                )
+
+        await _send_models_page(
+            callback_query.message, user_id, user_tier, all_models_list, page=page
+        )
+        await callback_query.answer()
+
+    except Exception as e:
+        await callback_query.answer(f"❌ Ошибка: {str(e)}", show_alert=True)
+
+
+@ai_router.callback_query(lambda c: c.data == "noop")
+async def cb_noop(callback_query: CallbackQuery):
+    """Заглушка для неактивных кнопок."""
+    await callback_query.answer()
+
+
+@ai_router.callback_query(SetModelCallback.filter())
+async def cb_set_model_callback(
+    callback_query: CallbackQuery,
+    bot: Bot,
+    callback_data: SetModelCallback,
+    db: Database,
+):
+    try:
+        user_id = callback_data.user_id
+        model_id = callback_data.model
+        model_type = callback_data.type
+
+        if model_id not in filtered_models:
+            await callback_query.answer("❌ Модель не найдена", show_alert=True)
+            return
+
+        if not is_model_available_for_user(model_id, await db.get_user_tier(user_id)):
+            await callback_query.answer(
+                "❌ Модель недоступна в вашем тарифе", show_alert=True
+            )
+            return
+
+        default_model_key = (
+            "default_text_model" if model_type == "text" else "default_image_model"
+        )
+        await db.set_user_param(
+            user_id, callback_query.message.chat.id, default_model_key, model_id
+        )
+
+        await callback_query.answer(
+            f"✅ Модель {model_id} установлена по умолчанию для {model_type} запросов",
+            show_alert=True,
+        )
+    except Exception:
+        await error_report(
+            callback_query.message,
+            bot,
+            "set_default_model_callback",
+            traceback.format_exc(),
+        )
+
+
+@ai_router.callback_query(SetDefaultModelCallback.filter())
+async def cb_set_default_model_callback(
+    callback_query: CallbackQuery,
+    bot: Bot,
+    callback_data: SetDefaultModelCallback,
+    db: Database,
+):
+    try:
+        user_id = callback_data.user_id
+        model_type = callback_data.type
+
+        if model_type == "text":
+            default_model_key = "default_text_model"
+        elif model_type == "image":
+            default_model_key = "default_image_model"
+        else:
+            await callback_query.answer("❌ Неверный тип модели", show_alert=True)
+            return
+
+        await db.set_user_param(
+            user_id, callback_query.message.chat.id, default_model_key, None
+        )
+
+        await callback_query.answer(
+            f"✅ Модель установлена по умолчанию для {model_type} запросов",
+            show_alert=True,
+        )
+    except Exception:
+        await error_report(
+            callback_query.message,
+            bot,
+            "set_default_model_callback",
+            traceback.format_exc(),
+        )
 
 
 @ai_router.message(Command("ai"), CooldownFilter("ai", 15))
@@ -224,7 +439,7 @@ async def cmd_ai(
             model = model_name
         else:
             user_data = await db.get_user_data(user_id, message.chat.id)
-            user_default_model = user_data.get("default_model", None)
+            user_default_model = user_data.get("default_text_model", None)
             model = user_default_model or DEFAULT_MODEL
 
             if not is_model_available_for_user(model, user_tier):
@@ -448,7 +663,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
             model = model_name
         else:
             user_data = await db.get_user_data(user_id, message.chat.id)
-            user_default_model = user_data.get("default_model", None)
+            user_default_model = user_data.get("default_text_model", None)
             model = user_default_model or DEFAULT_MODEL
 
             if not is_model_available_for_user(model, user_tier):
@@ -698,7 +913,7 @@ async def cmd_translate(
         chat_id = message.chat.id
 
         user_data = await db.get_user_data(user_id, chat_id)
-        default_model = user_data.get("default_model", None) or DEFAULT_MODEL
+        default_model = user_data.get("default_text_model", None) or DEFAULT_MODEL
 
         default_lang = "en"
 
@@ -888,7 +1103,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             model = model_name
 
         user_data = await db.get_user_data(user_id, message.chat.id)
-        user_default_model = user_data.get("default_model", None)
+        user_default_model = user_data.get("default_text_model", None)
 
         model = model or user_default_model or DEFAULT_MODEL
 
@@ -1006,63 +1221,3 @@ async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Datab
 
     except Exception:
         await error_report(message, bot, "chat_stop", traceback.format_exc())
-
-
-@ai_router.message(Command("set_def_model"), CooldownFilter("set_def_model", 150))
-async def cmd_set_default_model(message: Message, bot: Bot, db: Database):
-    try:
-        assert message.from_user is not None
-        assert message.text is not None
-        user_id = message.from_user.id
-        chat_id = message.chat.id
-
-        parts = message.text.strip().split(maxsplit=1)
-        if len(parts) < 2:
-            await db.set_user_param(user_id, chat_id, "default_model", None)
-            await message.reply(
-                f"🤷‍♂️ Не была указана модель, выбрана по умолчанию",
-                parse_mode=ParseMode.HTML,
-            )
-            await db.reset_cooldown(user_id, "set_def_model")
-            return
-
-        model_name = parts[1].strip()
-
-        model_info = filtered_models.get(model_name)
-        if not model_info:
-            await message.reply(
-                f"❌ Модель <code>{model_name}</code> не найдена",
-                parse_mode=ParseMode.HTML,
-            )
-            await db.reset_cooldown(user_id, "set_def_model")
-            return
-        if model_info["status"] != "work":
-            await message.reply(
-                f"❌ Модель <code>{model_name}</code> на данный момент не работает.",
-                parse_mode=ParseMode.HTML,
-            )
-            await db.reset_cooldown(user_id, "set_def_model")
-            return
-        if model_info["modality"] != "text":
-            await message.reply(
-                f"❌ Модель <code>{model_name}</code> не текстовая.",
-                parse_mode=ParseMode.HTML,
-            )
-            await db.reset_cooldown(user_id, "set_def_model")
-            return
-        if not model_info.get("can-stream"):
-            await message.reply(
-                f"❌ Модель <code>{model_name}</code> не поддерживает стриминг.",
-                ParseMode=ParseMode.HTML,
-            )
-            await db.reset_cooldown(user_id, "ai")
-            return
-
-        await db.set_user_param(user_id, chat_id, "default_model", model_name)
-        await message.reply(
-            f"✅ Теперь по умолчанию в ваших ИИ запросах будет использоваться: <code>{model_name}</code>",
-            parse_mode=ParseMode.HTML,
-        )
-
-    except Exception:
-        await error_report(message, bot, "set_def_model", traceback.format_exc())

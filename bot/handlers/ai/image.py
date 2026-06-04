@@ -54,7 +54,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
         prompt_content = prompt["content"]
 
         user_data = await db.get_user_data(user1.id, chat_id)
-        user_default_model = user_data.get("default_model", DEFAULT_MODEL)
+        user_default_model = user_data.get("default_text_model", DEFAULT_MODEL)
         model = user_default_model
 
         model_match = re.search(r"-m\s+(\S+)", user_query)

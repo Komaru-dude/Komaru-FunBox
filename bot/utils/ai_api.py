@@ -205,12 +205,15 @@ async def check_models(
     premium_models_set = set(premium_models)
 
     all_api_models = onlysq_models.get("models", {})
-    checked_models = {}
+
     current_tier = int(os.getenv("ONLYSQ_TIER", 0))
 
     test_messages = [
         {"role": "user", "content": "Write hello world"},
     ]
+
+    text_checked: dict[str, dict] = {}
+    image_checked: dict[str, dict] = {}
 
     for model_id in allowed_ids:
         if model_id not in all_api_models:
@@ -227,10 +230,10 @@ async def check_models(
 
         logger.info(f"⌛️ Проверяем модель {model["name"]}")
 
-        if tier_filtered and model["tier"] > current_tier:
+        if tier_filtered and model.get("tier", 0) > current_tier:
             continue
 
-        if model["modality"] == "text":
+        if model.get("modality") == "text":
             try:
                 model_answer = await simple_text_api(model_id, test_messages)
 
@@ -241,15 +244,15 @@ async def check_models(
                     **model,
                     "is_premium": model_id in premium_models_set,
                 }
-                checked_models[model_id] = model_with_premium
+                text_checked[model_id] = model_with_premium
             except Exception as e:
-                logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
-        elif model["modality"] == "image" and include_image:
+                logger.warning(f"⚠️ Модель {model['name']} не ответила. Ошибка: {e}")
+        elif model.get("modality") == "image" and include_image:
             try:
                 api_resp = await generate_image_api(model_id, "Ginger cat")
 
                 if api_resp.get("error"):
-                    raise RuntimeError(f"API вернуло ошибку: {api_resp.get("error")}")
+                    raise RuntimeError(f"API вернуло ошибку: {api_resp.get('error')}")
 
                 image_bytes = api_resp.get("file")
 
@@ -265,9 +268,13 @@ async def check_models(
                     **model,
                     "is_premium": model_id in premium_models_set,
                 }
-                checked_models[model_id] = model_with_premium
+                image_checked[model_id] = model_with_premium
             except Exception as e:
-                logger.warning(f"⚠️ Модель {model["name"]} не ответила. Ошибка: {e}")
+                logger.warning(f"⚠️ Модель {model['name']} не ответила. Ошибка: {e}")
+
+    checked_models: dict[str, dict] = {}
+    checked_models.update(text_checked)
+    checked_models.update(image_checked)
 
     filtered_models.clear()
     filtered_models.update(checked_models)

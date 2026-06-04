@@ -7,7 +7,8 @@ USERS_COLUMNS = {
     "rank": "TEXT DEFAULT 'Участник'",
     "message_count": "INTEGER DEFAULT 0",
     "history": "JSONB DEFAULT '[]'::JSONB",
-    "default_model": "TEXT DEFAULT ''",
+    "default_text_model": "TEXT DEFAULT ''",
+    "default_image_model": "TEXT DEFAULT ''",
     "settings": "JSONB DEFAULT '[]'::JSONB",
 }
 
