@@ -301,7 +301,7 @@ async def cmd_rp_remove(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "rp_remove", traceback.format_exc())
 
 
-@rp_router.message(Command("rp_wipe"), CooldownFilter("rp", 300))
+@rp_router.message(Command("rp_wipe"), CooldownFilter("rp", 300, True))
 async def cmd_rp_wipe(message: Message, bot: Bot, db: Database):
     try:
         chat_id = message.chat.id

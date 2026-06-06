@@ -250,7 +250,7 @@ async def download_with_format(
         return False, str(e)
 
 
-@video_router.message(Command("youtube"), CooldownFilter("video", 300))
+@video_router.message(Command("youtube"), CooldownFilter("video", 300, True))
 async def cmd_video(message: Message, bot: Bot, db: Database, url=None):
     user_id = message.from_user.id
     if not url:

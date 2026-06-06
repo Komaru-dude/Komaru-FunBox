@@ -103,7 +103,7 @@ from bot.handlers.ai.tools import (
 )
 
 
-@ai_router.message(Command("available_models"), CooldownFilter("available_models", 15))
+@ai_router.message(Command("available_models"), CooldownFilter("available_models", 15, True))
 async def show_working_models(message: Message, bot: Bot, db: Database):
     try:
         assert message.from_user is not None
@@ -374,7 +374,7 @@ async def cb_set_default_model_callback(
         )
 
 
-@ai_router.message(Command("ai"), CooldownFilter("ai", 15))
+@ai_router.message(Command("ai"), CooldownFilter("ai", 15, True))
 async def cmd_ai(
     message: Message,
     bot: Bot,
@@ -608,7 +608,7 @@ async def cmd_ai(
         await db.reset_cooldown(user_id, "ai")
 
 
-@ai_router.message(Command("agai"), CooldownFilter("ai", 15))
+@ai_router.message(Command("agai"), CooldownFilter("ai", 15, True))
 async def cmd_agai(message: Message, bot: Bot, db: Database):
     try:
         assert message.from_user is not None
@@ -769,7 +769,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
         await db.reset_cooldown(user_id, "ai")
 
 
-@ai_router.message(Command("image"), CooldownFilter("image", 25))
+@ai_router.message(Command("image"), CooldownFilter("image", 25, True))
 async def cmd_image(message: Message, bot: Bot, db: Database):
     assert message.from_user is not None
     user_id = message.from_user.id
@@ -900,7 +900,7 @@ async def cmd_image(message: Message, bot: Bot, db: Database):
         await db.reset_cooldown(user_id, "image")
 
 
-@ai_router.message(Command("translate"), CooldownFilter("ai", 15))
+@ai_router.message(Command("translate"), CooldownFilter("ai", 15, True))
 async def cmd_translate(
     message: Message,
     db: Database,
@@ -1009,7 +1009,7 @@ async def cmd_translate(
         await db.reset_cooldown(message.from_user.id, "ai")
 
 
-@ai_router.message(Command("ocr"), CooldownFilter("ocr", 300))
+@ai_router.message(Command("ocr"), CooldownFilter("ocr", 300, True))
 async def cmd_ocr(message: Message, bot: Bot, db: Database):
     try:
         assert message.from_user is not None
@@ -1050,7 +1050,7 @@ async def cmd_ocr(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "ocr", traceback.format_exc())
 
 
-@ai_router.message(Command("chat"), CooldownFilter("ai", 30))
+@ai_router.message(Command("chat"), CooldownFilter("ai", 30, True))
 async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         user_id = message.from_user.id
@@ -1176,7 +1176,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
         await error_report(message, bot, "chat", traceback.format_exc())
 
 
-@ai_router.message(Command("chat_clear"), CooldownFilter("chat_cleat", 10))
+@ai_router.message(Command("chat_clear"), CooldownFilter("chat_clear", 10, True))
 async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
     try:
         current_state = await state.get_state()
@@ -1198,7 +1198,7 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
 # `handle_tool_call` moved to bot/handlers/ai/tools.py
 
 
-@ai_router.message(Command("chat_stop"), CooldownFilter("chat_stop", 15))
+@ai_router.message(Command("chat_stop"), CooldownFilter("chat_stop", 15, True))
 async def cmd_chat_stop(message: Message, bot: Bot, state: FSMContext, db: Database):
     try:
         assert message.from_user is not None

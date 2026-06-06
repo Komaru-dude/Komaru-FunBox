@@ -36,7 +36,7 @@ prompts_router = Router()
 
 
 @prompts_router.message(
-    Command("prompts"), FuncEnabled("user_prompts"), CooldownFilter("prompts", 15)
+    Command("prompts"), FuncEnabled("user_prompts"), CooldownFilter("prompts", 15, True)
 )
 async def cmd_prompts(message: Message, bot: Bot):
     try:

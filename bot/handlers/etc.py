@@ -178,7 +178,7 @@ async def fetch_weather(city: str, day_delta: int):
     return text, None
 
 
-@etc_router.message(Command("weather"), CooldownFilter("weather", 150))
+@etc_router.message(Command("weather"), CooldownFilter("weather", 150, True))
 async def weather_command(message: Message, bot: Bot, db: Database):
     try:
         if not message.from_user or not message.text:

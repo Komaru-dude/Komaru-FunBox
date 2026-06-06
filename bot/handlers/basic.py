@@ -126,7 +126,7 @@ async def cmd_cancel(message: Message, bot: Bot, state: FSMContext):
         await error_report(message, bot, "cancel", traceback.format_exc())
 
 
-@base_router.message(Command("set_name"), CooldownFilter("set_name", 1200))
+@base_router.message(Command("set_name"), CooldownFilter("set_name", 1200, True))
 async def cmd_set_name(message: Message, bot: Bot, db: Database):
     try:
         if message.reply_to_message:
@@ -170,7 +170,7 @@ async def cmd_help(message: Message):
     )
 
 
-@base_router.message(Command("usage_stats"), CooldownFilter("ustats", 300))
+@base_router.message(Command("usage_stats"), CooldownFilter("ustats", 300, True))
 async def cmd_ustats(message: Message, bot: Bot, db: Database):
     try:
         day_count, week_count = await db.get_use_counts()

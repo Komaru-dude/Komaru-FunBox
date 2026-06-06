@@ -401,7 +401,7 @@ async def cmd_get_active_users_count(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "get_au_count", traceback.format_exc())
 
 
-@admin_router.message(Command("add_money"), CooldownFilter("money_tools", 15, True))
+@admin_router.message(Command("add_money"), CooldownFilter("money_tools", 15))
 async def cmd_add_money(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -495,7 +495,7 @@ async def cmd_add_money(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "add_money", traceback.format_exc())
 
 
-@admin_router.message(Command("remove_money"), CooldownFilter("money_tools", 15, True))
+@admin_router.message(Command("remove_money"), CooldownFilter("money_tools", 15))
 async def cmd_remove_money(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -591,7 +591,7 @@ async def cmd_remove_money(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "remove_money", traceback.format_exc())
 
 
-@admin_router.message(Command("grant_premium"), CooldownFilter("premium_tools", 15))
+@admin_router.message(Command("grant_premium"), CooldownFilter("premium_tools", 7))
 async def cmd_grant_premium(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -697,7 +697,7 @@ async def cmd_grant_premium(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "grant_premium", traceback.format_exc())
 
 
-@admin_router.message(Command("revoke_premium"), CooldownFilter("premium_tools", 15))
+@admin_router.message(Command("revoke_premium"), CooldownFilter("premium_tools", 7))
 async def cmd_revoke_premium(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
