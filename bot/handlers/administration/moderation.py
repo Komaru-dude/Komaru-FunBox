@@ -1,162 +1,21 @@
-import asyncio
-import os
-import subprocess
-import time
 import traceback
-import uuid
-from datetime import datetime
-from urllib.parse import urlparse
 
-import aiohttp
 from aiogram import Bot, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
-from aiogram.types import FSInputFile, Message
+from aiogram.types import Message
 
-from bot import API_URL, CACHE_DIR, DATA_DIR
+from bot import API_URL
 from bot.database.database import Database
-from bot.database.redis_client import redis_db
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.utils.aio_tools import error_report, fetch_json
+from bot.utils.aio_tools import error_report
+from bot.utils.bot_tools import fetch_json
 from bot.utils.global_storage import eco_config
 
-admin_router = Router()
-models_path = DATA_DIR / "models.json"
+admin_mods_router = Router()
 
 
-@admin_router.message(Command("restart"))
-async def cmd_restart(message: Message, bot: Bot, db: Database):
-    try:
-        user_id = message.from_user.id
-        chat_id = message.chat.id
-        if not await db.has_permission(user_id, chat_id, 4):
-            await message.reply("❌ Эта команда только для персонала.")
-            return
-        await message.answer("Перезапускаюсь... 🔄")
-
-        os._exit(1)
-    except Exception:
-        await error_report(message, bot, "restart", traceback.format_exc())
-
-
-@admin_router.message(Command("update"))
-async def cmd_update(message: Message, bot: Bot, db: Database):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    if not await db.has_permission(user_id, chat_id, 4):
-        await message.reply("❌ Эта команда только для персонала.")
-        return
-
-    update_msg = await message.reply("🔄 Обновляюсь...")
-
-    try:
-        branch = (
-            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"])
-            .decode()
-            .strip()
-        )
-        commit = (
-            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-            .decode()
-            .strip()
-        )
-        repo_url = "https://github.com/Not-a-dude/Komaru-FunBox"
-    except Exception:
-        branch = commit = "unknown"
-        repo_url = ""
-
-    repo_path = urlparse(repo_url).path.strip("/")
-    if not repo_path:
-        raise ValueError("Неверный формат URL")
-
-    owner, repo = repo_path.split("/")[:2]
-    repo = repo.replace(".git", "")
-
-    headers = {"User-Agent": "KomaruBot/1.0"}
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            f"https://api.github.com/repos/{owner}/{repo}/branches/{branch}",
-            headers=headers,
-        ) as resp:
-            response_body = await resp.text()
-            if resp.status == 200:
-                data = await resp.json()
-                latest_commit = data["commit"]["sha"][:7]
-                if latest_commit == commit:
-                    return await update_msg.edit_text("☃️ Версия актуальна")
-            else:
-                return await update_msg.edit_text(
-                    f"⚠️ Ошибка API: {resp.status}\nТело ответа: {response_body}"
-                )
-
-    try:
-        os.remove(models_path)
-    except FileNotFoundError:
-        await update_msg.edit_text("⚠️ Не удалось удалить кэш загруженных моделей")
-
-    try:
-        await redis_db.client.delete("check_models_cache")
-    except:
-        await error_report(message, bot, "update", traceback.format_exc())
-        return await update_msg.edit_text(
-            "⚠️ Произошла ошибка при удалении кэша рабочих моделей"
-        )
-
-    try:
-        await update_msg.edit_text("⏳ Получаю изменения из репозитория...")
-        git_process = await asyncio.create_subprocess_exec(
-            "git",
-            "pull",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        _, git_stderr = await git_process.communicate()
-
-        if git_process.returncode != 0:
-            return await update_msg.edit_text(
-                f"❌ Ошибка git pull: {git_stderr.decode()}"
-            )
-
-        await update_msg.edit_text("🔄 Обновление прошло успешно, перезапускаюсь...")
-        os._exit(1)
-    except Exception:
-        await error_report(message, bot, "update", traceback.format_exc())
-
-
-@admin_router.message(Command("logs"))
-async def cmd_send_logs(message: Message, bot: Bot, db: Database):
-    source_log = CACHE_DIR / "bot.log"
-    out_path = CACHE_DIR / f"send_{uuid.uuid4()}.log"
-
-    try:
-        if not await db.has_permission(message.from_user.id, message.chat.id, 4):  # type: ignore
-            await message.reply("❌ Эта команда только для персонала.")
-            return
-
-        if not source_log.exists():
-            await message.reply("❌ Файл логов еще не создан.")
-            return
-
-        with open(source_log, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-            last_lines = lines[-100:]
-
-        with open(out_path, "w", encoding="utf-8") as temp_f:
-            temp_f.writelines(last_lines)
-
-        await message.reply_document(
-            FSInputFile(out_path, filename="bot_last_logs.log"),
-            caption="📝 Последние 100 строк лога из файла:",
-        )
-
-    except Exception:
-        await error_report(message, bot, "logs", traceback.format_exc())
-    finally:
-        if out_path.exists():
-            out_path.unlink()
-
-
-@admin_router.message(Command("reset_cooldown"))
+@admin_mods_router.message(Command("reset_cooldown"))
 async def cmd_reset_cooldown(message: Message, bot: Bot, db: Database):
     try:
         split_text = message.text.split()
@@ -185,7 +44,7 @@ async def cmd_reset_cooldown(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "reset_cooldown", traceback.format_exc())
 
 
-@admin_router.message(Command("bot_ban"))
+@admin_mods_router.message(Command("bot_ban"))
 async def cmd_ban_user(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -250,7 +109,7 @@ async def cmd_ban_user(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "bot_ban", traceback.format_exc())
 
 
-@admin_router.message(Command("bot_unban"))
+@admin_mods_router.message(Command("bot_unban"))
 async def cmd_unban_user(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -315,7 +174,7 @@ async def cmd_unban_user(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "bot_unban", traceback.format_exc())
 
 
-@admin_router.message(Command("delete_user"))
+@admin_mods_router.message(Command("delete_user"))
 async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -376,32 +235,7 @@ async def cmd_wipe_user(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "ban_media", traceback.format_exc())
 
 
-@admin_router.message(
-    Command("get_active_users_count"), CooldownFilter("get_au_count", 120, True)
-)
-async def cmd_get_active_users_count(message: Message, bot: Bot, db: Database):
-
-    try:
-        user_id = message.from_user.id
-
-        if message.chat.type != "private":
-            await message.reply("❌ Эта команда доступна только в ЛС")
-            await db.reset_cooldown(user_id, "get_au_count")
-            return
-
-        if not await db.has_permission(user_id, message.chat.id, 4):
-            await message.reply(
-                "❌ У вас недостаточно прав для выполнения этой команды."
-            )
-            return
-
-        ausers_count = await db.get_active_users_count()
-        await message.reply(f"👤 Количество активных пользователей: {ausers_count}")
-    except Exception:
-        await error_report(message, bot, "get_au_count", traceback.format_exc())
-
-
-@admin_router.message(Command("add_money"), CooldownFilter("money_tools", 15))
+@admin_mods_router.message(Command("add_money"), CooldownFilter("money_tools", 15))
 async def cmd_add_money(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -495,7 +329,7 @@ async def cmd_add_money(message: Message, bot: Bot, db: Database):
         await error_report(message, bot, "add_money", traceback.format_exc())
 
 
-@admin_router.message(Command("remove_money"), CooldownFilter("money_tools", 15))
+@admin_mods_router.message(Command("remove_money"), CooldownFilter("money_tools", 15))
 async def cmd_remove_money(message: Message, bot: Bot, db: Database):
     try:
         user_id = message.from_user.id
@@ -589,223 +423,3 @@ async def cmd_remove_money(message: Message, bot: Bot, db: Database):
 
     except Exception:
         await error_report(message, bot, "remove_money", traceback.format_exc())
-
-
-@admin_router.message(Command("grant_premium"), CooldownFilter("premium_tools", 7))
-async def cmd_grant_premium(message: Message, bot: Bot, db: Database):
-    try:
-        user_id = message.from_user.id
-
-        if not await db.has_permission(user_id, message.chat.id, 4):
-            await message.reply(
-                "❌ У вас недостаточно прав для выполнения этой команды."
-            )
-            return
-
-        target_id = None
-        first_name = None
-        days = None
-
-        split_text = message.text.split()
-
-        if message.reply_to_message:
-            target_id = message.reply_to_message.from_user.id
-            first_name = message.reply_to_message.from_user.first_name
-            if len(split_text) >= 2:
-                try:
-                    days = int(split_text[1])
-                except ValueError:
-                    await message.reply("❌ Количество дней должно быть числом.")
-                    return
-        else:
-            if len(split_text) < 2:
-                await message.reply(
-                    "❌ Укажите пользователя через реплай, @username или ID.\n"
-                    "Пример: <code>/grant_premium @username</code> или <code>/grant_premium 123456789 30</code> где 30 - количество дней премиума",
-                    parse_mode=ParseMode.HTML,
-                )
-                return
-
-            target_arg = split_text[1]
-            if len(split_text) >= 3:
-                try:
-                    days = int(split_text[2])
-                except ValueError:
-                    await message.reply("❌ Количество дней должно быть числом.")
-                    return
-
-            if target_arg.startswith("@"):
-                username = target_arg[1:]
-                try:
-                    data = await fetch_json(f"{API_URL}/user/{username}")
-                    if "user_id" in data:
-                        target_id = int(data["user_id"])
-                    else:
-                        await message.reply(
-                            f"❌ Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
-                        )
-                        return
-                except Exception:
-                    await error_report(
-                        message, bot, "grant_premium", traceback.format_exc()
-                    )
-                    return
-            elif target_arg.isdigit():
-                target_id = int(target_arg)
-            else:
-                await message.reply(
-                    "❌ Неправильно указана цель (должен быть @юзернейм или ID)."
-                )
-                return
-
-            try:
-                data = await fetch_json(
-                    f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                )
-                first_name = data.get("first_name", "Неизвестный")
-            except Exception:
-                first_name = "Неизвестный"
-
-        if target_id is None:
-            await message.reply("❌ Не удалось определить целевого пользователя.")
-            return
-
-        expire = await db.get_premium_expire(target_id)
-        now = int(time.time())
-
-        if days is None:
-            if expire and expire > now:
-                await message.reply(
-                    f"⚠️ Пользователь {first_name} уже имеет премиум статус."
-                )
-                return
-
-            await db.set_user_tier(target_id, 1)
-            await message.reply(
-                f"✅ Пользователю {first_name} ({target_id}) выдан премиум статус.",
-            )
-            return
-
-        new_expire = await db.add_premium_days(target_id, days)
-
-        dt_str = datetime.fromtimestamp(new_expire).strftime("%Y-%m-%d %H:%M:%S")
-        await message.reply(
-            f"✅ Пользователю {first_name} ({target_id}) выдано {days} дней премиума. Срок до: {dt_str}.",
-        )
-
-    except Exception:
-        await error_report(message, bot, "grant_premium", traceback.format_exc())
-
-
-@admin_router.message(Command("revoke_premium"), CooldownFilter("premium_tools", 7))
-async def cmd_revoke_premium(message: Message, bot: Bot, db: Database):
-    try:
-        user_id = message.from_user.id
-
-        if not await db.has_permission(user_id, message.chat.id, 4):
-            await message.reply(
-                "❌ У вас недостаточно прав для выполнения этой команды."
-            )
-            return
-
-        target_id = None
-        first_name = None
-        days = None
-
-        split_text = message.text.split()
-
-        if message.reply_to_message:
-            target_id = message.reply_to_message.from_user.id
-            first_name = message.reply_to_message.from_user.first_name
-            if len(split_text) >= 2:
-                try:
-                    days = int(split_text[1])
-                except ValueError:
-                    await message.reply("❌ Количество дней должно быть числом.")
-                    return
-        else:
-            if len(split_text) < 2:
-                await message.reply(
-                    "❌ Укажите пользователя через реплай, @username или ID.\n"
-                    "Пример: <code>/revoke_premium @username</code> или <code>/revoke_premium 123456789 5</code>",
-                    parse_mode=ParseMode.HTML,
-                )
-                return
-
-            target_arg = split_text[1]
-            if len(split_text) >= 3:
-                try:
-                    days = int(split_text[2])
-                except ValueError:
-                    await message.reply("❌ Количество дней должно быть числом.")
-                    return
-
-            if target_arg.startswith("@"):
-                username = target_arg[1:]
-                try:
-                    data = await fetch_json(f"{API_URL}/user/{username}")
-                    if "user_id" in data:
-                        target_id = int(data["user_id"])
-                    else:
-                        await message.reply(
-                            f"❌ Не удалось найти пользователя: {data.get('error', 'Неизвестная ошибка')}"
-                        )
-                        return
-                except Exception:
-                    await error_report(
-                        message, bot, "revoke_premium", traceback.format_exc()
-                    )
-                    return
-            elif target_arg.isdigit():
-                target_id = int(target_arg)
-            else:
-                await message.reply(
-                    "❌ Неправильно указана цель (должен быть @юзернейм или ID)."
-                )
-                return
-
-            try:
-                data = await fetch_json(
-                    f"{API_URL}/first_name/{message.chat.id}/{target_id}"
-                )
-                first_name = data.get("first_name", "Неизвестный")
-            except Exception:
-                first_name = "Неизвестный"
-
-        if target_id is None:
-            await message.reply("❌ Не удалось определить целевого пользователя.")
-            return
-
-        expire = await db.get_premium_expire(target_id)
-        now = int(time.time())
-
-        if days is None:
-            if not expire or expire <= now:
-                await message.reply(
-                    f"⚠️ Пользователь {first_name} не имеет премиум статуса."
-                )
-                return
-
-            await db.set_user_tier(target_id, 0)
-            await message.reply(
-                f"✅ Премиум статус отозван у пользователя {first_name} ({target_id}).",
-            )
-            return
-
-        new_expire = await db.remove_premium_days(target_id, days)
-
-        if new_expire == 0:
-            await message.reply(
-                f"✅ Премиум статус отозван у пользователя {first_name} ({target_id})."
-            )
-            return
-
-        remaining_seconds = new_expire - now
-        remaining_days = remaining_seconds // (24 * 60 * 60)
-        dt_str = datetime.fromtimestamp(new_expire).strftime("%Y-%m-%d %H:%M:%S")
-        await message.reply(
-            f"✅ Срок премиума у пользователя {first_name} ({target_id}) уменьшён на {days} дней. Оставшийся срок: {remaining_days} дней (до {dt_str})."
-        )
-
-    except Exception:
-        await error_report(message, bot, "revoke_premium", traceback.format_exc())
