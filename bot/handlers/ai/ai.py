@@ -20,11 +20,10 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
-from pydantic import BaseModel
 
 from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
-from bot.keyboards.ai_keyboard import make_available_models_kb
+from bot.handlers.ai.tools import execute_chat_stop
 from bot.keyboards.callback_data import SetDefaultModelCallback, SetModelCallback
 from bot.utils.ai_api import (
     generate_image_api,
@@ -34,10 +33,7 @@ from bot.utils.ai_api import (
 )
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import active_chats, active_chats_lock, filtered_models
-from bot.utils.premium_logic import (
-    filter_models_by_availability,
-    is_model_available_for_user,
-)
+from bot.utils.premium_logic import is_model_available_for_user
 
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
@@ -94,16 +90,9 @@ class ChatState(StatesGroup):
     active = State()
 
 
-from bot.handlers.ai.tools import (
-    AVAILABLE_TOOLS,
-    TOOLS_SCHEMA,
-    ChatStopTool,
-    execute_chat_stop,
-    handle_tool_call,
+@ai_router.message(
+    Command("available_models"), CooldownFilter("available_models", 15, True)
 )
-
-
-@ai_router.message(Command("available_models"), CooldownFilter("available_models", 15, True))
 async def show_working_models(message: Message, bot: Bot, db: Database):
     try:
         assert message.from_user is not None
@@ -1193,9 +1182,6 @@ async def cmd_chat_clear(message: Message, bot: Bot, state: FSMContext):
         await message.reply("✅ Чат очищен")
     except Exception:
         await error_report(message, bot, "chat_clear", traceback.format_exc())
-
-
-# `handle_tool_call` moved to bot/handlers/ai/tools.py
 
 
 @ai_router.message(Command("chat_stop"), CooldownFilter("chat_stop", 15, True))
