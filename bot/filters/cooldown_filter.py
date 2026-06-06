@@ -6,7 +6,13 @@ from bot.utils.aio_tools import convert_seconds
 
 
 class CooldownFilter(BaseFilter):
-    def __init__(self, command: str, cooldown: int, reduce_for_premium: bool = False, silent: bool = False):
+    def __init__(
+        self,
+        command: str,
+        cooldown: int,
+        reduce_for_premium: bool = False,
+        silent: bool = False,
+    ):
         self.command = command
         self.cooldown = cooldown
         self.silent = silent
