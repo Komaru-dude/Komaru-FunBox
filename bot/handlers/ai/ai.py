@@ -402,7 +402,7 @@ async def cmd_ai(
                 await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
                 await db.reset_cooldown(user_id, "ai")
                 return
-            if model_info["status"] != "work":
+            if model_info["status"] != "ok":
                 await base_msg.edit_text(
                     f"❌ Модель {model_name} на данный момент не работает."
                 )
@@ -626,7 +626,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
                 await base_msg.edit_text(f"❌ Модель {model_name} не найдена")
                 await db.reset_cooldown(user_id, "ai")
                 return
-            if model_info["status"] != "work":
+            if model_info["status"] != "ok":
                 await base_msg.edit_text(
                     f"❌ Модель {model_name} на данный момент не работает."
                 )
@@ -1075,7 +1075,7 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
                 await message.reply(f"❌ Модель {model_name} не найдена")
                 await db.reset_cooldown(user_id, "ai")
                 return
-            if model_info["status"] != "work":
+            if model_info["status"] != "ok":
                 await message.reply(
                     f"❌ Модель {model_name} на данный момент не работает."
                 )
