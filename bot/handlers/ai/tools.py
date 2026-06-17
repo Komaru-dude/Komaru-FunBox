@@ -1,6 +1,5 @@
 import inspect
 import json
-import random
 from typing import Any, Dict
 
 from aiogram.fsm.context import FSMContext
@@ -8,7 +7,6 @@ from aiogram.types import Message
 from pydantic import BaseModel
 
 from bot import logger
-from bot.utils.ai_api import simple_text_api
 from bot.utils.global_storage import active_chats, active_chats_lock
 
 
@@ -26,36 +24,11 @@ TOOLS_SCHEMA = [
             "description": "Останавливает текущую активную сессию чата.",
             "parameters": {"type": "object", "properties": {}},
         },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "execute_search",
-            "description": "ОБЯЗАТЕЛЬНО используй для поиска актуальной/меняющейся информации.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Поисковый запрос"},
-                    "level": {
-                        "type": "string",
-                        "enum": ["lite", "standard", "max"],
-                        "description": "Уровень глубины поиска",
-                    },
-                },
-                "required": ["query"],
-            },
-        },
-    },
+    }
 ]
 
 
 AVAILABLE_TOOLS: Dict[str, Any] = {}
-
-SEARCH_MODELS = {
-    "lite": ["sonar"],
-    "standard": ["sonar-pro"],
-    "max": ["sonar-reasoning-pro"],
-}
 
 
 async def execute_chat_stop(message: Message, state: FSMContext) -> str:
@@ -75,47 +48,6 @@ async def execute_chat_stop(message: Message, state: FSMContext) -> str:
 
 
 AVAILABLE_TOOLS["chat_stop"] = execute_chat_stop
-
-
-async def execute_search(query: str, level: str = "standard") -> str:
-    """ИИ поиск для моделей."""
-    available_pool = SEARCH_MODELS.get(level, SEARCH_MODELS["standard"]).copy()
-
-    max_retries = 3
-    attempted_models = []
-
-    for attempt in range(max_retries):
-        if not available_pool:
-            break
-
-        current_model = random.choice(available_pool)
-        available_pool.remove(current_model)
-        attempted_models.append(current_model)
-
-        try:
-            answer = await simple_text_api(
-                current_model, [{"role": "user", "content": query}]
-            )
-
-            if not answer:
-                raise ValueError("Empty response")
-
-            return f"{answer}"
-
-        except Exception as e:
-            logger.error(
-                f"Search failed for model {current_model} (Attempt {attempt + 1}): {e}"
-            )
-
-            if attempt == max_retries - 1:
-                return f"Ошибка поиска после {max_retries} попыток. Использовались: {', '.join(attempted_models)}"
-
-            continue
-
-    return "Поиск недоступен: нет подходящих моделей."
-
-
-AVAILABLE_TOOLS["execute_search"] = execute_search
 
 
 async def handle_tool_call(tool_call, message: Message, state: FSMContext) -> dict:
