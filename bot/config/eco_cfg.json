@@ -38,5 +38,6 @@
   "bonum_1_fines": [200, 500],
   "bonum_4_rewards": [1500, 2500],
   "bonum_3_rewards": [600, 1000],
-  "bonum_2_rewards": [200, 400]
+  "bonum_2_rewards": [200, 400],
+  "stock_trade_fee": 6
 }

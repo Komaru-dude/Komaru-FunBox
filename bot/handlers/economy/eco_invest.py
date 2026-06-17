@@ -21,6 +21,7 @@ from bot.keyboards.invest_keyboard import (
     make_stocks_kb,
 )
 from bot.utils.aio_tools import error_report
+from bot.utils.global_storage import eco_config
 
 invest_router = Router()
 
@@ -108,10 +109,13 @@ async def cb_quick_buy(
         price = stock["price"]
         user_bal = await db.get_global_user_param(user_id, "money") or 0
         total_cost = round(price * qty, 2)
-        if user_bal < total_cost:
+        fee_percent = eco_config.get("stock_trade_fee", 0)
+        commission = round(total_cost * fee_percent / 100, 2)
+        total_cost_with_fee = round(total_cost + commission, 2)
+        if user_bal < total_cost_with_fee:
             await callback.answer("💸 Недостаточно денег", show_alert=True)
             return
-        await db.set_global_user_param(user_id, "money", user_bal - total_cost)
+        await db.set_global_user_param(user_id, "money", user_bal - total_cost_with_fee)
         items = await db.get_global_user_param(user_id, "items") or []
         if not isinstance(items, list):
             items = []
@@ -119,7 +123,8 @@ async def cb_quick_buy(
             items.append({"type": "stock", "id": stock_id, "price": round(price, 2)})
         await db.set_global_user_param(user_id, "items", items)
         await callback.answer(
-            f"✅ Куплено: {stock['name']} x{qty} за {total_cost}$", show_alert=True
+            f"✅ Куплено: {stock['name']} x{qty} за {total_cost}$\n🔥 Комиссия: {commission}$\n💸 Списано: {total_cost_with_fee}$",
+            show_alert=True,
         )
         await callback.message.edit_text(
             f"👋 Привет, {callback.from_user.first_name}, выбери опцию ниже для продолжения",
@@ -254,16 +259,19 @@ async def cb_quick_sell(
                 removed += 1
         user_bal = await db.get_global_user_param(user_id, "money") or 0
         total_get = round(current_price * qty, 2)
-        await db.set_global_user_param(user_id, "money", user_bal + total_get)
+        fee_percent = eco_config.get("stock_trade_fee", 0)
+        commission = round(total_get * fee_percent / 100, 2)
+        net_get = round(total_get - commission, 2)
+        await db.set_global_user_param(user_id, "money", user_bal + net_get)
         await db.set_global_user_param(user_id, "items", items)
         avg_buy = round((buy_total / qty), 2) if qty > 0 else 0
-        profit = total_get - buy_total
+        profit = net_get - buy_total
         stock_name = info.get("name", "Акция")
         if profit >= 0:
             profit_message = f"🟢 Прибыль: {profit:.2f}$"
         else:
             profit_message = f"🔴 Убыток: {profit:.2f}$"
-        answer_text = f"✅ Продана акция '{stock_name}' x{qty}\n💰 Получено: {total_get}$ (ср. цена покупки: {avg_buy:.2f}$)\n{profit_message}"
+        answer_text = f"✅ Продана акция '{stock_name}' x{qty}\n🔥 Комиссия: {commission}$\n💰 Получено: {net_get}$ (ср. цена покупки: {avg_buy:.2f}$)\n{profit_message}"
         await callback.answer(answer_text, show_alert=True)
         await callback.message.edit_text(
             f"👋 Привет, {callback.from_user.first_name}, выбери опцию:",
@@ -342,8 +350,14 @@ async def process_entered_qty(
                 await db.get_global_user_param(message.from_user.id, "money") or 0
             )
             MAX_LIMIT = 1000
+            fee_percent = eco_config.get("stock_trade_fee", 0)
+            denom = price * (1 + fee_percent / 100) if price > 0 else 0
             allowed_max = max(
-                1, min(MAX_LIMIT, int(user_bal // price) if price > 0 else MAX_LIMIT)
+                1,
+                min(
+                    MAX_LIMIT,
+                    int(user_bal // denom) if denom > 0 else MAX_LIMIT,
+                ),
             )
             if qty > allowed_max:
                 await message.answer(
@@ -352,8 +366,10 @@ async def process_entered_qty(
                 await state.clear()
                 return
             total_cost = round(price * qty, 2)
+            commission = round(total_cost * fee_percent / 100, 2)
+            total_cost_with_fee = round(total_cost + commission, 2)
             await db.set_global_user_param(
-                message.from_user.id, "money", user_bal - total_cost
+                message.from_user.id, "money", user_bal - total_cost_with_fee
             )
             items = await db.get_global_user_param(message.from_user.id, "items") or []
             if not isinstance(items, list):
@@ -361,7 +377,9 @@ async def process_entered_qty(
             for _ in range(qty):
                 items.append({"type": "stock", "id": stock_id, "price": price})
             await db.set_global_user_param(message.from_user.id, "items", items)
-            await message.answer(f"✅ Куплено: {stock['name']} x{qty} за {total_cost}$")
+            await message.answer(
+                f"✅ Куплено: {stock['name']} x{qty} за {total_cost}$\n🔥 Комиссия: {commission}$\n💸 Списано: {total_cost_with_fee}$"
+            )
             await state.clear()
             return
         if action == "sell":
@@ -392,18 +410,21 @@ async def process_entered_qty(
                 await db.get_global_user_param(message.from_user.id, "money") or 0
             )
             total_get = round(current_price * qty, 2)
+            fee_percent = eco_config.get("stock_trade_fee", 0)
+            commission = round(total_get * fee_percent / 100, 2)
+            net_get = round(total_get - commission, 2)
             await db.set_global_user_param(
-                message.from_user.id, "money", user_bal + total_get
+                message.from_user.id, "money", user_bal + net_get
             )
             await db.set_global_user_param(message.from_user.id, "items", items)
             avg_buy = (buy_total / qty) if qty > 0 else 0
-            profit = total_get - buy_total
+            profit = net_get - buy_total
             stock_name = info.get("name", "Акция")
             if profit >= 0:
                 profit_message = f"🟢 Прибыль: {profit:.2f}$"
             else:
                 profit_message = f"🔴 Убыток: {profit:.2f}$"
-            answer_text = f"✅ Продана акция '{stock_name}' x{qty}\n💰 Получено: {total_get}$ (ср. цена покупки: {avg_buy:.2f}$)\n{profit_message}"
+            answer_text = f"✅ Продана акция '{stock_name}' x{qty}\n🔥 Комиссия: {commission}$\n💰 Получено: {net_get}$ (ср. цена покупки: {avg_buy:.2f}$)\n{profit_message}"
             await message.answer(answer_text)
             await state.clear()
             return
