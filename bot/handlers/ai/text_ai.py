@@ -123,8 +123,8 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
             current_state = await state.get_state()
             if current_state == ChatState.active.state:
                 messages.append({"role": "assistant", "content": answer})
-                if len(messages) > 8:
-                    messages = [messages[0]] + messages[-7:]
+                if len(messages) > 20:
+                    messages = [messages[0]] + messages[-19:]
                 await state.update_data(messages=messages)
 
             raw_answer = (
@@ -188,8 +188,8 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                                 pass
 
                 messages.append({"role": "assistant", "content": final_text})
-                if len(messages) > 8:
-                    messages = [messages[0]] + messages[-7:]
+                if len(messages) > 20:
+                    messages = [messages[0]] + messages[-19:]
                 await state.update_data(messages=messages)
 
             else:
@@ -228,8 +228,8 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                 ai_response = re.sub(r"[*_`#]", "", str(response)).strip()
 
                 messages.append({"role": "assistant", "content": ai_response})
-                if len(messages) > 8:
-                    messages = [messages[0]] + messages[-7:]
+                if len(messages) > 20:
+                    messages = [messages[0]] + messages[-19:]
 
                 await state.update_data(messages=messages)
 
