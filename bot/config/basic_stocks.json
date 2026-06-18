@@ -9,5 +9,8 @@
   "9": { "name": "📡 SkyNetics", "price": 220.0, "volatility": 0.08, "sector": "tech" },
   "10": { "name": "🏥 HealthPlus", "price": 140.0, "volatility": 0.04, "sector": "medical" },
   "12": { "name": "🔋 Voltix", "price": 170.0, "volatility": 0.08, "sector": "tech" },
-  "13": { "name": "🥫 Panchynez", "price": 450.0, "volatility": 0.02, "sector": "retail" }
+  "13": { "name": "🥫 Panchynez", "price": 450.0, "volatility": 0.02, "sector": "retail" },
+  "14": { "name": "🏗 DaVinci", "price": 300.0, "volatility": 0.05, "sector": "construction" },
+  "15": { "name": "🐈 Minmo", "price": 45.0, "volatility": 0.06, "sector": "petcare" },
+  "16": { "name": "💻 Novideo", "price": 380.0, "volatility": 0.07, "sector": "tech" }
 }
