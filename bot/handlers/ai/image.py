@@ -70,7 +70,6 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
             await message.reply(
                 f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
                 f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
-                f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
                 f"📋 Используйте <code>/available_models</code> для просмотра {tier_name} моделей",
                 parse_mode=ParseMode.HTML,
             )

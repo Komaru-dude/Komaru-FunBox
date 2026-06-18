@@ -43,7 +43,6 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
             await base_msg.edit_text(
                 f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
                 f"🔄 Сброс на стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
-                f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
                 f"📋 Используйте <code>/available_models</code> для просмотра {tier_name} моделей",
                 parse_mode=ParseMode.HTML,
             )
@@ -304,7 +303,6 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
             await message.reply(
                 f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
                 f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
-                f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
                 f"📋 Используйте <code>/available_models</code> для просмотра {tier_name} моделей",
                 parse_mode=ParseMode.HTML,
             )

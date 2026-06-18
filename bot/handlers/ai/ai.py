@@ -435,7 +435,6 @@ async def cmd_ai(
                 await base_msg.edit_text(
                     f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
                     f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
-                    f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
                     f"📋 Используйте <code>/available_models</code> для просмотра доступных моделей",
                     parse_mode=ParseMode.HTML,
                 )
@@ -659,7 +658,6 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
                 await base_msg.edit_text(
                     f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
                     f"🔄 Использую стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
-                    f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
                     f"📋 Используйте <code>/available_models</code> для просмотра доступных моделей",
                     parse_mode=ParseMode.HTML,
                 )
@@ -1112,7 +1110,6 @@ async def cmd_chat(message: Message, bot: Bot, state: FSMContext, db: Database):
             await message.reply(
                 f"❌ Модель <code>{model}</code> недоступна в вашем тарифе.\n\n"
                 f"🔄 Используйте стандартную модель: <code>{DEFAULT_MODEL}</code>\n\n"
-                f"🔧 Используйте <code>/set_def_model имя_модели</code> для установки модели по умолчанию\n"
                 f"📋 Используйте <code>/available_models</code> для просмотра доступных моделей",
                 parse_mode=ParseMode.HTML,
             )
