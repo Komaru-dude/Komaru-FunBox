@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 
 import aiohttp
 
@@ -8,6 +9,9 @@ from bot.utils.global_storage import onlysq_models
 
 models_path = DATA_DIR / "models.json"
 default_models = {"models": {}}
+
+MARKETAUX_API_KEY = os.getenv("MARKETAUX_API_KEY")
+MARKETAUX_URL = "https://api.marketaux.com/v1/news/all"
 
 
 async def fetch_json(url):
@@ -52,3 +56,52 @@ async def download_osq_models():
         logger.error(f"❌ Ошибка загрузки с API: {e}")
         onlysq_models.update(default_models)
         return
+
+
+async def fetch_marketaux_news(limit: int = 20) -> list[str]:
+    if not MARKETAUX_API_KEY:
+        logger.warning("⚠️ MARKETAUX_API_KEY не задан - новости не будут получены")
+        return []
+
+    params = {
+        "api_token": MARKETAUX_API_KEY,
+        "language": "en",
+        "limit": limit,
+        "sort": "published_desc",
+        "filter_entities": "true",
+    }
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(MARKETAUX_URL, params=params, timeout=15) as resp:
+                if resp.status != 200:
+                    logger.warning(f"⚠️ Marketaux вернул {resp.status}")
+                    return []
+                data = await resp.json()
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка получения новостей marketaux: {e}")
+        return []
+
+    items = data.get("data", []) or []
+    headlines: list[str] = []
+    for it in items:
+        title = (it.get("title") or "").strip()
+        desc = (it.get("description") or "").strip()
+        entities = it.get("entities") or []
+        industries = {
+            ent.get("industry")
+            for ent in entities
+            if ent.get("industry") and ent.get("industry") != "N/A"
+        }
+
+        if not title:
+            continue
+
+        content_block = f"Title: {title}"
+        if desc:
+            content_block += f"\nDescription: {desc}"
+        if industries:
+            content_block += f"\nRelated Industries: {', '.join(industries)}"
+
+        headlines.append(content_block)
+    return headlines

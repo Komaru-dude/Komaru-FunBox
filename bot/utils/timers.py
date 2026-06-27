@@ -13,8 +13,8 @@ from aiogram import Bot
 
 from bot import BASE_DIR, FREE_GAMES_PATH, STOCKS_PATH, logger
 from bot.database.database import Database
-from bot.utils.ai_api import check_models
-from bot.utils.bot_tools import download_osq_models
+from bot.utils.ai_api import check_models, get_ai_sector_impacts
+from bot.utils.bot_tools import download_osq_models, fetch_marketaux_news
 from bot.utils.get_free_epic_games import get_free_games
 
 from .global_storage import update_cache
@@ -216,16 +216,23 @@ async def check_free_games(bot: Bot):
 async def change_stocks():
     while True:
         try:
+            logger.info("📈 Запуск обновления рынка акций")
             basic_stocks_path = BASE_DIR / "config" / "basic_stocks.json"
 
             async with aiofiles.open(basic_stocks_path, "r", encoding="utf-8") as file:
                 basic_data = json.loads(await file.read())
 
+            logger.info(f"📦 Загружено {len(basic_data)} базовых акций")
+
             current_data = {}
             if os.path.exists(STOCKS_PATH):
                 async with aiofiles.open(STOCKS_PATH, "r", encoding="utf-8") as file:
                     current_data = json.loads(await file.read())
+                logger.info(
+                    f"🗂️ Найдено {len(current_data)} сохранённых состояний рынка"
+                )
             else:
+                logger.info("🆕 Файл состояния рынка не найден, создаём базовый набор")
                 for key, data in basic_data.items():
                     current_data[key] = copy.deepcopy(data)
                     current_data[key]["momentum"] = 0.0
@@ -233,6 +240,31 @@ async def change_stocks():
 
             active_keys = set(basic_data.keys())
             current_data = {k: v for k, v in current_data.items() if k in active_keys}
+
+            sectors = sorted(
+                {
+                    basic_data[k].get("sector", "")
+                    for k in active_keys
+                    if basic_data[k].get("sector")
+                }
+            )
+            logger.info(f"🏷️ Секторы для анализа: {sectors if sectors else 'нет'}")
+            try:
+                news = await fetch_marketaux_news()
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось получить новости marketaux: {e}")
+                news = []
+            logger.info(f"📰 Получено {len(news)} новостей для анализа")
+
+            try:
+                sector_impacts = await get_ai_sector_impacts(sectors, news)
+            except Exception as e:
+                logger.warning(f"⚠️ Не удалось получить sector impacts: {e}")
+                sector_impacts = {s: 0.0 for s in sectors}
+            logger.debug(
+                "🧠 Полный ответ ИИ по секторам: %s",
+                json.dumps(sector_impacts, ensure_ascii=False, indent=2),
+            )
 
             for key in active_keys:
                 if key not in current_data:
@@ -244,12 +276,18 @@ async def change_stocks():
                 base_price = basic_data[key]["price"]
                 current_price = stock["price"]
                 vol = stock["volatility"]
+                sector = basic_data[key].get("sector", "")
 
-                # Momentum
+                # Momentum: базовое поведение + новостной сдвиг по сектору
                 if random.random() < 0.15:
                     stock["momentum"] = random.uniform(-vol, vol)
                 else:
                     stock["momentum"] *= MOMENTUM_DECAY
+
+                sector_impact = float(sector_impacts.get(sector, 0.0))
+                if sector_impact != 0.0:
+                    stock["momentum"] += sector_impact
+                stock["last_sector_impact"] = round(sector_impact, 4)
 
                 # Mean reversion
                 deviation = (base_price - current_price) / base_price
@@ -257,6 +295,7 @@ async def change_stocks():
 
                 # GBM
                 noise = random.normalvariate(0, vol)
+
                 change_percent = reversion + stock["momentum"] + noise
 
                 new_price = current_price * (1 + change_percent)
@@ -270,6 +309,19 @@ async def change_stocks():
                 history.append(stock["price"])
                 stock["history"] = history[-10:]
 
+                logger.debug(
+                    "📊 %s: цена %.2f -> %.2f | deviation=%.4f | reversion=%.4f | momentum=%.4f | noise=%.4f | sector_impact=%.4f",
+                    key,
+                    current_price,
+                    stock["price"],
+                    deviation,
+                    reversion,
+                    stock["momentum"],
+                    noise,
+                    sector_impact,
+                )
+
+            logger.info("💾 Сохранение обновлённого состояния рынка")
             async with aiofiles.open(STOCKS_PATH, "w", encoding="utf-8") as file:
                 await file.write(json.dumps(current_data, ensure_ascii=False, indent=2))
 

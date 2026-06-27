@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import re
 import time
 from typing import Any, AsyncGenerator, Optional
 
@@ -287,6 +288,76 @@ async def check_models(
         logger.warning(f"⚠️ Ошибка при сохранении в кэш: {e}")
 
     logger.info(f"✅ Модели проверены, рабочие: {len(checked_models)}")
+
+
+async def get_ai_sector_impacts(
+    sectors: list[str], news: list[str]
+) -> dict[str, float]:
+    result: dict[str, float] = {s: 0.0 for s in sectors}
+
+    if not sectors or not news:
+        return result
+
+    model = os.getenv("DEFAULT_OSQ_MODEL")
+    news_block = "\n".join(f"- {n}" for n in news)
+    sector_list = ", ".join(sectors)
+
+    system_prompt = (
+        "Ты — финансовый аналитик игрового рынка акций. На вход тебе будет "
+        "приходить ТОЛЬКО пачка свежих финансовых новостей. Твоя задача — "
+        "самостоятельно определить, какие новости относятся к каким секторам "
+        "из фиксированного списка ниже, и оценить совокупное влияние на "
+        "каждый сектор.\n\n"
+        f"Секторы (используй ровно эти ключи в ответе): {sector_list}.\n\n"
+        "Отвечай СТРОГО валидным JSON без какого-либо дополнительного текста, "
+        'в формате {"impacts": {"<sector>": <float>, ...}}, где значение — '
+        "относительное изменение momentum в диапазоне от -0.15 до 0.15 "
+        "(отрицательное — негатив, положительное — позитив).\n\n"
+        "ВАЖНО: если по сектору НЕТ релевантных новостей либо они "
+        "нейтральны/несущественны — верни для него 0.0. Значение 0.0 "
+        "означает, что momentum этого сектора вообще НЕ нужно трогать — "
+        "это нормальный и предпочтительный исход. Не выдумывай влияние ради "
+        "заполнения. В ответе обязательно перечисли все секторы из списка. "
+        "Будь пессиместичным в оценках, не преуменьшай негатив, но и не занижай позитив."
+    )
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": f"Новости:\n{news_block}"},
+    ]
+
+    try:
+        response = await simple_text_api(model, messages)
+    except LocalRateLimitError as e:
+        logger.warning(f"⚠️ AI sector sentiment rate-limit: {e}")
+        return result
+    except Exception as e:
+        logger.warning(f"⚠️ AI sector sentiment недоступен: {e}")
+        return result
+
+    if not response:
+        return result
+
+    match = re.search(r"\{.*\}", response, re.DOTALL)
+    if not match:
+        return result
+
+    try:
+        data = json.loads(match.group(0))
+        impacts = data.get("impacts", {}) or {}
+    except Exception as e:
+        logger.warning(
+            f"⚠️ Не удалось распарсить sector sentiment: {e} | raw={response!r}"
+        )
+        return result
+
+    for sector in result.keys():
+        try:
+            val = float(impacts.get(sector, 0.0))
+        except (TypeError, ValueError):
+            val = 0.0
+        result[sector] = max(-0.15, min(0.15, val))
+
+    return result
 
 
 async def check_rpm_limit(model_id: str) -> bool:
