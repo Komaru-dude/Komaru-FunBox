@@ -3,7 +3,6 @@ import time
 import traceback
 from urllib.parse import quote
 
-import aiohttp
 import psutil
 from aiogram import Bot, Router
 from aiogram.enums import ParseMode

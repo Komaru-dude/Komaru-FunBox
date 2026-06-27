@@ -1,9 +1,7 @@
-import asyncio
 import json
 import os
 import random
 import re
-import time
 import traceback
 from html import escape
 from pathlib import Path
@@ -12,11 +10,9 @@ from urllib.parse import urlparse
 import openai
 from aiogram import Bot, F, Router
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramRetryAfter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from bot import logger
 from bot.database.database import Database
 from bot.handlers.ai.text_ai import (
     process_active_chat,

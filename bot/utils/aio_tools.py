@@ -1,11 +1,9 @@
 import asyncio
 import os
-import traceback
 import uuid
 from datetime import datetime, timedelta
 from typing import cast
 
-import aiohttp
 from aiogram import Bot
 from aiogram.types import Message, User
 
