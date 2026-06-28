@@ -51,6 +51,7 @@ class SetDefaultModelCallback(CallbackData, prefix="setdefaultmodel"):
 
 
 class CaseMenuCallback(CallbackData, prefix="cmenu"):
+    action: str  # "menu", "open", "back"
     user_id: int
     case_id: int
-    count: int
+    count: int = 1
