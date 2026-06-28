@@ -249,18 +249,25 @@ async def change_stocks():
                 }
             )
             logger.info(f"🏷️ Секторы для анализа: {sectors if sectors else 'нет'}")
-            try:
-                news = await fetch_marketaux_news()
-            except Exception as e:
-                logger.warning(f"⚠️ Не удалось получить новости marketaux: {e}")
-                news = []
-            logger.info(f"📰 Получено {len(news)} новостей для анализа")
+            news = []
+            sector_impacts = {s: 0.0 for s in sectors}
 
-            try:
-                sector_impacts = await get_ai_sector_impacts(sectors, news)
-            except Exception as e:
-                logger.warning(f"⚠️ Не удалось получить sector impacts: {e}")
-                sector_impacts = {s: 0.0 for s in sectors}
+            use_marketaux = os.getenv("INVEST_USE_MARKETAUX", "true").lower() == "true"
+            if use_marketaux:
+                try:
+                    news = await fetch_marketaux_news()
+                except Exception as e:
+                    logger.warning(f"⚠️ Не удалось получить новости marketaux: {e}")
+                    news = []
+                logger.info(f"📰 Получено {len(news)} новостей для анализа")
+
+                try:
+                    sector_impacts = await get_ai_sector_impacts(sectors, news)
+                except Exception as e:
+                    logger.warning(f"⚠️ Не удалось получить sector impacts: {e}")
+                    sector_impacts = {s: 0.0 for s in sectors}
+            else:
+                logger.info("⏭️ Получение новостей marketaux отключено")
             logger.debug(
                 "🧠 Полный ответ ИИ по секторам: %s",
                 json.dumps(sector_impacts, ensure_ascii=False, indent=2),
