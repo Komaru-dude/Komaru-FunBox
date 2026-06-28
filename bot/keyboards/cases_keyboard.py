@@ -12,7 +12,7 @@ def make_cases_kb(user_id: int, cases: list) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(
                     text=f"{case['name']} (🪙 {case['price']} монет)",
                     callback_data=CaseMenuCallback(
-                        user_id=user_id, case_id=case["id"]
+                        user_id=user_id, case_id=case["id"], count=1
                     ).pack(),
                 )
             ]

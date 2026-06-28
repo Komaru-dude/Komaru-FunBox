@@ -31,6 +31,32 @@
                     "chance": 0.05
                 }
             ]
+        },
+        {
+            "id": 2,
+            "name": "💎 Премиум",
+            "description": "💎 Содержит премиум-подписку",
+            "price": 15000,
+            "items": [
+                {
+                    "id": 1,
+                    "name": "🚫 Ничего",
+                    "item_id": "nothing:0",
+                    "chance": 0.75
+                },
+                {
+                    "id": 2,
+                    "name": "💎 Премиум на 1 день",
+                    "item_id": "premium:1",
+                    "chance": 0.15
+                },
+                {
+                    "id": 3,
+                    "name": "💎 Премиум на 7 дней",
+                    "item_id": "premium:7",
+                    "chance": 0.10
+                }
+            ]
         }
     ]
 }

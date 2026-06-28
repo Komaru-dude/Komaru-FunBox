@@ -35,8 +35,14 @@ async def process_reward(user_id: int, db: Database, reward: str) -> str:
         new_balance = user_balance + int(reward_value)
         await db.set_global_user_param(user_id, "money", new_balance)
         return f"💰 Вы получили <b>{reward_value}</b> монет"
-
-    return "❓ Неизвестный тип награды"
+    elif reward_type == "premium":
+        user_premium_expire = cast(int, await db.get_global_user_param(user_id, "premium_expire"))
+        premium_days = int(reward_value) * 24 * 60 * 60
+        new_premium_expire = user_premium_expire + int(premium_days)
+        await db.set_global_user_param(user_id, "premium_expire", new_premium_expire)
+        return f"💎 Вы получили <b>{reward_value}</b> дней премиума"
+    else:
+        return "❌ Ничего"
 
 
 @cases_router.message(Command("cases"), CooldownFilter("cases", 15))
@@ -57,8 +63,7 @@ async def case_menu_callback(
     callback: CallbackQuery,
     callback_data: CaseMenuCallback,
     bot: Bot,
-    db: Database,
-    state: FSMContext,
+    db: Database
 ):
     try:
         user_id = callback_data.user_id
