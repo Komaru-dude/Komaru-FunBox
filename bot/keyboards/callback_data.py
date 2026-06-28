@@ -48,3 +48,8 @@ class SetModelCallback(CallbackData, prefix="setmodel"):
 class SetDefaultModelCallback(CallbackData, prefix="setdefaultmodel"):
     user_id: int
     type: str  # 'text' или 'image'
+
+
+class CaseMenuCallback(CallbackData, prefix="cmenu"):
+    user_id: int
+    case_id: int

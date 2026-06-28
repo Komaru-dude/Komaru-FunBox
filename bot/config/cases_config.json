@@ -1,0 +1,36 @@
+{
+    "cases": [
+        {
+            "id": 1,
+            "name": "🪙 Денежный",
+            "description": "💰 Содержит монеты",
+            "price": 1500,
+            "items": [
+                {
+                    "id": 1,
+                    "name": "💰 Монета",
+                    "item_id": "money:100",
+                    "chance": 0.5
+                },
+                {
+                    "id": 2,
+                    "name": "💵 Купюра",
+                    "item_id": "money:500",
+                    "chance": 0.3
+                },
+                {
+                    "id": 3,
+                    "name": "💵 Стопка купюр",
+                    "item_id": "money:2500",
+                    "chance": 0.15
+                },
+                {
+                    "id": 4,
+                    "name": "💰 Мешок с деньгами",
+                    "item_id": "money:10000",
+                    "chance": 0.05
+                }
+            ]
+        }
+    ]
+}

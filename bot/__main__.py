@@ -29,6 +29,7 @@ from .handlers.ai.ai import ai_router
 from .handlers.ai.image import image_router
 from .handlers.ai.prompts import prompts_router
 from .handlers.basic import base_router
+from .handlers.economy.cases import cases_router
 from .handlers.economy.eco_invest import invest_router
 from .handlers.economy.economy import eco_router
 from .handlers.etc import etc_router
@@ -148,6 +149,7 @@ async def main():
         rights_router,
         video_router,
         eco_router,
+        cases_router,
         invest_router,
         premium_router,
         text_router,

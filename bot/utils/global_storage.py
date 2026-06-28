@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Union
 
-from bot import ECONOMY_CONFIG_PATH, SHOP_CONFIG_PATH
+from bot import CASES_CONFIG_PATH, ECONOMY_CONFIG_PATH, SHOP_CONFIG_PATH
 
 active_chats = []
 active_chats_lock = asyncio.Lock()
@@ -27,3 +27,4 @@ def load_config(path: Union[str, Path]) -> dict:
 
 eco_config = load_config(ECONOMY_CONFIG_PATH)
 shop_config = load_config(SHOP_CONFIG_PATH)
+cases_config = load_config(CASES_CONFIG_PATH)
