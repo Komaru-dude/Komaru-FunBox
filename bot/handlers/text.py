@@ -59,14 +59,17 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
 
         handled = await process_active_chat(message, state, db, text_msg)
         if handled:
+            await db.log_command(message.from_user.id, "ai_chat")
             return
 
         handled = await process_user_prompt_trigger(message, db, text_msg)
         if handled:
+            await db.log_command(message.from_user.id, "ai_prompt")
             return
 
         handled = await process_explain_reply(message, db)
         if handled:
+            await db.log_command(message.from_user.id, "ai_explain")
             return
 
         if message.chat.type in ["channel", "private"]:
@@ -130,6 +133,8 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
                 )
             else:
                 await message.answer(result_text, parse_mode=ParseMode.HTML)
+
+            await db.log_command(message.from_user.id, "rp_command")
             return
 
         clean_text = re.sub(r"[^\w\s]", "", text_msg.lower())
@@ -151,6 +156,7 @@ async def text(message: Message, bot: Bot, state: FSMContext, db: Database):
         if text_msg.lower() == "/бонум" and await db.is_command_available(
             user1.id, "bonum_ru", 5
         ):
+            await db.log_command(message.from_user.id, "bonum_ru")
             await bot.send_sticker(
                 message.chat.id,
                 "CAACAgIAAyEFAASbCRfOAAJW2mjT7S6mjNl2eq1K3OsShmsV2K8AAzotAAIEtJhLnn7lET7JhBM2BA",
