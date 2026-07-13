@@ -247,7 +247,7 @@ async def cmd_steal(message: Message, bot: Bot, db: Database):
         has_fake_passport = await db.has_valid_item(user_id, "fake_passport")
 
         if has_fake_passport:
-            fail_percent = max(0, fail_percent - 50)  # уменьшаем шанс неудачи на 20%
+            fail_percent = max(0, fail_percent - 50)  # уменьшаем шанс неудачи на 50%
             await db.use_item(user_id, "fake_passport")
             passport_used_msg = (
                 "🛡 Фейковый паспорт был использован, шанс неудачи снижен!"
