@@ -5,6 +5,7 @@ import json
 import os
 import random
 import subprocess
+import time
 from pathlib import Path
 
 import aiofiles
@@ -21,10 +22,18 @@ from .global_storage import update_cache
 
 db = Database()
 
-MEAN_REVERSION_STRENGTH = 0.02  # Сила возврата к базовой цене (0.01-0.05)
+MEAN_REVERSION_STRENGTH = 0.03  # Сила возврата к базовой цене (0.01-0.05)
 MOMENTUM_DECAY = 0.85  # Насколько долго держится тренд (0.7-0.95)
 MAX_PRICE_MULT = 10.0  # Максимальный барьер (10х от начальной цены)
 MIN_PRICE_MULT = 0.1  # Минимальный барьер (10% от начальной цены)
+MAX_TICK_CHANGE = 0.08  # Жёсткий cap изменения цены за один тик (±8%)
+IMPACT_DECAY_PER_TICK = 0.70  # Затухание sector_impact между price-тиками
+IMPACT_WEIGHT_IN_PRICE = 0.40  # Доля sector_impact в change_percent
+AI_NEWS_TICK_SECONDS = 5400  # Как часто зовём ИИ и новости (1.5 часа)
+
+# Кэш sector_impacts, обновляется отдельной корутиной update_sector_impacts_task.
+# Между обновлениями значения затухают в change_stocks().
+_sector_impacts_state: dict = {"impacts": {}, "updated_at": 0}
 
 
 async def check_updates():
@@ -241,35 +250,9 @@ async def change_stocks():
             active_keys = set(basic_data.keys())
             current_data = {k: v for k, v in current_data.items() if k in active_keys}
 
-            sectors = sorted(
-                {
-                    basic_data[k].get("sector", "")
-                    for k in active_keys
-                    if basic_data[k].get("sector")
-                }
-            )
-            logger.info(f"🏷️ Секторы для анализа: {sectors if sectors else 'нет'}")
-            news = []
-            sector_impacts = {s: 0.0 for s in sectors}
-
-            use_marketaux = os.getenv("INVEST_USE_MARKETAUX", "true").lower() == "true"
-            if use_marketaux:
-                try:
-                    news = await fetch_marketaux_news()
-                except Exception as e:
-                    logger.warning(f"⚠️ Не удалось получить новости marketaux: {e}")
-                    news = []
-                logger.info(f"📰 Получено {len(news)} новостей для анализа")
-
-                try:
-                    sector_impacts = await get_ai_sector_impacts(sectors, news)
-                except Exception as e:
-                    logger.warning(f"⚠️ Не удалось получить sector impacts: {e}")
-                    sector_impacts = {s: 0.0 for s in sectors}
-            else:
-                logger.info("⏭️ Получение новостей marketaux отключено")
+            sector_impacts = _sector_impacts_state.get("impacts", {}) or {}
             logger.debug(
-                "🧠 Полный ответ ИИ по секторам: %s",
+                "🧠 Применяем sector_impacts (текущий кэш): %s",
                 json.dumps(sector_impacts, ensure_ascii=False, indent=2),
             )
 
@@ -285,15 +268,13 @@ async def change_stocks():
                 vol = stock["volatility"]
                 sector = basic_data[key].get("sector", "")
 
-                # Momentum: базовое поведение + новостной сдвиг по сектору
+                # Momentum: случайные вспышки тренда
                 if random.random() < 0.15:
                     stock["momentum"] = random.uniform(-vol, vol)
                 else:
                     stock["momentum"] *= MOMENTUM_DECAY
 
                 sector_impact = float(sector_impacts.get(sector, 0.0))
-                if sector_impact != 0.0:
-                    stock["momentum"] += sector_impact
                 stock["last_sector_impact"] = round(sector_impact, 4)
 
                 # Mean reversion
@@ -303,7 +284,15 @@ async def change_stocks():
                 # GBM
                 noise = random.normalvariate(0, vol)
 
-                change_percent = reversion + stock["momentum"] + noise
+                change_percent = (
+                    reversion
+                    + stock["momentum"]
+                    + sector_impact * IMPACT_WEIGHT_IN_PRICE
+                    + noise
+                )
+                change_percent = max(
+                    -MAX_TICK_CHANGE, min(MAX_TICK_CHANGE, change_percent)
+                )
 
                 new_price = current_price * (1 + change_percent)
                 new_price = max(
@@ -317,7 +306,7 @@ async def change_stocks():
                 stock["history"] = history[-10:]
 
                 logger.debug(
-                    "📊 %s: цена %.2f -> %.2f | deviation=%.4f | reversion=%.4f | momentum=%.4f | noise=%.4f | sector_impact=%.4f",
+                    "📊 %s: цена %.2f -> %.2f | deviation=%.4f | reversion=%.4f | momentum=%.4f | noise=%.4f | sector_impact=%.4f (weight=%.2f)",
                     key,
                     current_price,
                     stock["price"],
@@ -326,7 +315,16 @@ async def change_stocks():
                     stock["momentum"],
                     noise,
                     sector_impact,
+                    IMPACT_WEIGHT_IN_PRICE,
                 )
+
+            # Затухание кэша sector_impacts к следующему price-тику.
+            # За 3 тика (≈1.5ч) 1.0 -> 0.7 -> 0.49 -> 0.343, потом AI-таймер обновит.
+            if sector_impacts:
+                _sector_impacts_state["impacts"] = {
+                    s: round(v * IMPACT_DECAY_PER_TICK, 5)
+                    for s, v in sector_impacts.items()
+                }
 
             logger.info("💾 Сохранение обновлённого состояния рынка")
             async with aiofiles.open(STOCKS_PATH, "w", encoding="utf-8") as file:
@@ -349,6 +347,53 @@ async def change_stocks():
             logger.critical(f"❌ Критическая ошибка рынка: {e}", exc_info=True)
 
         await asyncio.sleep(1800)
+
+
+async def update_sector_impacts_task():
+    while True:
+        try:
+            use_marketaux = os.getenv("INVEST_USE_MARKETAUX", "true").lower() == "true"
+            if not use_marketaux:
+                logger.info("⏭️ marketaux отключён")
+                await asyncio.sleep(AI_NEWS_TICK_SECONDS)
+                continue
+
+            basic_stocks_path = BASE_DIR / "config" / "basic_stocks.json"
+            async with aiofiles.open(basic_stocks_path, "r", encoding="utf-8") as f:
+                basic_data = json.loads(await f.read())
+            sectors = sorted(
+                {d.get("sector", "") for d in basic_data.values() if d.get("sector")}
+            )
+
+            try:
+                news = await fetch_marketaux_news()
+            except Exception as e:
+                logger.warning(f"⚠️ ИИ-тик marketaux: {e}")
+                news = []
+            logger.info(f"📰 ИИ-тик: получено новостей: {len(news)}")
+
+            if news and sectors:
+                try:
+                    impacts = await get_ai_sector_impacts(sectors, news)
+                except Exception as e:
+                    logger.warning(f"⚠️ ИИ-тик get_ai_sector_impacts: {e}")
+                    impacts = {s: 0.0 for s in sectors}
+            else:
+                impacts = {s: 0.0 for s in sectors}
+
+            _sector_impacts_state["impacts"] = impacts
+            _sector_impacts_state["updated_at"] = int(time.time())
+            logger.info(
+                "🧠 ИИ-тик: обновлены sector_impacts: %s",
+                json.dumps(impacts, ensure_ascii=False),
+            )
+        except Exception as e:
+            logger.critical(
+                f"❌ Критическая ошибка обновления sector_impacts: {e}",
+                exc_info=True,
+            )
+
+        await asyncio.sleep(AI_NEWS_TICK_SECONDS)
 
 
 async def update_osq_models():
@@ -379,10 +424,17 @@ async def background_checker(bot: Bot):
     cleanup_task = asyncio.create_task(cleanup_expired_items_task())
     epic_task = asyncio.create_task(check_free_games(bot))
     update_stocks = asyncio.create_task(change_stocks())
+    update_impacts = asyncio.create_task(update_sector_impacts_task())
     update_osq = asyncio.create_task(update_osq_models())
     check_models = asyncio.create_task(check_models_timer())
 
     # Ждём того чего не случится
     await asyncio.gather(
-        update_task, cleanup_task, epic_task, update_stocks, update_osq, check_models
+        update_task,
+        cleanup_task,
+        epic_task,
+        update_stocks,
+        update_impacts,
+        update_osq,
+        check_models,
     )
