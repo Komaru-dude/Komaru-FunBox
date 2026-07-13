@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery
 
 from bot import logger
 from bot.database.database import Database
+from bot.database.logic import premium as premium_logic
 from bot.filters.chat_type import ChatTypeFilter
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.keyboards.callback_data import PremiumBuyCallback
@@ -177,6 +178,24 @@ async def handle_successful_payment(message: Message, db: Database):
 
         # Добавим дни и получим новый timestamp окончания
         new_expire = await db.add_premium_days(user_id, days)
+
+        # Сохраняем факт покупки для статистики
+        try:
+            pool = await db.ensure_connection()
+            await premium_logic.record_purchase(
+                pool,
+                user_id=user_id,
+                days=days,
+                stars=payment.total_amount,
+                payload=payload,
+                telegram_charge_id=payment.telegram_payment_charge_id,
+                provider_charge_id=payment.provider_payment_charge_id,
+            )
+        except Exception as e:
+            logger.error(
+                f"⚠️ Не удалось записать покупку премиума в БД (user {user_id}): {e}"
+            )
+
         if new_expire and new_expire > now:
             new_days = math.ceil((new_expire - now) / (24 * 60 * 60))
         else:

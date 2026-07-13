@@ -7,8 +7,9 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from bot import API_URL
+from bot import API_URL, logger
 from bot.database.database import Database
+from bot.database.logic import premium as premium_logic
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.utils.aio_tools import error_report
 from bot.utils.bot_tools import fetch_json
@@ -238,3 +239,68 @@ async def cmd_revoke_premium(message: Message, bot: Bot, db: Database):
 
     except Exception:
         await error_report(message, bot, "revoke_premium", traceback.format_exc())
+
+
+@admin_premium_router.message(
+    Command("premium_stats"), CooldownFilter("premium_tools", 5)
+)
+async def cmd_premium_stats(message: Message, bot: Bot, db: Database):
+    try:
+        user_id = message.from_user.id
+
+        if not await db.has_permission(user_id, message.chat.id, 4):
+            await message.reply(
+                "❌ У вас недостаточно прав для выполнения этой команды."
+            )
+            return
+
+        pool = await db.ensure_connection()
+        stats = await premium_logic.get_premium_stats(pool)
+        top = await premium_logic.get_top_premium_buyers(pool, 5)
+
+        # Баланс звёзд бота (Telegram Bot API)
+        star_balance_line = "⭐ Баланс бота: <i>недоступен</i>"
+        try:
+            balance = await bot.get_my_star_balance()
+            star_balance_line = f"⭐ Баланс бота: <b>{balance.amount}</b>"
+        except Exception as e:
+            logger.error(f"get_my_star_balance failed: {e}")
+
+        last = stats.get("last_purchase")
+        if last:
+            last_dt = last["created_at"].strftime("%Y-%m-%d %H:%M")
+            last_line = (
+                f"🕒 Последняя покупка: <code>{last['user_id']}</code>, "
+                f"{last['days']} дн., {last['stars']} ⭐ ({last_dt})"
+            )
+        else:
+            last_line = "🕒 Последняя покупка: <i>ещё не было</i>"
+
+        top_lines = []
+        for i, row in enumerate(top, start=1):
+            top_lines.append(
+                f"{i}. <code>{row['user_id']}</code> — "
+                f"{row['purchases']} покуп., {row['stars']} ⭐, {row['days']} дн."
+            )
+        top_block = "\n".join(top_lines) if top_lines else "<i>пусто</i>"
+
+        text = (
+            "📊 <b>Статистика премиума</b>\n\n"
+            f"👑 Активных премиумов: <b>{stats['active_premiums']}</b>\n"
+            f"🛒 Всего покупок: <b>{stats['total_purchases']}</b> "
+            f"(уникальных: <b>{stats['unique_buyers']}</b>)\n"
+            f"⭐ Получено звёзд всего: <b>{stats['total_stars']}</b>\n"
+            f"📅 Продано дней всего: <b>{stats['total_days_sold']}</b>\n\n"
+            f"📈 За 7 дней: <b>{stats['purchases_7d']}</b> покуп. / "
+            f"<b>{stats['stars_7d']}</b> ⭐\n"
+            f"📈 За 30 дней: <b>{stats['purchases_30d']}</b> покуп. / "
+            f"<b>{stats['stars_30d']}</b> ⭐\n\n"
+            f"{star_balance_line}\n\n"
+            f"{last_line}\n\n"
+            f"🏆 <b>Топ покупателей:</b>\n{top_block}"
+        )
+
+        await message.reply(text, parse_mode=ParseMode.HTML)
+
+    except Exception:
+        await error_report(message, bot, "premium_stats", traceback.format_exc())

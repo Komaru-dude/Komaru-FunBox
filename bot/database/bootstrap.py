@@ -23,6 +23,7 @@ async def create_tables(pool: asyncpg.Pool):
                 "stats": (STATS_COLUMNS, None),
                 "custom_prompts": (CUSTOM_PROMPTS_COLUMNS, None),
                 "active_users": (ACTIVE_USERS_COLUMNS, None),
+                "premium_purchases": (PREMIUM_PURCHASES_COLUMNS, None),
             }
 
             for table, (columns, pk) in table_definitions.items():
