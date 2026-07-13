@@ -48,6 +48,7 @@
     { "command": "steal", "description": "Кража (экономика)" },
     { "command": "rob", "description": "Ограбление (экономика)" },
     { "command": "dice", "description": "Казино" },
+    { "command": "bonum", "description": "Бонум бонум" },
     { "command": "top", "description": "Топ по балансу" },
     { "command": "set_name", "description": "Изменить имя" },
     { "command": "deposit", "description": "Пополнить счёт" },
