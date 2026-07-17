@@ -15,8 +15,8 @@ API_ID=your_api_id
 API_HASH=your_api_hash
 
 # Ваши url для апи нейросетей
-OPENAI_SDK_API_URL=http://api.onlysq.ru/ai/openai
-IMAGEN_API_URL=https://api.onlysq.ru/ai/imagen
+OPENAI_SDK_API_URL=http://api.onlysq.me/ai/openai
+IMAGEN_API_URL=https://api.onlysq.me/ai/imagen
 
 # Апи ключ для onlysq (можно взять тут: https://my.onlysq.ru)
 ONLYSQ_API_KEY=openai
