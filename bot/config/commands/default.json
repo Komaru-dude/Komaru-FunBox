@@ -66,6 +66,7 @@
     { "command": "revoke_premium", "description": "Отозвать премиум статус" },
     { "command": "usage_stats", "description": "Статистика использований бота" },
     { "command": "premium", "description": "Информация и покупка премиума" },
-    { "command": "cases", "description": "Кейсы" }
+    { "command": "cases", "description": "Кейсы" },
+    { "command": "aliases", "description": "Алиасы для ваших команд"}
   ]
 }
