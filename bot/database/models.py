@@ -37,6 +37,7 @@ GLOBAL_USERS_COLUMNS = {
     "name": "TEXT DEFAULT 'Unknown'",
     "items": "JSONB DEFAULT '[]'::JSONB",
     "settings": "JSONB DEFAULT '{}'::JSONB",
+    "aliases": "JSONB DEFAULT '{}'::JSONB",
     "bonum_ts": "BIGINT DEFAULT 0",
     "bonum_streak": "BIGINT DEFAULT 0",
     "premium_expire": "BIGINT DEFAULT 0",

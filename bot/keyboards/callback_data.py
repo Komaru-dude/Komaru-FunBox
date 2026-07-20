@@ -21,6 +21,12 @@ class PromptsMenuCallback(CallbackData, prefix="pmenu"):
     prompt_id: str = "none"
 
 
+class AliasMenuCallback(CallbackData, prefix="amenu"):
+    action: str
+    user_id: int
+    alias: str = "none"
+
+
 class EditPromptCallback(CallbackData, prefix="edp"):
     action: str
     prompt_id: str

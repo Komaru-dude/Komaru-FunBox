@@ -28,6 +28,7 @@ from .handlers.administration import admin_router
 from .handlers.ai.ai import ai_router
 from .handlers.ai.image import image_router
 from .handlers.ai.prompts import prompts_router
+from .handlers.aliases import AliasMiddleware, aliases_router
 from .handlers.basic import base_router
 from .handlers.economy.cases import cases_router
 from .handlers.economy.eco_invest import invest_router
@@ -60,6 +61,7 @@ dp = Dispatcher()
 dp.message.outer_middleware(ChatWatcher())
 dp.callback_query.outer_middleware(ChatWatcher())
 dp.message.outer_middleware(SpecificChat())
+dp.message.outer_middleware(AliasMiddleware())
 db = Database()
 dp["db"] = db
 redis_port = int(os.getenv("REDIS_PORT", 6379))
@@ -135,6 +137,7 @@ async def main():
         )
 
     dp.include_routers(
+        aliases_router,
         admin_router,
         base_router,
         etc_router,
