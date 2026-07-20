@@ -130,7 +130,7 @@ async def fetch_user_data(user_id=None, username=None, first_name=None, chat_id=
 
 async def error_report(
     message: Message, bot: Bot, command: str, traceback: str, silent: bool = False
-):
+) -> None:
     report_id = uuid.uuid4()
     current_time = datetime.now()
     send_to_user = True
