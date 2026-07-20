@@ -38,7 +38,7 @@ async def make_post_request(url, payload, headers=None):
 
 async def download_osq_models():
     try:
-        models = await fetch_json("https://api.onlysq.ru/ai/models")
+        models = await fetch_json("https://api.onlysq.me/ai/models")
 
         if not isinstance(models, dict) or not isinstance(models.get("models"), dict):
             raise ValueError("❌ API вернул некорректный формат моделей")

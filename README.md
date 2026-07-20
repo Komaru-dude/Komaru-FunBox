@@ -28,7 +28,7 @@ sudo bash -c "$(curl -sSL https://github.com/Not-a-dude/Komaru-FunBox/raw/test/s
 ## Благодарности
 
 * [Aiogram](https://aiogram.dev/) — за асинхронный фреймворк, без которого этот бот бы не появился.  
-* [OnlySq](https://docs.onlysq.ru/) — за удобное и мощное API 2.0, на котором основана большая часть логики бота.  
+* [OnlySq](https://docs.onlysq.me/) — за удобное и мощное API 2.0, на котором основана большая часть логики бота.  
 * [Ellenj0](https://t.me/Ellenj0), [Plasbag](https://t.me/Plasbag) — за идеи и вдохновение.*  
 * [Plasbag](https://t.me/Plasbag), xyz, [nillerxs](https://t.me/nillerxs) — за моральную поддержку и мотивацию.*  
 
