@@ -8,7 +8,7 @@ import aiohttp
 import openai
 from dotenv import load_dotenv
 
-MODELS_URL_DEFAULT = "https://api.onlysq.ru/ai/models"
+MODELS_URL_DEFAULT = "https://api.onlysq.me/ai/models"
 
 
 def load_env() -> None:
