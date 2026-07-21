@@ -25,7 +25,7 @@ from bot.database.database import Database
 from bot.filters.cooldown_filter import CooldownFilter
 from bot.handlers.ai.tools import execute_chat_stop
 from bot.keyboards.callback_data import SetDefaultModelCallback, SetModelCallback
-from bot.utils.ai_api import (
+from bot.utils.ai.ai_api import (
     generate_image_api,
     ocr_process_api,
     simple_text_api,

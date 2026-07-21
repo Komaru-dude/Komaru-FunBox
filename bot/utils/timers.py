@@ -14,7 +14,7 @@ from aiogram import Bot
 
 from bot import BASE_DIR, FREE_GAMES_PATH, STOCKS_PATH, logger
 from bot.database.database import Database
-from bot.utils.ai_api import check_models, get_ai_sector_impacts
+from bot.utils.ai.ai_api import check_models, get_ai_sector_impacts
 from bot.utils.bot_tools import download_osq_models, fetch_marketaux_news
 from bot.utils.get_free_epic_games import get_free_games
 

@@ -18,7 +18,7 @@ from bot.database.database import Database
 from bot.database.redis_client import redis_db
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
-from bot.utils.ai_api import check_models
+from bot.utils.ai.ai_api import check_models
 from bot.utils.bot_tools import download_osq_models
 from bot.utils.cmd_manager import apply_all_command_sets
 from bot.utils.global_storage import onlysq_models

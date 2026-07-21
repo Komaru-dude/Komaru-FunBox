@@ -15,7 +15,7 @@ from bot import logger
 from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL, ChatState
 from bot.handlers.ai.tools import TOOLS_SCHEMA, handle_tool_call
-from bot.utils.ai_api import simple_text_api, stream_text_api
+from bot.utils.ai.ai_api import simple_text_api, stream_text_api
 from bot.utils.global_storage import active_chats, onlysq_models
 from bot.utils.premium_logic import is_model_available_for_user
 
