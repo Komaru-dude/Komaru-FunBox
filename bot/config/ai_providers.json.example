@@ -1,0 +1,123 @@
+{
+  "default_provider": "voidapi",
+  "providers": {
+    "voidapi": {
+      "api_base_env": "VOIDAPI_API_URL",
+      "api_key_env": "VOIDAPI_API_KEY",
+      "litellm_prefix": "openai/",
+      "default": true,
+      "models": {
+        "gemma-4-31b-it": {
+          "user_name": "Gemma 4 31B",
+          "litellm_model": "gemma-4-31b-it",
+          "modality": "text",
+          "is_premium": false,
+          "free_tokens_day": 10000,
+          "free_tokens_week": 60000,
+          "litellm_provider": "voidapi"
+        },
+        "gpt-5.4-nano": {
+          "user_name": "GPT-5.4 Nano",
+          "litellm_model": "gpt-5.4-nano",
+          "modality": "text",
+          "is_premium": true,
+          "free_tokens_day": 8000,
+          "free_tokens_week": 50000,
+          "litellm_provider": "voidapi",
+          "context_window": 128000,
+          "max_output_tokens": 16384,
+          "input_cost_per_1m": 0.05,
+          "output_cost_per_1m": 0.4
+        }
+      }
+    },
+    "onlysq": {
+      "api_base_env": "OPENAI_SDK_API_URL",
+      "api_key_env": "ONLYSQ_API_KEY",
+      "litellm_prefix": "openai/",
+      "default": false,
+      "models": {
+        "gpt-4o-mini": {
+          "user_name": "GPT-4o Mini",
+          "litellm_model": "gpt-4o-mini",
+          "modality": "text",
+          "is_premium": false,
+          "free_tokens_day": 100000,
+          "free_tokens_week": 500000,
+          "litellm_provider": "onlysq"
+        }
+      }
+    },
+    "google": {
+      "api_key_env": "GOOGLE_API_KEY",
+      "litellm_prefix": "gemini/",
+      "default": false,
+      "models": {
+
+        "gemma-4-31b": {
+          "user_name": "Gemma 4 31B",
+          "litellm_model": "gemma-4-31b-it",
+          "modality": "text",
+          "is_premium": false,
+          "free_tokens_day": 20000,
+          "free_tokens_week": 120000,
+          "litellm_provider": "google"
+        },
+        "gemini-3.5-flash-lite": {
+          "user_name": "Gemini 3.5 Flash Lite",
+          "litellm_model": "gemini-3.5-flash-lite",
+          "modality": "text",
+          "is_premium": true,
+          "free_tokens_day": 5000,
+          "free_tokens_week": 25000,
+          "litellm_provider": "google"
+        }
+      }
+    },
+    "groq": {
+      "api_base_env": "GROQ_API_URL",
+      "api_key_env": "GROQ_API_KEY",
+      "litellm_prefix": "openai/",
+      "default": false,
+      "models": {
+        "llama-3.3-70b-versatile": {
+          "user_name": "Llama 3.3 70B Versatile",
+          "litellm_model": "llama-3.3-70b-versatile",
+          "modality": "text",
+          "is_premium": true,
+          "free_tokens_day": 12000,
+          "free_tokens_week": 70000,
+          "litellm_provider": "groq"
+        },
+        "openai/gpt-oss-120b": {
+          "user_name": "OpenAI GPT-OSS 120B",
+          "litellm_model": "openai/gpt-oss-120b",
+          "modality": "text",
+          "is_premium": true,
+          "free_tokens_day": 12000,
+          "free_tokens_week": 70000,
+          "litellm_provider": "groq"
+        }
+      }
+    }
+  },
+  "model_routes": {},
+  "fallbacks": {
+    "free": {
+      "max_chain": 2
+    },
+    "premium": {
+      "max_chain": 3
+    }
+  },
+  "healthchecks": {
+    "poll_interval": 300,
+    "success_cooldown": 43200,
+    "failure_cooldown": 900,
+    "models": {
+      "claude-*": {
+        "success_cooldown": 86400
+      }
+    }
+  }
+}

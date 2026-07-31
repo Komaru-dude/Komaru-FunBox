@@ -10,9 +10,16 @@ from aiogram.types import Message
 from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL
 from bot.utils.ai.ai_api import stream_text_api
+from bot.utils.ai.providers import format_model_line
 from bot.utils.aio_tools import error_report
-from bot.utils.global_storage import onlysq_models
+from bot.utils.global_storage import filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
+
+
+def _model_name(model_id: str) -> str:
+    info = filtered_models.get(model_id, {})
+    return info.get("name", model_id)
+
 
 image_router = Router()
 
@@ -60,7 +67,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
         model_match = re.search(r"-m\s+(\S+)", user_query)
         if model_match:
             model_candidate = model_match.group(1)
-            if model_candidate in onlysq_models["models"]:
+            if model_candidate in filtered_models:
                 model = model_candidate
                 user_query = re.sub(r"-m\s+\S+", "", user_query).strip()
 
@@ -75,7 +82,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
             )
             model = DEFAULT_MODEL
 
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = filtered_models.get(model, {})
         can_stream = model_info.get("can-stream", False)
         notification = ""
         if not can_stream:
@@ -83,7 +90,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
                 notification = f"⚠️ Модель <b>{model}</b> не поддерживает стриминг. Использую <b>{DEFAULT_MODEL}</b>\n"
             model = DEFAULT_MODEL
 
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = filtered_models.get(model, {})
         model_display_name = model_info.get("name", model)
 
         base_msg = await message.reply("🔄 Обработка...")
@@ -142,10 +149,14 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
 
         try:
             answer = ""
-            async for chunk in stream_text_api(
+            requested_model = model
+            actual_model = model
+            async for chunk, used in stream_text_api(
                 model=model,
                 messages=messages_for_ai,
+                user_tier=user_tier,
             ):
+                actual_model = used
                 if chunk:
                     answer += chunk
 
@@ -163,7 +174,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
             raw_answer = (
                 f"{notification}"
                 f"💭 Запрос: {user_query or 'Анализ изображения'}\n"
-                f"🧠 Модель: {model_display_name}\n\n"
+                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                 f"📝 Ответ: {answer}"
             )
 

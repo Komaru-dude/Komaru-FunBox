@@ -8,7 +8,6 @@ from bot import CASES_CONFIG_PATH, ECONOMY_CONFIG_PATH, SHOP_CONFIG_PATH
 active_chats = []
 active_chats_lock = asyncio.Lock()
 
-onlysq_models = {}
 filtered_models = {}
 
 error_report_timestamps = []

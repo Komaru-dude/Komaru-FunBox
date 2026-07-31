@@ -10,3 +10,4 @@ __pycache__
 *.session-journal
 postgres_data
 backups
+bot/config/ai_providers.json

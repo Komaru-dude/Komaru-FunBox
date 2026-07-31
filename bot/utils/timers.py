@@ -15,7 +15,7 @@ from aiogram import Bot
 from bot import BASE_DIR, FREE_GAMES_PATH, STOCKS_PATH, logger
 from bot.database.database import Database
 from bot.utils.ai.ai_api import check_models, get_ai_sector_impacts
-from bot.utils.bot_tools import download_osq_models, fetch_marketaux_news
+from bot.utils.bot_tools import fetch_marketaux_news
 from bot.utils.get_free_epic_games import get_free_games
 
 from .global_storage import update_cache
@@ -396,17 +396,6 @@ async def update_sector_impacts_task():
         await asyncio.sleep(AI_NEWS_TICK_SECONDS)
 
 
-async def update_osq_models():
-    while True:
-        try:
-            await asyncio.sleep(86400)
-            await download_osq_models()
-        except Exception as e:
-            logger.critical(
-                f"❌ Не удалось обновить ИИ модели с OnlySq: {e}", exc_info=True
-            )
-
-
 async def check_models_timer():
     while True:
         await asyncio.sleep(43200)
@@ -425,7 +414,6 @@ async def background_checker(bot: Bot):
     epic_task = asyncio.create_task(check_free_games(bot))
     update_stocks = asyncio.create_task(change_stocks())
     update_impacts = asyncio.create_task(update_sector_impacts_task())
-    update_osq = asyncio.create_task(update_osq_models())
     check_models = asyncio.create_task(check_models_timer())
 
     # Ждём того чего не случится
@@ -435,6 +423,5 @@ async def background_checker(bot: Bot):
         epic_task,
         update_stocks,
         update_impacts,
-        update_osq,
         check_models,
     )

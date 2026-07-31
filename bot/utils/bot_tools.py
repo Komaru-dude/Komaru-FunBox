@@ -4,7 +4,6 @@ import os
 import aiohttp
 
 from bot import DATA_DIR, logger
-from bot.utils.global_storage import onlysq_models
 
 models_path = DATA_DIR / "models.json"
 default_models = {"models": {}}
@@ -34,27 +33,6 @@ async def make_post_request(url, payload, headers=None):
                 return await response.json(), None
             except Exception as e:
                 return None, f"❌ Ошибка обработки ответа: {str(e)}"
-
-
-async def download_osq_models():
-    try:
-        models = await fetch_json("https://api.onlysq.me/ai/models")
-
-        if not isinstance(models, dict) or not isinstance(models.get("models"), dict):
-            raise ValueError("❌ API вернул некорректный формат моделей")
-
-        with open(models_path, "w") as f:
-            json.dump(models, f, indent=2)
-
-        onlysq_models.clear()
-        onlysq_models.update(models)
-        logger.info(f"✅ Успешно загружено {len(models['models'])} моделей")
-        return
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка загрузки с API: {e}")
-        onlysq_models.update(default_models)
-        return
 
 
 async def fetch_marketaux_news(limit: int = 20) -> list[str]:

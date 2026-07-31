@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import os
@@ -6,28 +7,39 @@ import time
 from typing import Any, AsyncGenerator, Optional
 
 import aiohttp
+import litellm
 import magic
-import openai
 
 from bot import logger
 from bot.database.redis_client import redis_db
-from bot.utils.global_storage import filtered_models, onlysq_models
-
-client = openai.AsyncOpenAI(
-    api_key=os.getenv("ONLYSQ_API_KEY"),
-    base_url=os.getenv("OPENAI_SDK_API_URL"),
+from bot.utils.ai.providers import (
+    fallback_max_chain,
+    get_all_models,
+    healthcheck_cooldowns,
+    healthcheck_enabled,
+    provider_credentials,
+    resolve_model,
 )
+from bot.utils.global_storage import filtered_models
+
+litellm.drop_params = True
+try:
+    litellm.suppress_debug_info = True
+except Exception:
+    pass
 
 JIGSAW_API_KEY = os.getenv("JIGSAW_API_KEY")
+
+_MODEL_HEALTH_CACHE_KEY = "check_models_health_v2"
+_MODEL_LIST_CACHE_KEY = "check_models_cache"
+_model_health: dict[str, dict[str, Any]] = {}
+_model_health_loaded = False
+_model_health_lock = asyncio.Lock()
 
 ALLOWED_RATIOS = {
     "1:1",
     "16:9",
     "21:9",
-    "3:2",
-    "2:3",
-    "4:5",
-    "5:4",
     "3:2",
     "2:3",
     "4:5",
@@ -40,19 +52,142 @@ ALLOWED_RATIOS = {
 
 
 class LocalRateLimitError(Exception):
-    """Выбрасывается, когда наш API вываливается в рейтлимит"""
+    """Выбрасывается, когда мы уперлись в локальные лимиты пользователя или сервера"""
 
     def __init__(self, message: str):
         super().__init__(message)
 
 
+def _is_rate_limit(exc: BaseException) -> bool:
+    if isinstance(exc, LocalRateLimitError):
+        return True
+
+    exc_str = str(exc).lower()
+    if "rate limit" in exc_str or "429" in exc_str:
+        return True
+
+    return False
+
+
+async def _load_model_health() -> None:
+    global _model_health_loaded
+    if _model_health_loaded:
+        return
+    try:
+        raw = await redis_db.client.get(_MODEL_HEALTH_CACHE_KEY)
+        if raw:
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                _model_health.update(data)
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка чтения healthcheck-кэша: {e}")
+    _model_health_loaded = True
+
+
+async def _save_model_health() -> None:
+    try:
+        await redis_db.client.set(
+            _MODEL_HEALTH_CACHE_KEY,
+            json.dumps(_model_health, ensure_ascii=False),
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Ошибка сохранения healthcheck-кэша: {e}")
+
+
+def _mark_model_failed(model_id: str, reason: BaseException) -> None:
+    _model_health[model_id] = {
+        "available": False,
+        "checked_at": time.time(),
+        "error": f"{type(reason).__name__}: {reason}",
+    }
+    filtered_models.pop(model_id, None)
+    logger.warning(
+        f"🚫 Модель {model_id} на cooldown после ошибки: "
+        f"{type(reason).__name__}: {reason}"
+    )
+    try:
+        asyncio.get_running_loop().create_task(_save_model_health())
+    except RuntimeError:
+        pass
+
+
+def _mark_model_succeeded(model_id: str) -> None:
+    previous = _model_health.get(model_id)
+    _model_health[model_id] = {
+        "available": True,
+        "checked_at": time.time(),
+        "error": None,
+    }
+
+    model = get_all_models().get(model_id)
+    if model:
+        filtered_models[model_id] = model
+
+    if previous and not previous.get("available", True):
+        logger.info(f"✅ Модель {model_id} снова доступна")
+
+    try:
+        asyncio.get_running_loop().create_task(_save_model_health())
+    except RuntimeError:
+        pass
+
+
+def _model_is_cooling_down(model_id: str) -> bool:
+    state = _model_health.get(model_id)
+    if not state or state.get("available", True):
+        return False
+    _, failure_cooldown = healthcheck_cooldowns(model_id)
+    return time.time() - float(state.get("checked_at", 0)) < failure_cooldown
+
+
+def _auto_fallbacks(primary: str, user_tier: int, max_chain: int) -> list[str]:
+    """Подбор резервных моделей той же модальности из нового списка"""
+    if max_chain <= 0:
+        return []
+
+    all_models = get_all_models()
+    primary_info = filtered_models.get(primary) or all_models.get(primary, {})
+    modality = primary_info.get("modality", "text")
+
+    result: list[str] = []
+    for mid, m in all_models.items():
+        if mid == primary:
+            continue
+        if m.get("modality") != modality:
+            continue
+        if m.get("is_premium") and user_tier <= 0:
+            continue
+
+        result.append(mid)
+        if len(result) >= max_chain:
+            break
+
+    return result
+
+
+def _build_candidates(
+    primary: str, fallbacks: list[str] | None, user_tier: int
+) -> list[str]:
+    if fallbacks is None:
+        chain = _auto_fallbacks(primary, user_tier, fallback_max_chain(user_tier))
+    else:
+        chain = list(fallbacks)
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for mid in [primary, *chain]:
+        if mid and mid not in seen and not _model_is_cooling_down(mid):
+            seen.add(mid)
+            ordered.append(mid)
+    return ordered
+
+
 async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dict:
-    """Генерация изображений через внешний API."""
     if not await check_rpm_limit(model):
         return {
             "error": True,
             "status": 429,
-            "msg": "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель.",
+            "msg": "Превышен лимит для данной модели.",
         }
 
     if ratio not in ALLOWED_RATIOS:
@@ -82,61 +217,155 @@ async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dic
         return {"error": True, "msg": str(e)}
 
 
+async def _litellm_call(
+    model_id: str,
+    messages: list,
+    *,
+    stream: bool,
+    tools: Optional[list[dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+    timeout: float = 30.0,
+):
+    litellm_model, provider_cfg = resolve_model(model_id)
+    kwargs: dict[str, Any] = {
+        "model": litellm_model,
+        "messages": messages,
+        "stream": stream,
+        "num_retries": 0,
+        "timeout": timeout,
+    }
+    kwargs.update(provider_credentials(provider_cfg))
+    if tools is not None:
+        kwargs["tools"] = tools
+        kwargs["tool_choice"] = tool_choice
+
+    return await litellm.acompletion(**kwargs)
+
+
 async def stream_text_api(
     model: str,
     messages: list[dict[str, Any]],
     tools: Optional[list[dict[str, Any]]] = None,
     tool_choice: str = "auto",
-) -> AsyncGenerator[str, None]:
-    if not await check_rpm_limit(model):
-        raise LocalRateLimitError(
-            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель."
-        )
+    fallbacks: list[str] | None = None,
+    user_tier: int = 0,
+) -> AsyncGenerator[tuple[str, str], None]:
 
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "stream": True,
-    }
+    candidates = _build_candidates(model, fallbacks, user_tier)
+    last_exc: BaseException | None = None
 
-    if tools is not None:
-        kwargs["tools"] = tools
-        kwargs["tool_choice"] = tool_choice
+    for candidate in candidates:
+        if not await check_rpm_limit(candidate):
+            last_exc = LocalRateLimitError("Превышен лимит для данной модели.")
+            if candidate == candidates[-1]:
+                raise last_exc
+            continue
 
-    stream = await client.chat.completions.create(**kwargs)
+        try:
+            stream = await _litellm_call(
+                candidate,
+                messages,
+                stream=True,
+                tools=tools,
+                tool_choice=tool_choice,
+            )
+        except Exception as e:
+            last_exc = e
+            if _is_rate_limit(e):
+                continue
+            _mark_model_failed(candidate, e)
+            continue
 
-    async for chunk in stream:
-        if chunk.choices and chunk.choices[0].delta.content:
-            yield chunk.choices[0].delta.content
+        try:
+            received_content = False
+            async for chunk in stream:
+                choices = getattr(chunk, "choices", None) or []
+                if not choices:
+                    continue
+                delta = getattr(choices[0], "delta", None)
+                content = getattr(delta, "content", None) if delta else None
+                if content:
+                    received_content = True
+                    yield content, candidate
+            if received_content:
+                _mark_model_succeeded(candidate)
+            return
+        except Exception as e:
+            logger.warning(
+                f"⚠️ Стрим модели {candidate} прерван: {type(e).__name__}: {e}"
+            )
+            raise
+
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("Нет доступных моделей для запроса")
 
 
-async def simple_text_api(model: str, messages: list) -> str:
-    """Обычный запрос текста (без стриминга)."""
-    if not await check_rpm_limit(model):
-        raise LocalRateLimitError(
-            "Превышен лимит RPM для данной модели. Попробуйте позже или выберите другую модель."
-        )
+async def simple_text_api(
+    model: str,
+    messages: list,
+    fallbacks: list[str] | None = None,
+    user_tier: int = 0,
+) -> tuple[str, str]:
+    candidates = _build_candidates(model, fallbacks, user_tier)
+    last_exc: BaseException | None = None
 
-    response = await client.chat.completions.create(
-        model=model, messages=messages, stream=False
-    )
-    if not response.choices:
-        return ""
-    return response.choices[0].message.content  # type: ignore
+    for candidate in candidates:
+        if not await check_rpm_limit(candidate):
+            last_exc = LocalRateLimitError("Превышен лимит для данной модели.")
+            if candidate == candidates[-1]:
+                raise last_exc
+            continue
+
+        try:
+            response = await _litellm_call(candidate, messages, stream=False)
+        except Exception as e:
+            last_exc = e
+            if _is_rate_limit(e):
+                continue
+            _mark_model_failed(candidate, e)
+            continue
+
+        choices = getattr(response, "choices", None) or []
+        if not choices:
+            last_exc = RuntimeError(f"Пустой ответ от {candidate}")
+            _mark_model_failed(candidate, last_exc)
+            continue
+
+        content = getattr(choices[0].message, "content", None)
+        if not content:
+            last_exc = RuntimeError(f"Пустой content от {candidate}")
+            _mark_model_failed(candidate, last_exc)
+            continue
+
+        _mark_model_succeeded(candidate)
+        return content, candidate
+
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("Нет доступных моделей для запроса")
+
+
+async def simple_text_api_text(
+    model: str,
+    messages: list,
+    fallbacks: list[str] | None = None,
+    user_tier: int = 0,
+) -> str:
+    text, _ = await simple_text_api(model, messages, fallbacks, user_tier)
+    return text
 
 
 async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
-    """Распознавание текста через JigsawStack."""
     if not JIGSAW_API_KEY:
         raise ValueError("JIGSAW_API_KEY не найден в переменных окружения.")
 
     url = "https://api.jigsawstack.com/v1/vocr"
-
     form = aiohttp.FormData()
 
     content_type = f"image/{'jpeg' if file_ext.lower() == 'jpg' else file_ext.lower()}"
     form.add_field(
-        name="file",
+        "file",
         value=file_bytes,
         filename=f"image.{file_ext}",
         content_type=content_type,
@@ -145,24 +374,17 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
     payload = {
         "prompt": "Extract all visible text from the image exactly as it appears, line by line."
     }
-    form.add_field(
-        name="body",
-        value=json.dumps(payload),
-        content_type="application/json",
-    )
+    form.add_field("body", value=json.dumps(payload), content_type="application/json")
 
     async with aiohttp.ClientSession() as session:
         async with session.post(
-            url,
-            data=form,
-            headers={"x-api-key": JIGSAW_API_KEY},
+            url, data=form, headers={"x-api-key": JIGSAW_API_KEY}
         ) as resp:
             if resp.status != 200:
                 error_text = await resp.text()
                 raise RuntimeError(f"Ошибка OCR: {resp.status} — {error_text}")
 
             res = await resp.json()
-
             if "sections" not in res:
                 return f"Ошибка OCR: {res}"
 
@@ -172,122 +394,145 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
 async def check_models(
     tier_filtered: bool = True, include_image: bool = False, force_refresh: bool = False
 ):
-    """Асинхронная проверка доступности моделей."""
-    cache_key = "check_models_cache"
+    """Проверка доступности моделей"""
+    async with _model_health_lock:
+        await _load_model_health()
+        now = time.time()
 
-    if not force_refresh:
-        try:
-            cached_result = await redis_db.client.get(cache_key)
-            if cached_result:
-                logger.info("💾 Загружаем рабочие модели из кэша")
-                checked_models = json.loads(cached_result)
-                filtered_models.clear()
-                filtered_models.update(checked_models)
-                logger.info(
-                    f"✅ Рабочие модели загружены из кэша: {len(checked_models)}"
-                )
-                return
-        except Exception as e:
-            logger.warning(f"⚠️ Ошибка при чтении кэша: {e}")
+        all_api_models = get_all_models()
+        current_tier = int(os.getenv("ONLYSQ_TIER", 0))
 
-    logger.info("🧠 Проверяем доступность моделей")
+        if not _model_health and not force_refresh:
+            try:
+                cached_result = await redis_db.client.get(_MODEL_LIST_CACHE_KEY)
+                if cached_result:
+                    checked_models = json.loads(cached_result)
+                    if isinstance(checked_models, dict):
+                        filtered_models.clear()
+                        filtered_models.update(checked_models)
+                        for model_id in checked_models:
+                            _model_health[model_id] = {
+                                "available": True,
+                                "checked_at": now,
+                                "error": None,
+                            }
+                        await _save_model_health()
+                        logger.info(
+                            f"💾 Мигрирован старый кэш моделей: {len(checked_models)}"
+                        )
+                        return
+            except Exception as e:
+                logger.warning(f"⚠️ Ошибка миграции кэша моделей: {e}")
 
-    free_models = [
-        m.strip()
-        for m in os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
-        if m.strip()
-    ]
-    premium_models = [
-        m.strip()
-        for m in os.getenv("ONLYSQ_ALLOWED_PREMIUM_MODELS", "").split(",")
-        if m.strip()
-    ]
-    allowed_ids = set(free_models + premium_models)
-    premium_models_set = set(premium_models)
+        test_messages = [{"role": "user", "content": "Write hello world"}]
+        checked_count = 0
+        skipped_count = 0
 
-    all_api_models = onlysq_models.get("models", {})
+        # Итерируемся по всем моделям из нового JSON
+        for model_id, model in all_api_models.items():
+            if tier_filtered and model.get("is_premium") and current_tier == 0:
+                continue
 
-    current_tier = int(os.getenv("ONLYSQ_TIER", 0))
-
-    test_messages = [
-        {"role": "user", "content": "Write hello world"},
-    ]
-
-    text_checked: dict[str, dict] = {}
-    image_checked: dict[str, dict] = {}
-
-    for model_id in allowed_ids:
-        if model_id not in all_api_models:
-            logger.error(
-                f"❌ Модель {model_id} указана в .env, но отсутствует в API OnlySQ!"
+            state = _model_health.get(model_id)
+            success_cooldown, failure_cooldown = healthcheck_cooldowns(model_id)
+            cooldown = (
+                success_cooldown
+                if not state or state.get("available", False)
+                else failure_cooldown
             )
-            continue
+            is_due = (
+                force_refresh
+                or state is None
+                or now - float(state.get("checked_at", 0)) >= cooldown
+            )
 
-        model = all_api_models[model_id]
-
-        if tier_filtered and model.get("tier", 0) > current_tier:
-            logger.info(f"⏭ Пропускаем {model_id}: ваш Tier ниже необходимого.")
-            continue
-
-        logger.info(f"⌛️ Проверяем модель {model["name"]}")
-
-        if tier_filtered and model.get("tier", 0) > current_tier:
-            continue
-
-        if model.get("modality") == "text":
-            try:
-                model_answer = await simple_text_api(model_id, test_messages)
-
-                if not len(model_answer) > 5:
-                    raise RuntimeError
-
-                model_with_premium = {
-                    **model,
-                    "is_premium": model_id in premium_models_set,
+            if not healthcheck_enabled(model_id):
+                _model_health[model_id] = {
+                    "available": True,
+                    "checked_at": now,
+                    "error": None,
                 }
-                text_checked[model_id] = model_with_premium
-            except Exception as e:
-                logger.warning(f"⚠️ Модель {model['name']} не ответила. Ошибка: {e}")
-        elif model.get("modality") == "image" and include_image:
+                continue
+
+            if not is_due:
+                skipped_count += 1
+                continue
+
+            modality = model.get("modality", "text")
+            if modality == "image" and not include_image:
+                if state is None:
+                    _model_health[model_id] = {
+                        "available": True,
+                        "checked_at": now,
+                        "error": None,
+                    }
+                continue
+
+            checked_count += 1
+            logger.info(
+                f"⌛️ Проверяем модель {model_id} (Провайдер: {model.get('provider_name')})"
+            )
             try:
-                api_resp = await generate_image_api(model_id, "Ginger cat")
+                if modality == "text":
+                    response = await _litellm_call(
+                        model_id, test_messages, stream=False
+                    )
+                    choices = getattr(response, "choices", None) or []
+                    content = (
+                        getattr(choices[0].message, "content", None)
+                        if choices
+                        else None
+                    )
+                    if not content or len(str(content)) <= 5:
+                        raise RuntimeError("пустой или слишком короткий ответ")
 
-                if api_resp.get("error"):
-                    raise RuntimeError(f"API вернуло ошибку: {api_resp.get('error')}")
+                elif modality == "image":
+                    api_resp = await generate_image_api(model_id, "Ginger cat")
+                    if api_resp.get("error"):
+                        raise RuntimeError(f"API вернуло ошибку: {api_resp.get('msg')}")
+                    image_bytes = api_resp.get("file")
+                    if not image_bytes or not isinstance(image_bytes, bytes):
+                        raise RuntimeError("поле file пустое или имеет неверный формат")
+                    mime = magic.from_buffer(image_bytes, mime=True)
+                    if not mime.startswith("image/"):
+                        raise RuntimeError("модель не вернула изображение")
 
-                image_bytes = api_resp.get("file")
-
-                if not image_bytes or not isinstance(image_bytes, bytes):
-                    raise RuntimeError("Поле 'file' пустое или имеет неверный формат")
-
-                mime = magic.from_buffer(image_bytes, mime=True)
-
-                if not mime.startswith("image/"):
-                    raise RuntimeError("Модель не вернула изображение")
-
-                model_with_premium = {
-                    **model,
-                    "is_premium": model_id in premium_models_set,
+                _model_health[model_id] = {
+                    "available": True,
+                    "checked_at": now,
+                    "error": None,
                 }
-                image_checked[model_id] = model_with_premium
             except Exception as e:
-                logger.warning(f"⚠️ Модель {model['name']} не ответила. Ошибка: {e}")
+                _model_health[model_id] = {
+                    "available": False,
+                    "checked_at": now,
+                    "error": f"{type(e).__name__}: {e}",
+                }
+                logger.warning(f"⚠️ Модель {model_id} не ответила: {e}")
 
-    checked_models: dict[str, dict] = {}
-    checked_models.update(text_checked)
-    checked_models.update(image_checked)
+        checked_models: dict[str, dict] = {}
+        for model_id, model in all_api_models.items():
+            state = _model_health.get(model_id)
+            if not state or not state.get("available", False):
+                continue
+            if tier_filtered and model.get("is_premium") and current_tier == 0:
+                continue
+            checked_models[model_id] = model
 
-    filtered_models.clear()
-    filtered_models.update(checked_models)
+        filtered_models.clear()
+        filtered_models.update(checked_models)
+        await _save_model_health()
 
-    try:
-        cache_data = json.dumps(checked_models)
-        await redis_db.client.set(cache_key, cache_data)
-        logger.info("💾 Результаты сохранены в кэш")
-    except Exception as e:
-        logger.warning(f"⚠️ Ошибка при сохранении в кэш: {e}")
+        try:
+            await redis_db.client.set(
+                _MODEL_LIST_CACHE_KEY, json.dumps(checked_models, ensure_ascii=False)
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка сохранения списка моделей: {e}")
 
-    logger.info(f"✅ Модели проверены, рабочие: {len(checked_models)}")
+        logger.info(
+            f"✅ Healthcheck завершён: проверено {checked_count}, cooldown {skipped_count}, доступно {len(checked_models)}"
+        )
 
 
 async def get_ai_sector_impacts(
@@ -298,7 +543,7 @@ async def get_ai_sector_impacts(
     if not sectors or not news:
         return result
 
-    model = os.getenv("DEFAULT_OSQ_MODEL")
+    model = "gemini-3.1-flash-lite"
     news_block = "\n".join(f"- {n}" for n in news)
     sector_list = ", ".join(sectors)
 
@@ -363,30 +608,8 @@ async def get_ai_sector_impacts(
 
 async def check_rpm_limit(model_id: str) -> bool:
     """
-    Проверяет RPM лимит на основе ONLYSQ_TIER сервера.
-    Возвращает True, если слот есть.
-    Если лимит превышен (с учетом 1 прозапас), возвращает False.
-
-    Args:
-        model_id: ID модели
+    TODO: Лимиты в новом конфиге представлены в виде free_tokens_day / free_tokens_week.
+    Для их подсчета требуется контекст пользователя (user_id), поэтому эта функция
+    пока возвращает True. Полноценный контроль токенов нужно реализовать в хэндлерах.
     """
-    server_tier = int(os.getenv("ONLYSQ_TIER", 0))
-    model_info = onlysq_models.get("models", {}).get(model_id)
-
-    if not model_info or "limits" not in model_info:
-        return True
-
-    limit = max(0, model_info["limits"][server_tier] - 1)
-
-    now = time.time()
-    current_minute = int(now // 60)
-    key = f"rpm_limit:{model_id}:{current_minute}"
-
-    current_usage = await redis_db.client.incr(key)
-    if current_usage == 1:
-        await redis_db.client.expire(key, 60)
-
-    if current_usage > limit:
-        return False
-
     return True

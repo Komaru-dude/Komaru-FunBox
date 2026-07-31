@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import shutil
 import signal
@@ -13,15 +12,13 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.telegram import PRODUCTION, TEST
 from aiogram.methods import DeleteWebhook
 
-from bot import DATA_DIR, IS_TEST, IS_TEST_ENV, PYRO_HOST, PYRO_PORT, logger
+from bot import IS_TEST, IS_TEST_ENV, PYRO_HOST, PYRO_PORT, logger
 from bot.database.database import Database
 from bot.database.redis_client import redis_db
 from bot.middlewares.chatwatcher import ChatWatcher
 from bot.middlewares.specificchat import SpecificChat
 from bot.utils.ai.ai_api import check_models
-from bot.utils.bot_tools import download_osq_models
 from bot.utils.cmd_manager import apply_all_command_sets
-from bot.utils.global_storage import onlysq_models
 from bot.utils.timers import background_checker
 
 from .handlers.administration import admin_router
@@ -67,38 +64,6 @@ dp["db"] = db
 redis_port = int(os.getenv("REDIS_PORT", 6379))
 
 
-async def load_models():
-    models_path = DATA_DIR / "models.json"
-    default_models = {"models": {}}
-
-    try:
-        if not models_path.exists():
-            logger.info("🔄 Модели отсутствуют, загружаю с API...")
-            await download_osq_models()
-
-        with open(models_path, "r") as f:
-            cached_models = json.load(f)
-
-            if not isinstance(cached_models, dict) or not isinstance(
-                cached_models.get("models"), dict
-            ):
-                raise ValueError("📛 Поврежденный кэш моделей")
-
-            onlysq_models.clear()
-            onlysq_models.update(cached_models)
-            logger.info(f"✅ Загружено {len(cached_models['models'])} моделей из кэша")
-
-    except (json.JSONDecodeError, IOError, ValueError) as e:
-        logger.error(f"📛 Критическая ошибка загрузки: {e}")
-        onlysq_models.update(default_models)
-        models_path.unlink(missing_ok=True)
-
-    except Exception as e:
-        logger.critical(f"Непредвиденная ошибка: {e}")
-        onlysq_models.update(default_models)
-        raise
-
-
 def clear_cache():
     """Очищает папку cache относительно расположения бота."""
     try:
@@ -126,7 +91,6 @@ async def main():
             logger.debug("🧑‍💻 Используется тестовая ветка")
         logger.info("▶️ Подготовка...")
         clear_cache()
-        await load_models()
         await db.connect()
         await redis_db.connect(port=redis_port)
         await check_models(include_image=True)

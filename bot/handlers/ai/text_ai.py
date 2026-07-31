@@ -15,9 +15,15 @@ from bot import logger
 from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL, ChatState
 from bot.handlers.ai.tools import TOOLS_SCHEMA, handle_tool_call
-from bot.utils.ai.ai_api import simple_text_api, stream_text_api
-from bot.utils.global_storage import active_chats, onlysq_models
+from bot.utils.ai.ai_api import simple_text_api, simple_text_api_text, stream_text_api
+from bot.utils.ai.providers import format_model_line
+from bot.utils.global_storage import active_chats, filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
+
+
+def _model_name(model_id: str) -> str:
+    info = filtered_models.get(model_id, {})
+    return info.get("name", model_id)
 
 
 async def process_active_chat(message, state, db: Database, text_msg: str) -> bool:
@@ -37,6 +43,8 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
         user_message = text_msg.strip()
 
         user_tier = await db.get_user_tier(message.from_user.id)
+        requested_model = model
+        actual_model = model
         if not is_model_available_for_user(model, user_tier):
             await state.clear()
             tier_name = "премиумные" if user_tier > 0 else "свободные"
@@ -55,7 +63,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
             base_url=os.getenv("OPENAI_SDK_API_URL"),
         )
 
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = filtered_models.get(model, {})
         model_display_name = model_info.get("name", model)
 
         is_tools_model = model_info.get("can-tools", False)
@@ -81,7 +89,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                     if func_name == "chat_stop":
                         await base_msg.edit_text(
                             f"💭 Запрос: {user_message}\n"
-                            f"🧠 Модель: {model_display_name}\n\n"
+                            f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                             f"📝 ✅ Чат успешно остановлен"
                         )
                         return True
@@ -109,9 +117,10 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                 except Exception as dump_ex:
                     logger.error(f"❌ Не удалось сделать дамп: {dump_ex}")
 
-                final_text = await simple_text_api(
+                final_text, actual_model = await simple_text_api(
                     model=model,
                     messages=messages,
+                    user_tier=user_tier,
                 )
             else:
                 final_text = response_message.content
@@ -129,7 +138,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
 
             raw_answer = (
                 f"💭 Запрос: {user_message}\n"
-                f"🧠 Модель: {model_display_name}\n\n"
+                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                 f"📝 Ответ: {answer}"
             )
 
@@ -150,10 +159,12 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                 edited_once = False
                 last_edit_time = time.monotonic()
 
-                async for chunk in stream_text_api(
+                async for chunk, used in stream_text_api(
                     model=model,
                     messages=messages,
+                    user_tier=user_tier,
                 ):
+                    actual_model = used
                     if chunk:
                         final_text += chunk
                         buffer += chunk
@@ -167,7 +178,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                             try:
                                 await base_msg.edit_text(
                                     f"💭 Запрос: {user_message}\n"
-                                    f"🧠 Модель: {model_display_name}\n\n"
+                                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                                     f"📝 Ответ: {final_text}"
                                 )
                                 buffer = ""
@@ -181,7 +192,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                             try:
                                 await base_msg.edit_text(
                                     f"💭 Запрос: {user_message}\n"
-                                    f"🧠 Модель: {model_display_name}\n\n"
+                                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                                     f"📝 Ответ: {final_text}"
                                 )
                             except Exception:
@@ -193,9 +204,10 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                 await state.update_data(messages=messages)
 
             else:
-                response = await simple_text_api(
+                response, actual_model = await simple_text_api(
                     model=model,
                     messages=messages,
+                    user_tier=user_tier,
                 )
                 if not response:
                     raise ValueError("Нет ответа от API")
@@ -211,7 +223,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                     answer = answer_content
                 raw_answer = (
                     f"💭 Запрос: {user_message}\n"
-                    f"🧠 Модель: {model_display_name}\n\n"
+                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                     f"📝 Ответ: {answer}"
                 )
 
@@ -292,7 +304,7 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
         model_match = re.search(r"-m\s+(\S+)", user_query)
         if model_match:
             model_candidate = model_match.group(1)
-            if model_candidate in onlysq_models["models"]:
+            if model_candidate in filtered_models:
                 model = model_candidate
                 user_query = re.sub(r"-m\s+\S+", "", str(user_query)).strip()
                 messages_for_ai[1]["content"] = user_query
@@ -308,23 +320,27 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
             )
             model = DEFAULT_MODEL
 
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = filtered_models.get(model, {})
         can_stream = model_info.get("can-stream", False)
         notification = ""
         if not can_stream:
             if model != DEFAULT_MODEL:
                 notification = f"⚠️ Модель <b>{model}</b> не поддерживает стриминг. Использую <b>{DEFAULT_MODEL}</b>\n"
             model = DEFAULT_MODEL
-        model_info = onlysq_models["models"].get(model, {})
+        model_info = filtered_models.get(model, {})
         model_display_name = model_info.get("name", model)
 
         base_msg = await message.reply("🔄 Обработка...")
+        requested_model = model
+        actual_model = model
         try:
             answer = ""
-            async for chunk in stream_text_api(
+            async for chunk, used in stream_text_api(
                 model=model,
                 messages=messages_for_ai,
+                user_tier=user_tier,
             ):
+                actual_model = used
                 if chunk:
                     answer += chunk
             if not answer:
@@ -339,7 +355,7 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
             raw_answer = (
                 f"{notification}"
                 f"💭 Запрос: {user_query}\n"
-                f"🧠 Модель: {model_display_name}\n\n"
+                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
                 f"📝 Ответ: {answer}"
             )
             chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
@@ -374,11 +390,14 @@ async def process_explain_reply(message, db: Database) -> bool:
             },
             {"role": "user", "content": message.reply_to_message.text},
         ]
-        answer = await simple_text_api(model=DEFAULT_MODEL, messages=messages)
+        answer, actual_model = await simple_text_api(
+            model=DEFAULT_MODEL, messages=messages
+        )
         if not answer:
             await message.reply("⚠️ Нет ответа от AI")
         else:
-            await message.reply(f"📝 Ответ: {answer}")
+            model_line = format_model_line(actual_model, DEFAULT_MODEL, _model_name)
+            await message.reply(f"{model_line}\n📝 Ответ: {answer}")
         return True
     except Exception:
         return False
