@@ -14,9 +14,11 @@ OWNER_ID=your_owner_id
 API_ID=your_api_id
 API_HASH=your_api_hash
 
+# ИИ модель по умолчанию
+DEFAULT_MODEL=gemini-3.1-flash-lite
+
 # Ваши url для апи нейросетей
 OPENAI_SDK_API_URL=http://api.onlysq.me/ai/openai
-IMAGEN_API_URL=https://api.onlysq.me/ai/imagen
 
 # Апи ключ для onlysq (можно взять тут: https://my.onlysq.me)
 ONLYSQ_API_KEY=openai

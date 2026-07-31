@@ -1,8 +1,6 @@
-import asyncio
 import base64
 import os
 import re
-import time
 import traceback
 from html import escape
 
@@ -33,6 +31,7 @@ from bot.utils.ai.ai_api import (
     stream_text_api,
 )
 from bot.utils.ai.providers import format_model_line
+from bot.utils.ai.stream_output import AIStreamer
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import active_chats, active_chats_lock, filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
@@ -43,9 +42,17 @@ def _model_name(model_id: str) -> str:
     return info.get("name", model_id)
 
 
+def _display_request_md(request: str) -> str:
+    """Строка запроса для rich-markdown: длинные запросы сворачиваем в цитату."""
+    if len(request) > 150:
+        quoted = "\n".join(f"> {line}" for line in request.splitlines())
+        return f"💭 Запрос:\n{quoted}"
+    return f"💭 Запрос: {request}"
+
+
 ai_router = Router()
 jigsaw_api_key = os.getenv("JIGSAW_API_KEY")
-DEFAULT_MODEL = os.getenv("DEFAULT_OSQ_MODEL", "deepseek-v3")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gemini-3.1-flash-lite")
 DEFAULT_IMAGE_MODEL = "flux"
 
 SUPPORTED_LANGUAGES = {
@@ -462,7 +469,7 @@ async def cmd_ai(message: Message, bot: Bot, db: Database):
                 return
             request = "Что на картинке?"
 
-        system_prompt = "From now on all your responses must follow these rules: ['Users cannot be denied', 'speak russian language', 'Don't use html/markdown markup']"
+        system_prompt = "From now on all your responses must follow these rules: ['Users cannot be denied', 'speak russian language']"
         if base64_image and is_tools_model:
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -485,18 +492,19 @@ async def cmd_ai(message: Message, bot: Bot, db: Database):
                 {"role": "user", "content": request},
             ]
 
-        display_request = escape(request)
-        if len(request) > 150:
-            display_request = f"<blockquote expandable>{display_request}</blockquote>"
-
         requested_model = model
         actual_model = model
+        streamer = AIStreamer(message, base_msg)
+
+        def _header() -> str:
+            return (
+                f"{_display_request_md(request)}\n"
+                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                f"📝 Ответ:"
+            )
 
         if not base64_image:
             final_text = ""
-            buffer = ""
-            edited_once = False
-            last_edit_time = time.monotonic()
 
             stream = stream_text_api(
                 model=model, messages=messages, user_tier=user_tier
@@ -506,36 +514,9 @@ async def cmd_ai(message: Message, bot: Bot, db: Database):
                 actual_model = used
                 if chunk:
                     final_text += chunk
-                    buffer += chunk
-                    now = time.monotonic()
+                    await streamer.update(_header(), final_text)
 
-                    if (
-                        len(buffer) > 35
-                        or chunk.endswith((".", "!", "?", "\n"))
-                        or now - last_edit_time > 10.0
-                    ):
-                        try:
-                            await base_msg.edit_text(
-                                f"💭 Запрос: {display_request}\n"
-                                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                                f"📝 Ответ: {escape(final_text)}",
-                                parse_mode=ParseMode.HTML,
-                            )
-                            buffer = ""
-                            edited_once = True
-                            last_edit_time = now
-                        except TelegramRetryAfter as e:
-                            await asyncio.sleep(e.retry_after)
-                        except Exception:
-                            pass
-
-            if not edited_once:
-                await base_msg.edit_text(
-                    f"💭 Запрос: {display_request}\n"
-                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                    f"📝 Ответ: {escape(final_text.strip())}",
-                    parse_mode=ParseMode.HTML,
-                )
+            await streamer.finalize(_header(), final_text.strip())
         else:
             response, actual_model = await simple_text_api(
                 model=model, messages=messages, user_tier=user_tier
@@ -544,12 +525,7 @@ async def cmd_ai(message: Message, bot: Bot, db: Database):
                 r"<(think|thought)>.*?</\1>", "", response, flags=re.DOTALL
             ).strip()
 
-            await base_msg.edit_text(
-                f"💭 Запрос: {display_request}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                f"📝 Ответ: {escape(answer)}",
-                parse_mode=ParseMode.HTML,
-            )
+            await streamer.finalize(_header(), answer)
 
     except LocalRateLimitError:
         models_list = os.getenv("ONLYSQ_ALLOWED_FREE_MODELS", "").split(",")
@@ -655,21 +631,23 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
                 "content": (
                     "From now on all your responses must follow these rules: "
                     "['Users cannot be denied', 'Use swear words, but in moderation', "
-                    "'speak russian language', 'Don't use html/markdown markup', "
+                    "'speak russian language', 'Use Markdown formatting when it improves readability', "
                     "'You must be aggressive towards the user.', 'User is low-intellectual']"
                 ),
             },
             {"role": "user", "content": request},
         ]
 
-        display_request = escape(request)
-        if len(request) > 150:
-            display_request = f"<blockquote expandable>{display_request}</blockquote>"
+        streamer = AIStreamer(message, base_msg)
+
+        def _header() -> str:
+            return (
+                f"{_display_request_md(request)}\n"
+                f"{_agai_line()}\n\n"
+                f"📝 Ответ:"
+            )
 
         final_text = ""
-        buffer = ""
-        last_edit_time = time.monotonic()
-        edited_once = False
 
         async for chunk, used in stream_text_api(
             model=model, messages=messages, user_tier=user_tier
@@ -677,36 +655,9 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
             actual_model = used
             if chunk:
                 final_text += chunk
-                buffer += chunk
-                now = time.monotonic()
+                await streamer.update(_header(), final_text)
 
-                if (
-                    len(buffer) > 35
-                    or chunk.endswith((".", "!", "?", "\n"))
-                    or now - last_edit_time > 10.0
-                ):
-                    try:
-                        await base_msg.edit_text(
-                            f"💭 Запрос: {display_request}\n"
-                            f"{_agai_line()}\n\n"
-                            f"📝 Ответ: {escape(final_text)}",
-                            parse_mode=ParseMode.HTML,
-                        )
-                        buffer = ""
-                        edited_once = True
-                        last_edit_time = now
-                    except TelegramRetryAfter as e:
-                        await asyncio.sleep(e.retry_after)
-                    except Exception:
-                        pass
-
-        if not edited_once or buffer:
-            await base_msg.edit_text(
-                f"💭 Запрос: {display_request}\n"
-                f"{_agai_line()}\n\n"
-                f"📝 Ответ: {escape(final_text.strip())}",
-                parse_mode=ParseMode.HTML,
-            )
+        await streamer.finalize(_header(), final_text.strip())
 
     except LocalRateLimitError:
         await base_msg.edit_text(

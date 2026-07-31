@@ -11,6 +11,7 @@ from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL
 from bot.utils.ai.ai_api import stream_text_api
 from bot.utils.ai.providers import format_model_line
+from bot.utils.ai.stream_output import AIStreamer
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
@@ -87,7 +88,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
         notification = ""
         if not can_stream:
             if model != DEFAULT_MODEL:
-                notification = f"⚠️ Модель <b>{model}</b> не поддерживает стриминг. Использую <b>{DEFAULT_MODEL}</b>\n"
+                notification = f"⚠️ Модель **{model}** не поддерживает стриминг. Использую **{DEFAULT_MODEL}**\n"
             model = DEFAULT_MODEL
 
         model_info = filtered_models.get(model, {})
@@ -151,6 +152,16 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
             answer = ""
             requested_model = model
             actual_model = model
+            streamer = AIStreamer(message, base_msg)
+
+            def _header() -> str:
+                return (
+                    f"{notification}"
+                    f"💭 Запрос: {user_query or 'Анализ изображения'}\n"
+                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                    f"📝 Ответ:"
+                )
+
             async for chunk, used in stream_text_api(
                 model=model,
                 messages=messages_for_ai,
@@ -159,6 +170,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
                 actual_model = used
                 if chunk:
                     answer += chunk
+                    await streamer.update(_header(), answer)
 
             if not answer:
                 await base_msg.edit_text("⚠️ Нет ответа от AI")
@@ -171,19 +183,7 @@ async def handle_prompt_with_image(message: Message, bot: Bot, db: Database) -> 
                 flags=re.DOTALL,
             ).strip()
 
-            raw_answer = (
-                f"{notification}"
-                f"💭 Запрос: {user_query or 'Анализ изображения'}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                f"📝 Ответ: {answer}"
-            )
-
-            chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
-            for idx, chunk in enumerate(chunks):
-                if idx == 0:
-                    await base_msg.edit_text(chunk)
-                else:
-                    await message.answer(chunk)
+            await streamer.finalize(_header(), answer)
         except Exception as e:
             await base_msg.edit_text(f"❌ Ошибка: {e}")
 

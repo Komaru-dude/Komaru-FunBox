@@ -182,7 +182,20 @@ def _build_candidates(
     return ordered
 
 
+def _ratio_to_size(ratio: str) -> str:
+    """Соотношение сторон -> размер ~1МП, кратный 64 (формат OpenAI Images '1024x1024')."""
+    w_ratio, h_ratio = (int(x) for x in ratio.split(":"))
+    scale = (1024 * 1024 / (w_ratio * h_ratio)) ** 0.5
+
+    def _to64(value: float) -> int:
+        return max(256, round(value / 64) * 64)
+
+    return f"{_to64(w_ratio * scale)}x{_to64(h_ratio * scale)}"
+
+
 async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dict:
+    """Генерация изображения через litellm. Без фолбэков на другие модели:
+    функцию использует healthcheck, которому нужен ответ именно этой модели."""
     if not await check_rpm_limit(model):
         return {
             "error": True,
@@ -193,28 +206,52 @@ async def generate_image_api(model: str, prompt: str, ratio: str = "1:1") -> dic
     if ratio not in ALLOWED_RATIOS:
         return {"error": True, "msg": f"Недопустимое соотношение сторон: {ratio}"}
 
-    request_data = {"model": model, "prompt": prompt, "ratio": ratio}
-    headers = {"Authorization": f"Bearer {os.getenv('ONLYSQ_API_KEY')}"}
-    img_url = os.getenv("IMAGEN_API_URL")
+    litellm_model, provider_cfg = resolve_model(model)
+    kwargs: dict[str, Any] = {
+        "model": litellm_model,
+        "prompt": prompt,
+        "size": _ratio_to_size(ratio),
+        "response_format": "b64_json",
+        "num_retries": 0,
+        "timeout": 120,
+    }
+    kwargs.update(provider_credentials(provider_cfg))
 
-    if not img_url:
-        return {"error": True, "msg": "IMAGEN_API_URL не настроен в env."}
-
+    started = time.monotonic()
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                img_url, json=request_data, headers=headers
-            ) as resp:
-                data = await resp.json()
-                if resp.status != 200:
-                    return {"error": True, "status": resp.status, "msg": data}
-                return {
-                    "error": False,
-                    "file": base64.b64decode(data["files"][0]),
-                    "elapsed_time": data.get("elapsed-time", 0),
-                }
+        response = await litellm.aimage_generation(**kwargs)
     except Exception as e:
-        return {"error": True, "msg": str(e)}
+        status = 429 if _is_rate_limit(e) else getattr(e, "status_code", None)
+        return {"error": True, "status": status, "msg": str(e)}
+
+    data = (getattr(response, "data", None) or [None])[0]
+    b64 = getattr(data, "b64_json", None) if data else None
+    url = getattr(data, "url", None) if data else None
+
+    if b64:
+        file_bytes = base64.b64decode(b64)
+    elif url:
+        # Провайдер проигнорировал response_format и вернул ссылку
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as resp:
+                    if resp.status != 200:
+                        return {
+                            "error": True,
+                            "status": resp.status,
+                            "msg": f"Не удалось скачать изображение: HTTP {resp.status}",
+                        }
+                    file_bytes = await resp.read()
+        except Exception as e:
+            return {"error": True, "msg": f"Не удалось скачать изображение: {e}"}
+    else:
+        return {"error": True, "msg": "Провайдер не вернул изображение"}
+
+    return {
+        "error": False,
+        "file": file_bytes,
+        "elapsed_time": time.monotonic() - started,
+    }
 
 
 async def _litellm_call(
@@ -340,6 +377,63 @@ async def simple_text_api(
 
         _mark_model_succeeded(candidate)
         return content, candidate
+
+    if last_exc is not None:
+        raise last_exc
+    raise RuntimeError("Нет доступных моделей для запроса")
+
+
+async def tools_text_api(
+    model: str,
+    messages: list,
+    tools: list[dict[str, Any]],
+    tool_choice: str = "auto",
+    fallbacks: list[str] | None = None,
+    user_tier: int = 0,
+) -> tuple[Any, str]:
+    """Не-стриминговый вызов с function calling.
+
+    Возвращает (message, candidate): message — объект ответа целиком,
+    в нём может быть либо content, либо tool_calls.
+    """
+    candidates = _build_candidates(model, fallbacks, user_tier)
+    last_exc: BaseException | None = None
+
+    for candidate in candidates:
+        if not await check_rpm_limit(candidate):
+            last_exc = LocalRateLimitError("Превышен лимит для данной модели.")
+            if candidate == candidates[-1]:
+                raise last_exc
+            continue
+
+        try:
+            response = await _litellm_call(
+                candidate, messages, stream=False, tools=tools, tool_choice=tool_choice
+            )
+        except Exception as e:
+            last_exc = e
+            if _is_rate_limit(e):
+                continue
+            _mark_model_failed(candidate, e)
+            continue
+
+        choices = getattr(response, "choices", None) or []
+        if not choices:
+            last_exc = RuntimeError(f"Пустой ответ от {candidate}")
+            _mark_model_failed(candidate, last_exc)
+            continue
+
+        resp_message = choices[0].message
+        has_payload = getattr(resp_message, "content", None) or getattr(
+            resp_message, "tool_calls", None
+        )
+        if not has_payload:
+            last_exc = RuntimeError(f"Ни content, ни tool_calls от {candidate}")
+            _mark_model_failed(candidate, last_exc)
+            continue
+
+        _mark_model_succeeded(candidate)
+        return resp_message, candidate
 
     if last_exc is not None:
         raise last_exc

@@ -1,22 +1,18 @@
-import asyncio
 import json
-import os
 import re
-import time
 import traceback
 from html import escape
 from typing import Any, cast
 
-import openai
 from aiogram.enums import ParseMode
-from aiogram.exceptions import TelegramRetryAfter
 
 from bot import logger
 from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL, ChatState
 from bot.handlers.ai.tools import TOOLS_SCHEMA, handle_tool_call
-from bot.utils.ai.ai_api import simple_text_api, simple_text_api_text, stream_text_api
+from bot.utils.ai.ai_api import simple_text_api, stream_text_api, tools_text_api
 from bot.utils.ai.providers import format_model_line
+from bot.utils.ai.stream_output import AIStreamer, send_rich_reply
 from bot.utils.global_storage import active_chats, filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
 
@@ -45,6 +41,15 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
         user_tier = await db.get_user_tier(message.from_user.id)
         requested_model = model
         actual_model = model
+        streamer = AIStreamer(message, base_msg)
+
+        def _header() -> str:
+            return (
+                f"💭 Запрос: {user_message}\n"
+                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                f"📝 Ответ:"
+            )
+
         if not is_model_available_for_user(model, user_tier):
             await state.clear()
             tier_name = "премиумные" if user_tier > 0 else "свободные"
@@ -58,25 +63,18 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
 
         messages.append({"role": "user", "content": user_message})
 
-        client = openai.AsyncOpenAI(
-            api_key=os.getenv("ONLYSQ_API_KEY"),
-            base_url=os.getenv("OPENAI_SDK_API_URL"),
-        )
-
         model_info = filtered_models.get(model, {})
         model_display_name = model_info.get("name", model)
 
         is_tools_model = model_info.get("can-tools", False)
 
         if is_tools_model:
-            response = await client.chat.completions.create(
+            response_message, actual_model = await tools_text_api(
                 model=model,
                 messages=messages,
                 tools=cast(Any, TOOLS_SCHEMA),
-                tool_choice="auto",
+                user_tier=user_tier,
             )
-
-            response_message = response.choices[0].message
             final_text = ""
 
             if response_message.tool_calls:
@@ -136,18 +134,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                     messages = [messages[0]] + messages[-19:]
                 await state.update_data(messages=messages)
 
-            raw_answer = (
-                f"💭 Запрос: {user_message}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                f"📝 Ответ: {answer}"
-            )
-
-            chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
-            for idx, chunk in enumerate(chunks):
-                if idx == 0:
-                    await base_msg.edit_text(chunk)
-                else:
-                    await message.answer(chunk)
+            await streamer.finalize(_header(), answer)
 
         else:
 
@@ -155,9 +142,6 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
 
             if can_stream:
                 final_text = ""
-                buffer = ""
-                edited_once = False
-                last_edit_time = time.monotonic()
 
                 async for chunk, used in stream_text_api(
                     model=model,
@@ -167,41 +151,14 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                     actual_model = used
                     if chunk:
                         final_text += chunk
-                        buffer += chunk
-
-                        now = time.monotonic()
-                        if (
-                            len(buffer) > 35
-                            or chunk.endswith((".", "!", "?", "\n"))
-                            or now - last_edit_time > 10.0
-                        ):
-                            try:
-                                await base_msg.edit_text(
-                                    f"💭 Запрос: {user_message}\n"
-                                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                                    f"📝 Ответ: {final_text}"
-                                )
-                                buffer = ""
-                                edited_once = True
-                                last_edit_time = now
-                            except TelegramRetryAfter as e:
-                                await asyncio.sleep(e.retry_after)
-                            except Exception:
-                                pass
-                        elif not edited_once:
-                            try:
-                                await base_msg.edit_text(
-                                    f"💭 Запрос: {user_message}\n"
-                                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                                    f"📝 Ответ: {final_text}"
-                                )
-                            except Exception:
-                                pass
+                        await streamer.update(_header(), final_text)
 
                 messages.append({"role": "assistant", "content": final_text})
                 if len(messages) > 20:
                     messages = [messages[0]] + messages[-19:]
                 await state.update_data(messages=messages)
+
+                await streamer.finalize(_header(), final_text.strip())
 
             else:
                 response, actual_model = await simple_text_api(
@@ -221,25 +178,10 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                     answer = answer_content.strip()
                 else:
                     answer = answer_content
-                raw_answer = (
-                    f"💭 Запрос: {user_message}\n"
-                    f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                    f"📝 Ответ: {answer}"
-                )
 
-                chunks = [
-                    raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)
-                ]
+                await streamer.finalize(_header(), answer)
 
-                for idx, chunk in enumerate(chunks):
-                    if idx == 0:
-                        await base_msg.edit_text(chunk)
-                    else:
-                        await message.answer(chunk)
-
-                ai_response = re.sub(r"[*_`#]", "", str(response)).strip()
-
-                messages.append({"role": "assistant", "content": ai_response})
+                messages.append({"role": "assistant", "content": str(response).strip()})
                 if len(messages) > 20:
                     messages = [messages[0]] + messages[-19:]
 
@@ -325,7 +267,7 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
         notification = ""
         if not can_stream:
             if model != DEFAULT_MODEL:
-                notification = f"⚠️ Модель <b>{model}</b> не поддерживает стриминг. Использую <b>{DEFAULT_MODEL}</b>\n"
+                notification = f"⚠️ Модель **{model}** не поддерживает стриминг. Использую **{DEFAULT_MODEL}**\n"
             model = DEFAULT_MODEL
         model_info = filtered_models.get(model, {})
         model_display_name = model_info.get("name", model)
@@ -333,6 +275,16 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
         base_msg = await message.reply("🔄 Обработка...")
         requested_model = model
         actual_model = model
+        streamer = AIStreamer(message, base_msg)
+
+        def _header() -> str:
+            return (
+                f"{notification}"
+                f"💭 Запрос: {user_query}\n"
+                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                f"📝 Ответ:"
+            )
+
         try:
             answer = ""
             async for chunk, used in stream_text_api(
@@ -343,6 +295,7 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
                 actual_model = used
                 if chunk:
                     answer += chunk
+                    await streamer.update(_header(), answer)
             if not answer:
                 await base_msg.edit_text("⚠️ Нет ответа от AI")
                 return True
@@ -352,18 +305,7 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
                 str(answer),
                 flags=re.DOTALL,
             ).strip()
-            raw_answer = (
-                f"{notification}"
-                f"💭 Запрос: {user_query}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
-                f"📝 Ответ: {answer}"
-            )
-            chunks = [raw_answer[i : i + 4096] for i in range(0, len(raw_answer), 4096)]
-            for idx, chunk in enumerate(chunks):
-                if idx == 0:
-                    await base_msg.edit_text(chunk)
-                else:
-                    await message.answer(chunk)
+            await streamer.finalize(_header(), answer)
         except Exception as e:
             await base_msg.edit_text(f"❌ Ошибка: {e}")
         return True
@@ -397,7 +339,7 @@ async def process_explain_reply(message, db: Database) -> bool:
             await message.reply("⚠️ Нет ответа от AI")
         else:
             model_line = format_model_line(actual_model, DEFAULT_MODEL, _model_name)
-            await message.reply(f"{model_line}\n📝 Ответ: {answer}")
+            await send_rich_reply(message, f"{model_line}\n\n📝 Ответ: {answer}")
         return True
     except Exception:
         return False
