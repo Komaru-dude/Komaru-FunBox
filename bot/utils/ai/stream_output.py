@@ -26,9 +26,7 @@ def md_paragraphs(text: str) -> str:
     return re.sub(r"(?<!\n)\n(?!\n)", "\n\n", text)
 
 
-async def _send_plain(
-    message: Message, text: str, base_msg: Optional[Message]
-) -> None:
+async def _send_plain(message: Message, text: str, base_msg: Optional[Message]) -> None:
     """Старый способ доставки: первый чанк в base_msg, остальные новыми сообщениями."""
     chunks = [text[i : i + MAX_LEN] for i in range(0, len(text), MAX_LEN)] or [""]
     for idx, chunk in enumerate(chunks):
@@ -89,9 +87,7 @@ class AIStreamer:
         now = time.monotonic()
         if now < self._next_update:
             return
-        self._next_update = now + (
-            DRAFT_INTERVAL if self.is_private else EDIT_INTERVAL
-        )
+        self._next_update = now + (DRAFT_INTERVAL if self.is_private else EDIT_INTERVAL)
         try:
             if self.is_private:
                 await self._send_draft(f"{md_paragraphs(header)}\n\n{partial}")

@@ -642,9 +642,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
 
         def _header() -> str:
             return (
-                f"{_display_request_md(request)}\n"
-                f"{_agai_line()}\n\n"
-                f"📝 Ответ:"
+                f"{_display_request_md(request)}\n" f"{_agai_line()}\n\n" f"📝 Ответ:"
             )
 
         final_text = ""
