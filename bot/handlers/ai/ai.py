@@ -30,16 +30,11 @@ from bot.utils.ai.ai_api import (
     simple_text_api_text,
     stream_text_api,
 )
-from bot.utils.ai.providers import format_model_line, get_all_models
+from bot.utils.ai.providers import format_model_line
 from bot.utils.ai.stream_output import AIStreamer
 from bot.utils.aio_tools import error_report
 from bot.utils.global_storage import active_chats, active_chats_lock, filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
-
-
-def _model_name(model_id: str) -> str:
-    info = filtered_models.get(model_id) or get_all_models().get(model_id, {})
-    return info.get("name", model_id)
 
 
 def _display_request_md(request: str) -> str:
@@ -500,7 +495,7 @@ async def cmd_ai(message: Message, bot: Bot, db: Database):
         def _header() -> str:
             return (
                 f"{_display_request_md(request)}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                f"{format_model_line(actual_model, requested_model)}\n\n"
                 f"📝 Ответ:"
             )
 
@@ -623,7 +618,7 @@ async def cmd_agai(message: Message, bot: Bot, db: Database):
         actual_model = model
 
         def _agai_line() -> str:
-            base = format_model_line(actual_model, requested_model, _model_name)
+            base = format_model_line(actual_model, requested_model)
             return f"{base} (Aggressive)"
 
         messages = [

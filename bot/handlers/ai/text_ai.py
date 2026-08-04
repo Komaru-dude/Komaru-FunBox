@@ -11,15 +11,10 @@ from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL, ChatState
 from bot.handlers.ai.tools import TOOLS_SCHEMA, handle_tool_call
 from bot.utils.ai.ai_api import simple_text_api, stream_text_api, tools_text_api
-from bot.utils.ai.providers import format_model_line, get_all_models
+from bot.utils.ai.providers import format_model_line
 from bot.utils.ai.stream_output import AIStreamer, send_rich_reply
 from bot.utils.global_storage import active_chats, filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
-
-
-def _model_name(model_id: str) -> str:
-    info = filtered_models.get(model_id) or get_all_models().get(model_id, {})
-    return info.get("name", model_id)
 
 
 async def process_active_chat(message, state, db: Database, text_msg: str) -> bool:
@@ -46,7 +41,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
         def _header() -> str:
             return (
                 f"💭 Запрос: {user_message}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                f"{format_model_line(actual_model, requested_model)}\n\n"
                 f"📝 Ответ:"
             )
 
@@ -87,7 +82,7 @@ async def process_active_chat(message, state, db: Database, text_msg: str) -> bo
                     if func_name == "chat_stop":
                         await base_msg.edit_text(
                             f"💭 Запрос: {user_message}\n"
-                            f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                            f"{format_model_line(actual_model, requested_model)}\n\n"
                             f"📝 ✅ Чат успешно остановлен"
                         )
                         return True
@@ -281,7 +276,7 @@ async def process_user_prompt_trigger(message, db: Database, text_msg: str) -> b
             return (
                 f"{notification}"
                 f"💭 Запрос: {user_query}\n"
-                f"{format_model_line(actual_model, requested_model, _model_name)}\n\n"
+                f"{format_model_line(actual_model, requested_model)}\n\n"
                 f"📝 Ответ:"
             )
 
@@ -338,7 +333,7 @@ async def process_explain_reply(message, db: Database) -> bool:
         if not answer:
             await message.reply("⚠️ Нет ответа от AI")
         else:
-            model_line = format_model_line(actual_model, DEFAULT_MODEL, _model_name)
+            model_line = format_model_line(actual_model, DEFAULT_MODEL)
             await send_rich_reply(message, f"{model_line}\n\n📝 Ответ: {answer}")
         return True
     except Exception:

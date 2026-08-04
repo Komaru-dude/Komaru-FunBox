@@ -8,6 +8,7 @@ from typing import Any, Optional
 import litellm
 
 from bot import AI_PROVIDERS_CONFIG_PATH, logger
+from bot.utils.global_storage import filtered_models
 
 _DEFAULT_CONFIG: dict[str, Any] = {
     "default_provider": "onlysq",
@@ -288,17 +289,25 @@ def healthcheck_poll_interval() -> float:
         return 300.0
 
 
+def model_display_name(model_id: str) -> str:
+    """Человекочитаемое имя модели: из filtered_models или полного конфига."""
+    info = filtered_models.get(model_id) or get_all_models().get(model_id, {})
+    return info.get("name", model_id)
+
+
 def format_model_line(actual: str | None, requested: str, name_lookup=None) -> str:
     """Рендер строки '🧠 Модель: <actual> (запрошена: <requested>)'."""
+    if name_lookup is None:
+        name_lookup = model_display_name
 
     def _pretty(mid: str) -> str:
-        if name_lookup is None:
-            return mid
         try:
             return name_lookup(mid) or mid
         except Exception:
             return mid
 
-    if not actual or actual == requested:
+    # Совпадение отображаемых имён = та же модель через другой маршрут,
+    # пользователю приписка «запрошена» не нужна
+    if not actual or actual == requested or _pretty(actual) == _pretty(requested):
         return f"🧠 Модель: {_pretty(requested)}"
     return f"🧠 Модель: {_pretty(actual)} (запрошена: {_pretty(requested)})"
