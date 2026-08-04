@@ -17,6 +17,7 @@ from bot.utils.ai.providers import (
     get_all_models,
     healthcheck_cooldowns,
     healthcheck_enabled,
+    model_route_alternates,
     provider_credentials,
     resolve_model,
 )
@@ -120,7 +121,7 @@ def _mark_model_succeeded(model_id: str) -> None:
     }
 
     model = get_all_models().get(model_id)
-    if model:
+    if model and not model.get("hidden"):
         filtered_models[model_id] = model
 
     if previous and not previous.get("available", True):
@@ -153,6 +154,8 @@ def _auto_fallbacks(primary: str, user_tier: int, max_chain: int) -> list[str]:
     for mid, m in all_models.items():
         if mid == primary:
             continue
+        if m.get("hidden"):
+            continue
         if m.get("modality") != modality:
             continue
         if m.get("is_premium") and user_tier <= 0:
@@ -165,6 +168,17 @@ def _auto_fallbacks(primary: str, user_tier: int, max_chain: int) -> list[str]:
     return result
 
 
+def _route_alternates(primary: str, user_tier: int) -> list[str]:
+    """Та же модель через других провайдеров — пробуются раньше фолбэков."""
+    all_models = get_all_models()
+    result: list[str] = []
+    for mid in model_route_alternates(primary):
+        if all_models.get(mid, {}).get("is_premium") and user_tier <= 0:
+            continue
+        result.append(mid)
+    return result
+
+
 def _build_candidates(
     primary: str, fallbacks: list[str] | None, user_tier: int
 ) -> list[str]:
@@ -173,9 +187,11 @@ def _build_candidates(
     else:
         chain = list(fallbacks)
 
+    routes = _route_alternates(primary, user_tier)
+
     seen: set[str] = set()
     ordered: list[str] = []
-    for mid in [primary, *chain]:
+    for mid in [primary, *routes, *chain]:
         if mid and mid not in seen and not _model_is_cooling_down(mid):
             seen.add(mid)
             ordered.append(mid)
@@ -606,6 +622,8 @@ async def check_models(
 
         checked_models: dict[str, dict] = {}
         for model_id, model in all_api_models.items():
+            if model.get("hidden"):
+                continue
             state = _model_health.get(model_id)
             if not state or not state.get("available", False):
                 continue

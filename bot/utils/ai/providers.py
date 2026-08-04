@@ -215,6 +215,21 @@ def provider_credentials(provider_cfg: dict[str, Any]) -> dict[str, Any]:
     return kwargs
 
 
+def model_route_alternates(model_id: str) -> list[str]:
+    """Запасные маршруты той же модели через других провайдеров (model_routes).
+
+    Возвращает только существующие в конфиге ID, без самого model_id.
+    """
+    cfg = load_ai_providers()
+    routes = cfg.get("model_routes") or {}
+    alternates = routes.get(model_id) or []
+    if not isinstance(alternates, list):
+        return []
+
+    models = get_all_models()
+    return [mid for mid in alternates if mid != model_id and mid in models]
+
+
 def fallback_max_chain(user_tier: int) -> int:
     cfg = load_ai_providers()
     key = "premium" if user_tier > 0 else "free"

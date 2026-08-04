@@ -11,14 +11,14 @@ from bot.database.database import Database
 from bot.handlers.ai.ai import DEFAULT_MODEL, ChatState
 from bot.handlers.ai.tools import TOOLS_SCHEMA, handle_tool_call
 from bot.utils.ai.ai_api import simple_text_api, stream_text_api, tools_text_api
-from bot.utils.ai.providers import format_model_line
+from bot.utils.ai.providers import format_model_line, get_all_models
 from bot.utils.ai.stream_output import AIStreamer, send_rich_reply
 from bot.utils.global_storage import active_chats, filtered_models
 from bot.utils.premium_logic import is_model_available_for_user
 
 
 def _model_name(model_id: str) -> str:
-    info = filtered_models.get(model_id, {})
+    info = filtered_models.get(model_id) or get_all_models().get(model_id, {})
     return info.get("name", model_id)
 
 
