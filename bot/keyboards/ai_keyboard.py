@@ -22,7 +22,8 @@ def make_available_models_kb(
             premium_icon = " 💎" if model.get("is_premium", False) else ""
             thinking_icon = " 🧠" if model.get("can-think", False) else ""
             tools_icon = " 🔧" if model.get("can-tools", False) else ""
-            model_name = f"{model_id}{premium_icon}{thinking_icon}{tools_icon}"
+            display_name = model.get("name", model_id)
+            model_name = f"{display_name}{premium_icon}{thinking_icon}{tools_icon}"
 
             inline_keyboard.append(
                 [

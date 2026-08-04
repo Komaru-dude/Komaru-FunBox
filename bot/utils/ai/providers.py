@@ -94,6 +94,7 @@ def get_all_models() -> dict[str, dict[str, Any]]:
             enriched_model["api_base_env"] = prov_data.get("api_base_env")
             enriched_model["api_key_env"] = prov_data.get("api_key_env")
             enriched_model["litellm_prefix"] = prov_data.get("litellm_prefix", "")
+            enriched_model["name"] = model_data.get("user_name") or model_id
 
             models_flat[model_id] = enriched_model
 
