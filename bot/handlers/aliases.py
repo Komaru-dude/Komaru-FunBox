@@ -25,6 +25,7 @@ aliases_router = Router()
 MAX_ALIASES = 100
 ALIAS_RE = re.compile(r"^[а-яёА-ЯЁa-zA-Z0-9_\-]{1,32}$")
 FORBIDDEN_TARGETS = {"aliases"}
+ALIAS_PREFIXES = ("!", ".", "-", "+", "=", "~", "#", "$", "%", "^", "&", "*", "?", "<", ">", "|")
 
 DEFAULT_PRESET: dict[str, str] = {
     "отмена": "cancel",
@@ -72,7 +73,7 @@ class AliasMiddleware:  # Святые угодники, не бейте мен�
         if not text:
             return await handler(event, data)
         parts = text.split(None, 1)
-        raw_cmd = parts[0].lstrip("/").split("@")[0].lower()
+        first = parts[0]
         rest = parts[1] if len(parts) > 1 else ""
         db: Database | None = data.get("db")
         if db is None or event.from_user is None:
@@ -80,6 +81,20 @@ class AliasMiddleware:  # Святые угодники, не бейте мен�
         is_premium = await db.is_premium_user(event.from_user.id)
         if not is_premium:
             return await handler(event, data)
+        prefix = next((p for p in ALIAS_PREFIXES if first.startswith(p)), None)
+        if prefix is not None:
+            prompt_trigger = await db.get_user_setting(
+                event.from_user.id, "custom_prompts_trigger"
+            )
+            if (
+                isinstance(prompt_trigger, str)
+                and prompt_trigger
+                and first.startswith(prompt_trigger)
+            ):
+                return await handler(event, data)
+            raw_cmd = first[len(prefix) :].split("@")[0].lower()
+        else:
+            raw_cmd = first.lstrip("/").split("@")[0].lower()
         aliases = await _get_aliases(db, event.from_user.id)
         if raw_cmd not in aliases:
             return await handler(event, data)
@@ -227,7 +242,7 @@ async def cb_alias_add_start(
 
 @aliases_router.message(StateFilter(AddAliasStates.choosing_alias))
 async def process_alias_name(message: Message, state: FSMContext):
-    alias = (message.text or "").strip().lstrip("/").lower()
+    alias = (message.text or "").strip().lstrip("/!.-+=%^&*?<>|").lower()
     if not ALIAS_RE.fullmatch(alias):
         await message.reply("❌ Некорректный алиас. Попробуйте ещё раз.")
         return
