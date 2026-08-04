@@ -501,16 +501,13 @@ async def ocr_process_api(file_bytes: bytes, file_ext: str = "jpg") -> str:
             return "\n".join(s.get("text", "") for s in res.get("sections", []))
 
 
-async def check_models(
-    tier_filtered: bool = True, include_image: bool = False, force_refresh: bool = False
-):
+async def check_models(include_image: bool = False, force_refresh: bool = False):
     """Проверка доступности моделей"""
     async with _model_health_lock:
         await _load_model_health()
         now = time.time()
 
         all_api_models = get_all_models()
-        current_tier = int(os.getenv("ONLYSQ_TIER", 0))
 
         if not _model_health and not force_refresh:
             try:
@@ -540,9 +537,6 @@ async def check_models(
 
         # Итерируемся по всем моделям из нового JSON
         for model_id, model in all_api_models.items():
-            if tier_filtered and model.get("is_premium") and current_tier == 0:
-                continue
-
             state = _model_health.get(model_id)
             success_cooldown, failure_cooldown = healthcheck_cooldowns(model_id)
             cooldown = (
@@ -626,8 +620,6 @@ async def check_models(
                 continue
             state = _model_health.get(model_id)
             if not state or not state.get("available", False):
-                continue
-            if tier_filtered and model.get("is_premium") and current_tier == 0:
                 continue
             checked_models[model_id] = model
 
